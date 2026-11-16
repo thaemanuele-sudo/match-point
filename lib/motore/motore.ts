@@ -881,7 +881,7 @@ export function creaMotore(opz: OpzioniMotore): Motore {
       } else {
         const p = await eseguiInOmbra(ctx, ctx.rif, secchio);
         if (p) {
-          emetti({ tipo: "controllo", compito: c.id, modello: servito.id, dettagli: { modello: servito.id } });
+          emetti({ tipo: "controllo", compito: c.id, modello: servito.id, dettagli: { modello: servito.id, costo_usd: p.costo_usd } });
           rifRisposta = p.contenuto;
           const g = await giudicaCoppia(ctx, p.contenuto, risposta, secchio, servito.id);
           if (g) {
@@ -920,7 +920,7 @@ export function creaMotore(opz: OpzioniMotore): Motore {
     }
     const cand = await eseguiInOmbra(ctx, scelto.info, secchio);
     if (!cand) return;
-    emetti({ tipo: "prova_ombra", compito: c.id, modello: scelto.info.id, dettagli: { modello: scelto.info.id } });
+    emetti({ tipo: "prova_ombra", compito: c.id, modello: scelto.info.id, dettagli: { modello: scelto.info.id, costo_usd: cand.costo_usd } });
     // Nei compiti con `verifica` il decisore dà la sua probabilità anche a questa risposta: è il dato che serve a tararlo.
     const probabilitaCand = await probabilitaInOmbra(ctx, secchio, cand.contenuto);
     const g = await giudicaCoppia(ctx, rifRisposta, cand.contenuto, secchio, scelto.info.id);

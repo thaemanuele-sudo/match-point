@@ -28,7 +28,7 @@ export { voceOpenAI } from "./fornitori/voce-openai";
 export { voceElevenLabs } from "./fornitori/voce-elevenlabs";
 
 // Giudice e decisori
-export { giudica } from "./giudice";
+export { giudica, MASSIMO_CARATTERI_RICHIESTA, MASSIMO_CARATTERI_RISPOSTA_DECISORE, MASSIMO_CARATTERI_RISPOSTA_MODELLO } from "./giudice";
 export { decisoreSage } from "./decisori/sage";
 export { decisoreLLM } from "./decisori/llm";
 

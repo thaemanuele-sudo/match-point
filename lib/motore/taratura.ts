@@ -13,6 +13,9 @@ export const FASCE: number[] = [0, 0.5, 0.7, 0.8, 0.9, 0.95, 1];
 /** Casi minimi, nelle fasce considerate, perché la taratura valga più della probabilità dichiarata. */
 export const MINIMO_CASI_TARATURA = 30;
 
+/** Casi minimi che una singola fascia deve avere perché la soglia automatica possa scendere fino al suo bordo. */
+export const MINIMO_CASI_FASCIA = 10;
+
 /**
  * Indice della fascia (da 0 a 5) di una probabilità. Il bordo inferiore appartiene alla fascia
  * che comincia lì: 0,7 è nella fascia 0,7-0,8; 1 è nell'ultima. Un valore fuori scala o non numerico
@@ -47,14 +50,23 @@ export function probabilitaTarata(fasce: FasciaTaratura[], probabilita: number, 
  * - 1 se i casi ci sono ma nemmeno le fasce più alte raggiungono la qualità: il decisore non è abbastanza
  *   affidabile e la soglia va dove nessuna risposta arriva, quindi si serve il riferimento.
  * Si parte dalla fascia più bassa perché una soglia bassa lascia passare più risposte economiche.
+ * - Prudenza: la soglia non scende mai sotto il bordo inferiore della fascia più bassa che ha almeno
+ *   `MINIMO_CASI_FASCIA` casi da sola. Se i dati stanno solo nelle fasce alte, accettare probabilità
+ *   più basse vorrebbe dire fidarsi di valori mai visti alla prova. Se nessuna fascia ha tanti casi
+ *   si risponde `null` (non si sa abbastanza) e il chiamante tiene la soglia che aveva.
  */
 export function sogliaAutomatica(
   fasce: FasciaTaratura[],
   regole: { qualita: number; fiducia: number; minimo?: number },
 ): number | null {
   const minimo = regole.minimo ?? MINIMO_CASI_TARATURA;
+  const minimoFascia = Math.min(MINIMO_CASI_FASCIA, minimo);
+  const pavimento = fasce
+    .filter((f) => f.ok + f.ko >= minimoFascia)
+    .reduce((m, f) => Math.min(m, f.fascia), Infinity);
+  if (!Number.isFinite(pavimento)) return null;
   let abbastanza = false;
-  for (let i = 0; i < FASCE.length - 1; i++) {
+  for (let i = Math.max(0, pavimento); i < FASCE.length - 1; i++) {
     let ok = 0;
     let ko = 0;
     for (const f of fasce) {
