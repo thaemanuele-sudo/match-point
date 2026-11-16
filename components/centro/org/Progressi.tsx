@@ -5,8 +5,8 @@ import { SchermoCentro } from "@/components/centro/Schermo";
 import { Caricamento, Chip, Chips, Errore, Nota, Sezione, Seg, Tile, Vuoto } from "@/components/centro/ui";
 import { rotta } from "@/lib/centro/rotte";
 import { useT } from "@/lib/i18n/lingua";
-import { allieviDelGruppo, maestriDi, nomeCompleto, settimanaProgramma, sostituisci, useOrg } from "./dati";
-import type { ValutazioneR } from "./tipi";
+import { allieviDelGruppo, leggiValutazioni, maestriDi, nomeCompleto, settimanaProgramma, sostituisci, useOrg } from "./dati";
+import type { ValutazioneL } from "./tipi";
 import "./org.css";
 
 const IT = {
@@ -29,14 +29,22 @@ export default function CentroProgressi() {
   const o = useOrg();
   const { centro, sb, dati: d } = o;
   const r = rotta(centro.slug);
-  const [val, setVal] = useState<ValutazioneR[] | null>(null);
+  // le valutazioni si leggono per competenza, solo quando la si sceglie, e si tengono per non rileggerle tornando indietro
+  const [cache, setCache] = useState<Partial<Record<Comp, ValutazioneL[]>>>({});
   const [err, setErr] = useState<string | null>(null);
   const [vista, setVista] = useState<"gruppi" | "maestri">("gruppi");
   const [comp, setComp] = useState<Comp>("dritto");
 
+  const val = cache[comp] ?? null;
   useEffect(() => {
-    sb.from("valutazioni").select("*").eq("centro_id", centro.id).then(({ data, error }: { data: unknown; error: { message: string } | null }) => (error ? setErr(error.message) : setVal((data ?? []) as ValutazioneR[])));
-  }, [sb, centro.id]);
+    if (cache[comp]) return;
+    let vivo = true;
+    void leggiValutazioni(sb, centro.id, chiaveColpo[comp]).then((x) => {
+      if (!vivo) return;
+      if (x.errore) setErr(x.errore); else setCache((c) => ({ ...c, [comp]: x.righe }));
+    });
+    return () => { vivo = false; };
+  }, [sb, centro.id, comp, cache]);
 
   const schermo = (corpo: React.ReactNode, sopra?: string) => (
     <SchermoCentro ruolo={o.eResp ? "area" : "dt"} tab="progressi" titolo={t.titolo} sopra={sopra ?? centro.nome} indietro={o.eResp ? r.area.base : r.dt.base}>{corpo}</SchermoCentro>

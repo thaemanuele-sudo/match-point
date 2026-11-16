@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useT } from "@/lib/i18n/lingua";
 import { SchermoCentro } from "@/components/centro/Schermo";
 import { VideoEsercizio } from "./Video";
@@ -7,7 +7,7 @@ import { FormEsercizio, type DatiEsercizio } from "./FormEsercizio";
 import { Pannello } from "./Pannello";
 import { Ico } from "./ico";
 import { comune, fmt } from "./testi";
-import { COLPI, FASCE, leggiEsercizio, leggiLinea, nomeColpo, rangeFasce, type ColpoK, type Esercizio, type LineaGuida } from "./dati";
+import { COLONNE_ESERCIZIO, COLPI, FASCE, PAGINA, filtroColpo, leggiEsercizio, leggiLinea, nomeColpo, rangeFasce, type ColpoK, type Esercizio, type LineaGuida } from "./dati";
 import { useMetodo } from "./useMetodo";
 import "./metodo.css";
 
@@ -61,7 +61,6 @@ export default function MaestroMetodo() {
   const [fascia, setFascia] = useState<string>("U12");
   const [colpo, setColpo] = useState<ColpoK>("dritto");
   const [filtro, setFiltro] = useState<ColpoK | "tutti">("tutti");
-  const [linee, setLinee] = useState<LineaGuida[]>([]);
   const [ex, setEx] = useState<Esercizio[]>([]);
   const [fasceMie, setFasceMie] = useState<string[]>([]);
   const [dt, setDt] = useState("");
@@ -74,44 +73,110 @@ export default function MaestroMetodo() {
   const [errore, setErrore] = useState("");
   const [formKey, setFormKey] = useState(0);
 
+  const [tot, setTot] = useState(0);
+  const [caricaEx, setCaricaEx] = useState(false);
+  const richiestaEx = useRef(0);
+  const cacheLinee = useRef<Map<string, LineaGuida | null>>(new Map());
+  const [lineaSel, setLineaSel] = useState<LineaGuida | null>(null);
+  const [lgCarica, setLgCarica] = useState(true);
+
+  // All'apertura servono solo il nome del DT e le fasce dei gruppi del maestro: linee guida ed esercizi si chiedono quando si guardano
   const leggi = useCallback(async () => {
-    const defL = [t.scala_1, t.scala_2, t.scala_3, t.scala_4];
-    const [a, b, c, d] = await Promise.all([
-      sb.from("linee_guida").select("*").eq("centro_id", centro.id),
-      sb.from("esercizi").select("*").eq("centro_id", centro.id).order("created_at", { ascending: false }),
-      attivo ? sb.from("gruppi_maestri").select("gruppo_id").eq("membro_id", attivo.id) : Promise.resolve({ data: [], error: null }),
-      sb.from("membri").select("nome,cognome,ruolo").eq("centro_id", centro.id).in("ruolo", ["dt", "titolare"]).order("ruolo", { ascending: false }),
+    const [c, d] = await Promise.all([
+      // fascia dei gruppi con un solo join (prima: prima gruppi_maestri, poi gruppi)
+      attivo ? sb.from("gruppi_maestri").select("gruppo_id,gruppi(fascia)").eq("membro_id", attivo.id) : Promise.resolve({ data: [], error: null }),
+      sb.from("membri").select("nome,cognome,ruolo").eq("centro_id", centro.id).in("ruolo", ["dt", "titolare"]).order("ruolo", { ascending: false }).limit(1),
     ]);
-    if (a.error || b.error) {
+    if (c.error || d.error) {
       setKo(true);
       setCarica(false);
       return;
     }
-    setLinee((a.data ?? []).map((r: Record<string, unknown>) => leggiLinea(r, defL)).filter(Boolean) as LineaGuida[]);
-    setEx((b.data ?? []).map((r: Record<string, unknown>) => leggiEsercizio(r)));
     const dtRow = (d.data ?? [])[0] as Record<string, unknown> | undefined;
     if (dtRow) setDt([dtRow.nome, dtRow.cognome].filter(Boolean).join(" "));
     // La fascia di partenza è quella dei gruppi del maestro
-    const ids = (c.data ?? []).map((r: Record<string, unknown>) => String(r.gruppo_id));
-    if (ids.length) {
-      const g = await sb.from("gruppi").select("fascia").in("id", ids);
-      const f = [...new Set((g.data ?? []).map((r: Record<string, unknown>) => String(r.fascia)).filter(Boolean))] as string[];
+    const f = [...new Set((c.data ?? []).map((r: Record<string, unknown>) => {
+      const g = r.gruppi as { fascia?: unknown } | { fascia?: unknown }[] | null;
+      return String((Array.isArray(g) ? g[0]?.fascia : g?.fascia) ?? "");
+    }).filter(Boolean))] as string[];
+    if (f.length) {
       setFasceMie(f);
-      if (f.length) setFascia((p) => (f.includes(p) ? p : f[0]));
+      setFascia((p) => (f.includes(p) ? p : f[0]));
     }
     setKo(false);
     setCarica(false);
-  }, [sb, centro.id, attivo, t]);
+  }, [sb, centro.id, attivo]);
   useEffect(() => {
     leggi();
   }, [leggi]);
 
+  // La linea guida mostrata (fascia + colpo): una riga, non le 80 del centro
+  useEffect(() => {
+    const k = `${fascia}|${colpo}`;
+    if (cacheLinee.current.has(k)) {
+      setLineaSel(cacheLinee.current.get(k) ?? null);
+      setLgCarica(false);
+      return;
+    }
+    let vivo = true;
+    setLgCarica(true);
+    (async () => {
+      const { data, error } = await sb.from("linee_guida").select("id,fascia,colpo,competenze,errori,regola,scala,bloccata,created_at").eq("centro_id", centro.id).eq("fascia", fascia).or(filtroColpo(colpo)).limit(5);
+      if (!vivo) return;
+      setLgCarica(false);
+      if (error) {
+        setKo(true);
+        return;
+      }
+      const defL = [t.scala_1, t.scala_2, t.scala_3, t.scala_4];
+      const l = (data ?? []).map((r: Record<string, unknown>) => leggiLinea(r, defL)).find((x: LineaGuida | null) => x?.colpo === colpo) ?? null;
+      cacheLinee.current.set(k, l);
+      setLineaSel(l);
+    })();
+    return () => { vivo = false; };
+  }, [fascia, colpo, sb, centro.id, t]);
+
+  // Esercizi: solo quando si apre la libreria, a 50 per volta; il maestro vede gli approvati e le sue proposte in attesa
+  const costruisciEx = useCallback(() => {
+    let s = sb.from("esercizi").select(COLONNE_ESERCIZIO, { count: "exact" }).eq("centro_id", centro.id);
+    s = attivo?.id ? s.or(`stato.eq.approvato,and(stato.eq.proposto,proposto_da.eq.${attivo.id})`) : s.eq("stato", "approvato");
+    if (filtro !== "tutti") s = s.or(filtroColpo(filtro));
+    return s.order("created_at", { ascending: false }).order("id");
+  }, [sb, centro.id, attivo?.id, filtro]);
+  const leggiEx = useCallback(
+    async (quante: number = PAGINA) => {
+      const mia = ++richiestaEx.current;
+      setCaricaEx(true);
+      const r = await costruisciEx().range(0, Math.max(quante, PAGINA) - 1);
+      if (mia !== richiestaEx.current) return;
+      setCaricaEx(false);
+      if (r.error) return setKo(true);
+      setEx((r.data ?? []).map((x: Record<string, unknown>) => leggiEsercizio(x)));
+      setTot(r.count ?? (r.data ?? []).length);
+    },
+    [costruisciEx],
+  );
+  useEffect(() => {
+    if (vista === "lib") leggiEx();
+  }, [vista, leggiEx]);
+  async function caricaAltriEx() {
+    const mia = richiestaEx.current;
+    setCaricaEx(true);
+    const r = await costruisciEx().range(ex.length, ex.length + PAGINA - 1);
+    setCaricaEx(false);
+    if (r.error || mia !== richiestaEx.current) return;
+    const nuove = (r.data ?? []).map((x: Record<string, unknown>) => leggiEsercizio(x));
+    const visti = new Set(ex.map((e) => e.id));
+    setEx([...ex, ...nuove.filter((e: Esercizio) => !visti.has(e.id))]);
+    setTot(r.count ?? tot);
+  }
+
   const dtNome = dt || t.il_dt;
-  const sel = linee.find((l) => l.fascia === fascia && l.colpo === colpo);
+  const sel = lineaSel ?? undefined;
   const titolo = `${fascia} · ${t[`colpo_${colpo}`]}`;
 
-  // Il maestro vede gli esercizi approvati e solo le sue proposte ancora in attesa
-  const visibili = ex.filter((e) => (e.stato === "approvato" && (filtro === "tutti" || e.colpo === filtro)) || (e.stato === "proposto" && e.proposto_da === attivo?.id && (filtro === "tutti" || e.colpo === filtro)));
+  // Il maestro vede gli esercizi approvati e solo le sue proposte ancora in attesa (già filtrati dal database)
+  const visibili = ex;
   const tagFonte = (e: Esercizio) =>
     e.stato === "proposto" ? { l: t.fonte_maestro, s: { background: "#2A2A10", color: "#FFD54A" } } : e.fonte === "matchpoint" ? { l: t.fonte_matchpoint, s: { background: "#232326", color: "#A1A1A6" } } : { l: t.fonte_centro, s: { background: "#12281D", color: "#4CD07D" } };
 
@@ -138,7 +203,8 @@ export default function MaestroMetodo() {
     }
     setBusy(false);
     setInviata({ nome: d.titolo, durata: d.durata });
-    leggi();
+    // la libreria si rilegge solo quando viene riaperta
+    setEx([]);
   }
 
   return (
@@ -186,6 +252,8 @@ export default function MaestroMetodo() {
                 </div>
                 <div className="mm-note" style={{ alignItems: "center" }}><span style={{ color: "#D8F34A" }}><Ico n="lock" s={16} /></span><span>{fmt(t.nota_lg, { dt: dtNome })}</span></div>
               </>
+            ) : lgCarica ? (
+              <div className="mm-load">{t.caricamento}</div>
             ) : (
               <div className="mm-note">{fmt(t.senza_lg, { t: titolo })}</div>
             )}
@@ -201,7 +269,8 @@ export default function MaestroMetodo() {
               ))}
             </div>
             <div className="mm-cards" style={{ gap: 7 }}>
-              {visibili.length === 0 ? <div className="mm-load">{t.nessuno}</div> : null}
+              {caricaEx && visibili.length === 0 ? <div className="mm-load">{t.caricamento}</div> : null}
+              {!caricaEx && visibili.length === 0 ? <div className="mm-load">{t.nessuno}</div> : null}
               {visibili.map((e) => {
                 const tg = tagFonte(e);
                 return (
@@ -216,6 +285,7 @@ export default function MaestroMetodo() {
                 );
               })}
             </div>
+            {visibili.length < tot ? <button type="button" className="mm-btn2" disabled={caricaEx} onClick={caricaAltriEx}>{t.carica_altri}</button> : null}
             <div className="mm-note">{t.solo_consultazione}</div>
           </>
         ) : null}

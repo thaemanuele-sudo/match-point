@@ -6,7 +6,7 @@ import { BarraMattoni, kickMattone } from "./Barra";
 import { Pannello, useToast } from "./Pannello";
 import { Ico } from "./ico";
 import { comune, fmt } from "./testi";
-import { colpoK, COLPI, leggiEsercizio, nomeColpo, type ColpoK, type Esercizio } from "./dati";
+import { colpoK, COLONNE_ESERCIZIO_BREVI, COLPI, filtroColpo, leggiEsercizio, nomeColpo, type ColpoK, type Esercizio } from "./dati";
 import { useMetodo } from "./useMetodo";
 import "./metodo.css";
 
@@ -155,7 +155,9 @@ export default function Modelli() {
   const t = useT(T) as Record<string, string>;
   const { sb, centro, puoModificare, reg } = useMetodo();
   const [righe, setRighe] = useState<Riga[]>([]);
-  const [esercizi, setEsercizi] = useState<Esercizio[]>([]);
+  // Esercizi approvati caricati per colpo, solo quando un blocco di quel colpo viene aperto ("*" = blocco senza colpo)
+  const [catalogo, setCatalogo] = useState<Record<string, Esercizio[]>>({});
+  const [titoliAlt, setTitoliAlt] = useState<Record<string, string>>({});
   const [carica, setCarica] = useState(true);
   const [ko, setKo] = useState(false);
   const [dur, setDur] = useState(60);
@@ -170,17 +172,13 @@ export default function Modelli() {
   const [toast, mostra] = useToast();
 
   const leggi = useCallback(async () => {
-    const [a, b] = await Promise.all([
-      sb.from("modelli_lezione").select("*").eq("centro_id", centro.id).order("created_at", { ascending: true }),
-      sb.from("esercizi").select("*").eq("centro_id", centro.id).eq("stato", "approvato"),
-    ]);
+    const a = await sb.from("modelli_lezione").select("id,nome,durata_min,blocchi,created_at").eq("centro_id", centro.id).order("created_at", { ascending: true });
     if (a.error) {
       setKo(true);
       setCarica(false);
       return;
     }
     setRighe((a.data ?? []).map((r: Record<string, unknown>) => ({ id: String(r.id), nome: String(r.nome ?? ""), durata: Number(r.durata_min) || 60, blocchi: leggiBlocchi(r.blocchi), creata: String(r.created_at ?? "") })));
-    setEsercizi((b.data ?? []).map((r: Record<string, unknown>) => leggiEsercizio(r)));
     setKo(false);
     setCarica(false);
   }, [sb, centro.id]);
@@ -238,11 +236,47 @@ export default function Modelli() {
   const fl = [...SIZES].reverse().find((s) => s <= libero) ?? 0;
   const puoAggiungere = libero > 0 && blocchi.length < 8 && fl > 0;
 
-  const titoloEs = (id: string) => esercizi.find((e) => e.id === id)?.titolo ?? id;
+  const titoloEs = (id: string) => titoliAlt[id] ?? Object.values(catalogo).flat().find((e) => e.id === id)?.titolo ?? id;
   const candidati = (b: Blocco, escludi: string[]) => {
     const k = colpoK(b.colpo);
-    return esercizi.filter((e) => !escludi.includes(e.id) && (!k || e.colpo === k));
+    return (catalogo[k ?? "*"] ?? []).filter((e) => !escludi.includes(e.id) && (!k || e.colpo === k));
   };
+
+  // Gli esercizi proposti nei menu sono quelli del colpo del blocco aperto, letti dal database (una volta per colpo) e senza descrizioni
+  const colpoAperto = cur ? colpoK(cur.colpo) ?? "*" : null;
+  useEffect(() => {
+    if (!colpoAperto || catalogo[colpoAperto]) return;
+    let vivo = true;
+    (async () => {
+      const righe: Esercizio[] = [];
+      // a blocchi da 1000: oltre quella soglia il server taglierebbe senza avvisare
+      for (let da = 0; da < 10000; da += 1000) {
+        let s = sb.from("esercizi").select(COLONNE_ESERCIZIO_BREVI).eq("centro_id", centro.id).eq("stato", "approvato");
+        if (colpoAperto !== "*") s = s.or(filtroColpo(colpoAperto));
+        const r = await s.order("titolo").order("id").range(da, da + 999);
+        if (r.error || !vivo) return;
+        const blocco = (r.data ?? []).map((x: Record<string, unknown>) => leggiEsercizio(x));
+        righe.push(...blocco);
+        if (blocco.length < 1000) break;
+      }
+      if (vivo) setCatalogo((p) => ({ ...p, [colpoAperto]: righe }));
+    })();
+    return () => { vivo = false; };
+  }, [colpoAperto, catalogo, sb, centro.id]);
+
+  // Titoli delle alternative scelte (anche di un altro colpo): una sola richiesta con in(...) per quelle che mancano
+  const altIds = cur ? cur.alternative.filter((id) => !titoliAlt[id]) : [];
+  const altChiave = altIds.join(",");
+  useEffect(() => {
+    if (!altChiave) return;
+    let vivo = true;
+    (async () => {
+      const r = await sb.from("esercizi").select("id,titolo").eq("centro_id", centro.id).in("id", altChiave.split(","));
+      if (!vivo || r.error) return;
+      setTitoliAlt((p) => ({ ...p, ...Object.fromEntries((r.data ?? []).map((x: Record<string, unknown>) => [String(x.id), String(x.titolo ?? "")])) }));
+    })();
+    return () => { vivo = false; };
+  }, [altChiave, sb, centro.id]);
 
   async function salva() {
     setErrore("");

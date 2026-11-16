@@ -1,16 +1,17 @@
 "use client";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { SchermoCentro } from "@/components/centro/Schermo";
 import { useCentro } from "@/lib/centro/contesto";
 import { useT } from "@/lib/i18n/lingua";
 import { FoglioLocale, Interruttore } from "./FoglioLocale";
+import { BLOCCO_LETTURA, COL_QUOTA, PAGINA, catalogoCentro, chiaveFamiglia, invalidaCatalogo, leggi, leggiLegami, riepilogoPagamenti, type Riepilogo } from "./dati";
 import { useCartaAttiva } from "./hooks";
 import s from "./pagamenti.module.css";
 import {
   COLORE_STATO, PER_IT, csv, daIso, etichettaMetodo, etichettaQuota, euro, fineMese, fmt, fmtCorto, fmtMese, importoCSV,
   inizioMese, iso, leggiImp, oggiISO, scaricaFile, scaricaRicevuta, statoEff,
-  type AllievoMin, type Corso, type GruppoMin, type ImpPagamenti, type LegameFamiglia, type MembroMin, type MetodoQuota, type Quota, type StatoEff,
+  type ImpPagamenti, type MetodoQuota, type Quota, type StatoEff,
 } from "./util";
 
 const IT = {
@@ -44,6 +45,8 @@ const IT = {
   vuotoMese: "Per questo mese non ci sono quote. Imposta le quote dei corsi e generale per gli iscritti.",
   vaiCorsi: "Vai a corsi e quote",
   vuotoFiltro: "Nessuna quota con questo stato.",
+  altri: "Carica altri",
+  esportazione: "Preparo il file…",
   autoPromemoria: "Promemoria automatici",
   autoPromemoriaSub: "3 giorni prima, alla scadenza e 7 giorni dopo",
   autoCarta: "Carta online con Stripe",
@@ -98,6 +101,7 @@ type Riga = {
   q: Quota; st: StatoEff; allievo: AllievoMin | undefined; corso: Corso | undefined; gruppo: GruppoMin | undefined;
   famiglia: string; chiave: string; genitori: string[];
 };
+type Filtro = "T" | StatoEff;
 
 export default function PagamentiCentro() {
   const { centro, membroAttivo, sb, ricarica } = useCentro();
@@ -105,84 +109,146 @@ export default function PagamentiCentro() {
   const cartaServer = useCartaAttiva();
   const attivo = membroAttivo;
   const [mese, setMese] = useState(() => inizioMese(new Date()));
-  const [filtro, setFiltro] = useState<"T" | StatoEff>("T");
+  const [filtro, setFiltro] = useState<Filtro>("T");
   const [righe, setRighe] = useState<Riga[]>([]);
+  const [finito, setFinito] = useState(true);
+  const [altri, setAltri] = useState(false);
+  const [riepilogo, setRiepilogo] = useState<Riepilogo | null>(null);
+  const [nFiltro, setNFiltro] = useState(0);
+  const [lavoro, setLavoro] = useState(false);
   const [caricato, setCaricato] = useState(false);
   const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
   const [imp, setImp] = useState<ImpPagamenti>(() => leggiImp(centro.impostazioni));
-  const [foglio, setFoglio] = useState<null | { tipo: "incasso"; quota: Quota | null } | { tipo: "dettaglio"; riga: Riga }>(null);
+  const [foglio, setFoglio] = useState<null | { tipo: "incasso"; quota: Quota | null; riga?: Riga } | { tipo: "dettaglio"; riga: Riga }>(null);
   const oggi = oggiISO();
+  const da = iso(inizioMese(mese));
+  const a = iso(fineMese(mese));
+  // quante quote del database sono già state lette per questo filtro (serve al blocco successivo) e quale richiesta è l'ultima
+  const letti = useRef(0);
+  const richiesta = useRef(0);
 
   useEffect(() => { setImp(leggiImp(centro.impostazioni)); }, [centro.impostazioni]);
 
-  const carica = useCallback(async () => {
-    const da = iso(inizioMese(mese));
-    const a = iso(fineMese(mese));
-    // quote del mese, più gli arretrati: quelle non pagate di mesi precedenti restano visibili finché non si incassano
-    const [dMese, dArr] = await Promise.all([
-      sb.from("quote").select("*").eq("centro_id", centro.id).gte("scade_il", da).lte("scade_il", a),
-      sb.from("quote").select("*").eq("centro_id", centro.id).lt("scade_il", da).neq("stato", "pagata"),
-    ]);
-    const e0 = dMese.error ?? dArr.error;
-    if (e0) { setErr(e0.message); setCaricato(true); return; }
-    const quote = [...((dMese.data ?? []) as Quota[]), ...((dArr.data ?? []) as Quota[])];
-    const ids = Array.from(new Set(quote.map((q) => q.allievo_id)));
-    const [al, lg, co, gr] = await Promise.all([
-      ids.length ? sb.from("allievi").select("id,nome,cognome").in("id", ids) : Promise.resolve({ data: [], error: null }),
-      ids.length ? sb.from("allievi_famiglie").select("allievo_id,membro_id").in("allievo_id", ids) : Promise.resolve({ data: [], error: null }),
-      sb.from("corsi").select("*").eq("centro_id", centro.id),
-      sb.from("gruppi").select("id,nome,fascia,giorni,ora").eq("centro_id", centro.id),
-    ]);
-    const e1 = al.error ?? lg.error ?? co.error ?? gr.error;
-    if (e1) { setErr(e1.message); setCaricato(true); return; }
-    const legami = (lg.data ?? []) as LegameFamiglia[];
-    const gids = Array.from(new Set(legami.map((l) => l.membro_id)));
-    const me = gids.length ? await sb.from("membri").select("id,nome,cognome").in("id", gids) : { data: [], error: null };
-    if (me.error) { setErr(me.error.message); setCaricato(true); return; }
-    const membri = new Map(((me.data ?? []) as MembroMin[]).map((m) => [m.id, m]));
-    const allievi = new Map(((al.data ?? []) as AllievoMin[]).map((x) => [x.id, x]));
-    const corsi = new Map(((co.data ?? []) as Corso[]).map((x) => [x.id, x]));
-    const gruppi = new Map(((gr.data ?? []) as GruppoMin[]).map((x) => [x.id, x]));
+  /**
+   * Quote del mese più gli arretrati (non pagate di mesi precedenti), filtrate dal database.
+   * `N` = tutte le non pagate, per la finestra dell'incasso. Mai tutta la tabella: sempre un intervallo di date e un blocco.
+   */
+  const interroga = useCallback((f: Filtro | "N", colonne: string, conta = false) => {
+    let q = sb.from("quote").select(colonne, conta ? { count: "exact", head: true } : undefined).eq("centro_id", centro.id)
+      .or(`and(scade_il.gte.${da},scade_il.lte.${a}),and(scade_il.lt.${da},stato.neq.pagata)`);
+    if (f === "P") q = q.eq("stato", "pagata");
+    else if (f === "A") q = q.eq("stato", "attesa").gte("scade_il", oggi);
+    else if (f === "S") q = q.or(`stato.eq.scaduta,and(stato.eq.attesa,scade_il.lt.${oggi})`);
+    else if (f === "N") q = q.neq("stato", "pagata");
+    return q;
+  }, [sb, centro.id, da, a, oggi]);
+
+  /** Un blocco di quote con nome dell'allievo, genitori, corso e gruppo: allievi e legami solo per le quote lette. */
+  const leggiBlocco = useCallback(async (f: Filtro | "N", x: number, y: number): Promise<{ righe: Riga[]; n: number }> => {
+    const quote = await leggi<Quota>(interroga(f, COL_QUOTA).order("scade_il").order("id").range(x, y));
+    const [{ corsi, gruppi }, leg] = await Promise.all([catalogoCentro(sb, centro.id), leggiLegami(sb, centro.id, quote.map((q) => q.allievo_id))]);
+    const corsoPer = new Map(corsi.map((c) => [c.id, c]));
+    const gruppoPer = new Map(gruppi.map((g) => [g.id, g]));
     const out: Riga[] = quote.map((q) => {
-      const al1 = allievi.get(q.allievo_id);
-      const gen = legami.filter((l) => l.allievo_id === q.allievo_id).map((l) => l.membro_id);
-      const m0 = gen.length ? membri.get(gen[0]) : undefined;
-      const corso = q.corso_id ? corsi.get(q.corso_id) : undefined;
+      const al1 = leg.allievi.get(q.allievo_id);
+      const gen = leg.genitoriDi.get(q.allievo_id) ?? [];
+      const m0 = gen.length ? leg.membri.get(gen[0]) : undefined;
+      const corso = q.corso_id ? corsoPer.get(q.corso_id) : undefined;
       return {
-        q, st: statoEff(q, oggi), allievo: al1, corso, gruppo: corso?.gruppo_id ? gruppi.get(corso.gruppo_id) : undefined,
+        q, st: statoEff(q, oggi), allievo: al1, corso, gruppo: corso?.gruppo_id ? gruppoPer.get(corso.gruppo_id) : undefined,
         famiglia: m0?.cognome || al1?.cognome || "",
-        // le famiglie si contano per genitore; senza genitore collegato vale l'allievo stesso
-        chiave: gen.length ? [...gen].sort()[0] : q.allievo_id,
+        chiave: chiaveFamiglia(q.allievo_id, gen),
         genitori: gen,
       };
     });
-    out.sort((x, y) => x.q.scade_il.localeCompare(y.q.scade_il) || (x.allievo?.cognome ?? "").localeCompare(y.allievo?.cognome ?? ""));
-    setErr("");
+    // dentro il blocco, a pari scadenza, in ordine di cognome come prima
+    out.sort((x1, y1) => x1.q.scade_il.localeCompare(y1.q.scade_il) || (x1.allievo?.cognome ?? "").localeCompare(y1.allievo?.cognome ?? ""));
+    return { righe: out, n: quote.length };
+  }, [interroga, sb, centro.id, oggi]);
+
+  /** Tutte le righe di un filtro, a blocchi di 1000: solo per l'esportazione e per i promemoria a tutti, mai per la lista. */
+  const leggiTutte = useCallback(async (f: Filtro | "N"): Promise<Riga[]> => {
+    const out: Riga[] = [];
+    for (let x = 0; ; x += BLOCCO_LETTURA) {
+      const r = await leggiBlocco(f, x, x + BLOCCO_LETTURA - 1);
+      out.push(...r.righe);
+      if (r.n < BLOCCO_LETTURA) return out;
+    }
+  }, [leggiBlocco]);
+
+  // totali del mese (incassi, percentuali, famiglie): calcolati dal database, indipendenti dalla pagina caricata
+  const caricaTotali = useCallback(async () => {
+    try {
+      setRiepilogo(await riepilogoPagamenti(sb, centro.id, da, a, oggi));
+    } catch (e) { setErr(e instanceof Error ? e.message : String(e)); }
+  }, [sb, centro.id, da, a, oggi]);
+  useEffect(() => { void caricaTotali(); }, [caricaTotali]);
+
+  // prima pagina della lista a ogni cambio di mese o di filtro
+  const caricaPrimaPagina = useCallback(async () => {
+    const mia = ++richiesta.current;
+    try {
+      const [r, n] = await Promise.all([
+        leggiBlocco(filtro, 0, PAGINA - 1),
+        // il numero dei promemoria da inviare arriva da un conteggio, non dalle righe caricate
+        filtro === "A" || filtro === "S" ? interroga(filtro, "id", true).then((x: { count: number | null }) => x.count ?? 0) : Promise.resolve(0),
+      ]);
+      if (mia !== richiesta.current) return;
+      letti.current = r.n;
+      setRighe(r.righe);
+      setFinito(r.n < PAGINA);
+      setNFiltro(n);
+      setErr("");
+    } catch (e) {
+      if (mia === richiesta.current) setErr(e instanceof Error ? e.message : String(e));
+    }
+    if (mia === richiesta.current) setCaricato(true);
+  }, [filtro, leggiBlocco, interroga]);
+  useEffect(() => { setCaricato(false); void caricaPrimaPagina(); }, [caricaPrimaPagina]);
+
+  const caricaAltri = async () => {
+    setAltri(true);
+    const mia = richiesta.current;
+    try {
+      const r = await leggiBlocco(filtro, letti.current, letti.current + PAGINA - 1);
+      if (mia !== richiesta.current) return;
+      letti.current += r.n;
+      setRighe((att) => {
+        const ids = new Set(att.map((x) => x.q.id));
+        return [...att, ...r.righe.filter((x) => !ids.has(x.q.id))];
+      });
+      setFinito(r.n < PAGINA);
+    } catch (e) { setErr(e instanceof Error ? e.message : String(e)); }
+    setAltri(false);
+  };
+
+  /** Dopo un incasso o un annullo la riga si aggiorna sul posto (e sparisce se non rientra più nel filtro): niente rilettura della lista. */
+  const applicaPatch = (id: string, patch: Partial<Quota>) => {
+    let tolte = 0;
+    const out: Riga[] = [];
+    for (const r of righe) {
+      if (r.q.id !== id) { out.push(r); continue; }
+      const q = { ...r.q, ...patch };
+      const st = statoEff(q, oggi);
+      // fuori dal filtro, oppure un arretrato ormai pagato (gli arretrati restano visibili solo finché non si incassano)
+      if ((filtro !== "T" && st !== filtro) || (q.scade_il < da && st === "P")) { tolte++; continue; }
+      out.push({ ...r, q, st });
+    }
+    letti.current = Math.max(0, letti.current - tolte);
     setRighe(out);
-    setCaricato(true);
-  }, [sb, centro.id, mese, oggi]);
-  useEffect(() => { setCaricato(false); carica(); }, [carica]);
+    void caricaTotali();
+    if (filtro === "A" || filtro === "S") setNFiltro((n) => Math.max(0, n - tolte));
+  };
 
   // ---------- riepilogo ----------
   const riep = useMemo(() => {
-    const somma = (st: StatoEff) => righe.filter((r) => r.st === st).reduce((a, r) => a + r.q.importo_cent, 0);
-    const P = somma("P"), A = somma("A"), S = somma("S");
-    const tot = P + A + S;
+    const r = riepilogo ?? { P: 0, A: 0, S: 0, fam: { P: 0, A: 0, S: 0 } };
+    const tot = r.P + r.A + r.S;
     const pct = (x: number) => (tot ? (x / tot) * 100 : 0);
-    // la famiglia prende lo stato peggiore tra le sue quote: scaduta > in attesa > pagata
-    const peggio = new Map<string, StatoEff>();
-    const peso = { P: 0, A: 1, S: 2 };
-    righe.forEach((r) => {
-      const c = peggio.get(r.chiave);
-      if (!c || peso[r.st] > peso[c]) peggio.set(r.chiave, r.st);
-    });
-    const fam = { P: 0, A: 0, S: 0 };
-    peggio.forEach((v) => fam[v]++);
-    return { P, A, S, tot, pP: pct(P), pA: pct(A), pS: pct(S), fam };
-  }, [righe]);
+    return { P: r.P, A: r.A, S: r.S, tot, pP: pct(r.P), pA: pct(r.A), pS: pct(r.S), fam: r.fam };
+  }, [riepilogo]);
 
-  const visibili = righe.filter((r) => filtro === "T" || r.st === filtro);
   const nomeStato = (st: StatoEff) => (st === "P" ? t.sPagato : st === "A" ? t.sAttesa : t.sScaduto);
   const quando = (r: Riga) => (r.st === "P" ? fmtCorto(r.q.pagata_il ?? r.q.scade_il) : r.st === "S" ? fmt(t.scaduta, { d: fmtCorto(r.q.scade_il) }) : fmt(t.scade, { d: fmtCorto(r.q.scade_il) }));
   const sub = (r: Riga) => [r.gruppo?.nome, r.famiglia ? fmt(t.famigliaDi, { c: r.famiglia }) : "", r.st === "P" ? etichettaMetodo(r.q.metodo, t) : etichettaQuota(r.q, t), r.q.scade_il < iso(inizioMese(mese)) && r.st !== "P" ? t.arretrato : ""].filter(Boolean).join(" · ");

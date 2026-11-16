@@ -8,9 +8,9 @@ import { nomeApp, urlLogo } from "@/lib/centro/brand";
 import { useCentro } from "@/lib/centro/contesto";
 import { rotta } from "@/lib/centro/rotte";
 import { useT } from "@/lib/i18n/lingua";
-import { nomeCompleto, sostituisci, useOrg, type Org } from "./dati";
+import { COL_INVITO, nomeCompleto, sostituisci, useOrg, type Org } from "./dati";
 import { InvitoBox, creaInvito, linkInvito } from "./Invito";
-import type { ConsensoR, InvitoR } from "./tipi";
+import type { InvitoR } from "./tipi";
 import "./org.css";
 
 const IT = {
@@ -30,6 +30,8 @@ const IT = {
 };
 const T = { it: IT, en: { ...IT } };
 type Imp = Record<string, unknown>;
+/** Numeri della scheda "Dati": solo conteggi dal database, nessuna riga di allievi o consensi scaricata. */
+type NumeriDati = { tot: number; privacy: number; foto_video: number; ai: number; cert: number };
 const num = (v: unknown, d: number) => (typeof v === "number" ? v : d);
 const txt = (v: unknown) => (typeof v === "string" ? v : "");
 
@@ -40,20 +42,36 @@ export default function CentroImpostazioni() {
   const { ricarica } = useCentro();
   const r = rotta(centro.slug);
   const [tab, setTab] = useState<"centro" | "ruoli" | "chat" | "dati">("centro");
-  const [cons, setCons] = useState<ConsensoR[] | null>(null);
+  const [numeri, setNumeri] = useState<NumeriDati | null>(null);
   const [inviti, setInviti] = useState<InvitoR[]>([]);
   const [errore, setErrore] = useState<string | null>(null);
   const [rev, setRev] = useState(0);
 
   useEffect(() => {
-    sb.from("consensi").select("id,allievo_id,tipo,valore").eq("centro_id", centro.id).then(({ data }: { data: unknown }) => setCons((data ?? []) as ConsensoR[]));
-    sb.from("inviti").select("*").eq("centro_id", centro.id).order("created_at", { ascending: false }).then(({ data }: { data: unknown }) => setInviti((data ?? []) as InvitoR[]));
+    // le sole righe che servono: i codici dei genitori validi (non quelli personali di ogni allievo, che sono migliaia)
+    sb.from("inviti").select(COL_INVITO).eq("centro_id", centro.id).eq("ruolo", "genitore").is("allievo_id", null)
+      .or(`scade_il.is.null,scade_il.gt.${new Date().toISOString()}`).order("created_at", { ascending: false }).limit(200)
+      .then(({ data }: { data: unknown }) => setInviti((data ?? []) as InvitoR[]));
   }, [sb, centro.id, rev]);
+
+  // consensi e certificati: solo conteggi (head), e solo quando si apre la scheda "Dati". (centro_id, allievo, tipo) è unico: una riga = un allievo.
+  useEffect(() => {
+    if (tab !== "dati") return;
+    let vivo = true;
+    const oggi = o.oggi;
+    const consensi = (tipo: string) => sb.from("consensi").select("id", { count: "exact", head: true }).eq("centro_id", centro.id).eq("tipo", tipo).eq("valore", true);
+    void Promise.all([
+      sb.from("allievi").select("id", { count: "exact", head: true }).eq("centro_id", centro.id),
+      consensi("privacy"), consensi("foto_video"), consensi("ai"),
+      sb.from("allievi").select("id", { count: "exact", head: true }).eq("centro_id", centro.id).gte("certificato_scade", oggi),
+    ]).then(([tot, p, f, a, c]) => { if (vivo) setNumeri({ tot: tot.count ?? 0, privacy: p.count ?? 0, foto_video: f.count ?? 0, ai: a.count ?? 0, cert: c.count ?? 0 }); });
+    return () => { vivo = false; };
+  }, [sb, centro.id, tab, o.oggi]);
 
   const schermo = (corpo: React.ReactNode) => (
     <SchermoCentro ruolo="dt" tab="impostazioni" titolo={t.titolo} sopra={sostituisci(t.sopra, { centro: centro.nome, citta: centro.citta ?? "" }).replace(/ · $/, "")} indietro={r.dt.base}>{corpo}</SchermoCentro>
   );
-  if (!d || !cons) return schermo(o.errore ? <Errore messaggio={o.errore} onRiprova={() => void o.carica()} /> : <Caricamento />);
+  if (!d) return schermo(o.errore ? <Errore messaggio={o.errore} onRiprova={() => void o.carica()} /> : <Caricamento />);
   const imp = (centro.impostazioni ?? {}) as Imp;
   const puo = o.isDT;
 
@@ -64,7 +82,7 @@ export default function CentroImpostazioni() {
       {tab === "centro" && <TabCentro o={o} imp={imp} puo={puo} setErrore={setErrore} ricarica={ricarica} />}
       {tab === "ruoli" && <TabRuoli o={o} inviti={inviti} puo={puo} setErrore={setErrore} rinnova={() => setRev((x) => x + 1)} />}
       {tab === "chat" && <TabChat imp={imp} puo={puo} salva={(p) => salvaImp(o, ricarica, p, setErrore)} />}
-      {tab === "dati" && <TabDati o={o} imp={imp} cons={cons} puo={puo} salva={(p) => salvaImp(o, ricarica, p, setErrore)} />}
+      {tab === "dati" && <TabDati o={o} imp={imp} numeri={numeri} puo={puo} salva={(p) => salvaImp(o, ricarica, p, setErrore)} />}
     </div>,
   );
 }
@@ -278,14 +296,13 @@ function TabChat({ imp, puo, salva }: { imp: Imp; puo: boolean; salva: (p: Imp) 
   );
 }
 
-function TabDati({ o, imp, cons, puo, salva }: { o: Org; imp: Imp; cons: ConsensoR[]; puo: boolean; salva: (p: Imp) => Promise<void> }) {
+function TabDati({ o, imp, numeri, puo, salva }: { o: Org; imp: Imp; numeri: NumeriDati | null; puo: boolean; salva: (p: Imp) => Promise<void> }) {
   const t = useT(T);
   const r = rotta(o.centro.slug);
-  const tot = o.dati?.allievi.length ?? 0;
+  if (!numeri) return <Caricamento />;
+  const tot = numeri.tot;
   const mesi = num(imp.conservazione_mesi, 24);
-  const conta = (tipo: string) => new Set(cons.filter((c) => c.tipo === tipo && c.valore).map((c) => c.allievo_id)).size;
-  const cert = (o.dati?.allievi ?? []).filter((a) => a.certificato_scade && a.certificato_scade >= o.oggi).length;
-  const righe = [[t.cPrivacy, conta("privacy")], [t.cFoto, conta("foto_video")], [t.cAi, conta("ai")], [t.cCert, cert]] as [string, number][];
+  const righe = [[t.cPrivacy, numeri.privacy], [t.cFoto, numeri.foto_video], [t.cAi, numeri.ai], [t.cCert, numeri.cert]] as [string, number][];
   const opz: [number, string][] = [[12, t.m12], [24, t.m24], [36, t.m36], [60, t.m60]];
   return (
     <div className="og-dash c2">
