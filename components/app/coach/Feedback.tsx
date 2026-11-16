@@ -39,7 +39,7 @@ const T = {
     luca_6_forehands_analyzed: "Luca · 6 forehands analyzed",
     late_preparation: "Late preparation",
     dr_01: "DR-01",
-    error_in_progress: "Error in progress",
+    error_in_progress: "Being worked on",
     correct: "CORRECT",
     to_monitor: "TO MONITOR",
     in_progress: "IN PROGRESS",

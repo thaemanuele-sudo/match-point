@@ -9,6 +9,7 @@ import s from "./Velocita.module.css";
 const T = {
   it: {
     back: "Indietro",
+    giri_valore: "2.180",
     giulia_s_serve_last: "Servizio di Giulia · ultime 7 prime",
     speed: "Velocità",
     km_h: "km/h",
@@ -20,6 +21,7 @@ const T = {
   },
   en: {
     back: "Back",
+    giri_valore: "2,180",
     giulia_s_serve_last: "Giulia's serve · last 7 first serves",
     speed: "Speed",
     km_h: "km/h",
@@ -122,7 +124,7 @@ export function Velocita() {
           </div>
           <div className={s.tile}>
             <b>
-              2.180
+              {t.giri_valore}
             </b>
             <span>
               {t.kick_rpm}

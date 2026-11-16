@@ -44,7 +44,7 @@ const T = {
     talk_by_voice: "Talk by voice",
     forehand_0_08: "Forehand · 0:08",
     look_at_tommaso_s: "Look at Tommaso's forehand, what's he doing wrong?",
-    i_analyzed_4_crosscourt: "I analyzed 4 crosscourt forehands. There's a recurring error:",
+    i_analyzed_4_crosscourt: "I've analyzed 4 crosscourt forehands. There's a recurring error:",
     late_contact: "Late contact",
     the_ball_is_hit: "The ball is hit behind the hip",
     shall_i_prepare_3: "Shall I prepare 3 lead-up drills and a leg workout?",

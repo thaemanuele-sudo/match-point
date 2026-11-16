@@ -598,23 +598,12 @@
 
 /* schermate dell'orologio: si ritaglia l'angolo 392x432 dell'immagine (640 / 392 = 163,3% di larghezza): il resto è nero */
 .s-orol {
-  position: relative;
-  aspect-ratio: 392 / 432;
-  overflow: hidden;
-  border-radius: 20cqw;
-  background: #000;
-  box-shadow: 0 0 0 1.2cqw #2c2c30;
+  aspect-ratio: 504 / 578;
 }
 .s-orol img {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 163.265%;
-  max-width: none;
+  display: block;
+  width: 100%;
   height: auto;
-}
-.s-tel:has(.s-orol) {
-  padding: 1.2cqw;
 }
 
 /* ---------- Tutte le schermate ---------- */

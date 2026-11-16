@@ -9,6 +9,7 @@ import s from "./Confronto.module.css";
 const T = {
   it: {
     back: "Indietro",
+    moviola: "0,25×",
     serve_synced_frames: "Servizio · frame sincronizzati",
     comparison: "Confronto",
     giulia_today: "Giulia · oggi",
@@ -22,6 +23,7 @@ const T = {
   },
   en: {
     back: "Back",
+    moviola: "0.25×",
     serve_synced_frames: "Serve · synced frames",
     comparison: "Comparison",
     giulia_today: "Giulia · today",
@@ -505,7 +507,7 @@ export function Confronto() {
             </svg>
           </button>
           <span className={s.tag}>
-            0,25×
+            {t.moviola}
           </span>
         </div>
         <div className={s.g3}>

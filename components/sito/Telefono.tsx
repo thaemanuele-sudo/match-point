@@ -16,8 +16,7 @@ export function Telefono({
   eager?: boolean;
   className?: string;
 }) {
-  // le tre schermate dell'orologio sono un quadro 392x432 nell'angolo di un'immagine nera 640x1387:
-  // niente cornice iPhone, si mostra solo quel quadro (vedi .s-orol in sito.css)
+  // le tre schermate dell'orologio hanno già la cassa del Watch disegnata (504x578): niente cornice iPhone
   if (nome.startsWith("Watch")) {
     return (
       <figure className={`s-tel ${className}`}>
@@ -25,8 +24,8 @@ export function Telefono({
           {/* eslint-disable-next-line @next/next/no-img-element -- immagini statiche già ottimizzate (webp) */}
           <img
             src={`/sito/schermate/${lang}/${nome}.webp`}
-            width={640}
-            height={1387}
+            width={504}
+            height={578}
             alt={alt}
             loading={eager ? "eager" : "lazy"}
             decoding="async"

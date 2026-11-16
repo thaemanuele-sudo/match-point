@@ -180,7 +180,6 @@
   .db-profilo { padding: 18px; }
   .db-marchio .testo { display: none; }
 }
-@media (min-width: 821px) { 
 /* ===== Match Point: aggiunte ===== */
 .db-logo svg { stroke: var(--su-acc); }
 .db-avatar { color: var(--su-acc); }

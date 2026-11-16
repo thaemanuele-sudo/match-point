@@ -8,6 +8,7 @@ import s from "./BallTracking.module.css";
 const T = {
   it: {
     back: "Indietro",
+    altezza_rete: "1,9 m",
     video_lab_neural_network: "Video Lab · rete neurale per la palla",
     ball_tracking: "Tracciamento palla",
     court_detected: "campo rilevato",
@@ -21,10 +22,11 @@ const T = {
   },
   en: {
     back: "Back",
+    altezza_rete: "1.9 m",
     video_lab_neural_network: "Video Lab · neural network for the ball",
     ball_tracking: "Ball tracking",
     court_detected: "court detected",
-    bounces_in: "bounces in",
+    bounces_in: "bounces in court",
     in: "IN",
     last_bounce_38_cm: "last bounce · 38 cm from the line",
     height_over_the_net: "height over the net",
@@ -106,7 +108,7 @@ export function BallTracking() {
             </div>
             <div className={s.tile}>
               <b>
-                1,9 m
+                {t.altezza_rete}
               </b>
               <span>
                 {t.height_over_the_net}

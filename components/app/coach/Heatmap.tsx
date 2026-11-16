@@ -9,6 +9,7 @@ import s from "./Heatmap.module.css";
 const T = {
   it: {
     back: "Indietro",
+    media_fondo: "1,8 m",
     tommaso_tuesday_practice: "Tommaso · allenamento di martedì",
     heatmap: "Heatmap",
     balls_past_the_service: "palle oltre la linea di servizio",
@@ -20,6 +21,7 @@ const T = {
   },
   en: {
     back: "Back",
+    media_fondo: "1.8 m",
     tommaso_tuesday_practice: "Tommaso · Tuesday practice",
     heatmap: "Heatmap",
     balls_past_the_service: "balls past the service line",
@@ -144,7 +146,7 @@ export function Heatmap() {
             </div>
             <div className={s.tile}>
               <b>
-                1,8 m
+                {t.media_fondo}
               </b>
               <span>
                 {t.average_behind_the_baseline}

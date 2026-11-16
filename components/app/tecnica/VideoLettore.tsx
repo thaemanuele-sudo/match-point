@@ -18,8 +18,7 @@ const T = {
     erroreTesto: "Controlla la connessione e riprova.", riprova: "Riprova", libreria: "Libreria video",
     errore1: "Errore", correzione1: "Correzione", confronta: "Confronta", ferma: "Ferma il confronto",
     confrontaAiuto: "Fa partire insieme l'errore e la correzione", descrizione: "DESCRIZIONE", fasce: "FASCE D'ETÀ",
-    nonDisp: "Video non ancora disponibile", errCorr: "Errore e correzione", collegato: "Correzione collegata",
-    collegatoErr: "Errore collegato", altro: "Vai al video",
+    nonDisp: "Video non ancora disponibile",
   },
   en: {
     indietro: "Back", tecnica: "Technique", caricamento: "Loading video", nonTrovato: "Video not found",
@@ -27,8 +26,7 @@ const T = {
     erroreTesto: "Check your connection and try again.", riprova: "Try again", libreria: "Video library",
     errore1: "Error", correzione1: "Correction", confronta: "Compare", ferma: "Stop comparing",
     confrontaAiuto: "Plays the error and the correction together", descrizione: "DESCRIPTION", fasce: "AGE GROUPS",
-    nonDisp: "Video not available yet", errCorr: "Error and correction", collegato: "Linked correction",
-    collegatoErr: "Linked error", altro: "Go to video",
+    nonDisp: "Video not available yet",
   },
 };
 
