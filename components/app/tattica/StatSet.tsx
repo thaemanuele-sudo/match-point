@@ -11,6 +11,7 @@ const T = {
     back: "Indietro",
     under12TournamentSaturday: "Torneo Under 12 · sabato",
     stats: "Statistiche",
+    set: "Set",
     tommaso: "Tommaso",
     opponent: "Avversario",
     aces: "Ace",
@@ -26,6 +27,7 @@ const T = {
     back: "Back",
     under12TournamentSaturday: "Under 12 tournament · Saturday",
     stats: "Stats",
+    set: "Set",
     tommaso: "Tommaso",
     opponent: "Opponent",
     aces: "Aces",
@@ -83,7 +85,7 @@ export function StatSet() {
         </div>
         <div className={K.seg} style={{ gridTemplateColumns: "repeat(4,minmax(0,1fr))" }}>
           {SET.map((k, n) => (
-            <button key={k} type="button" className={n === sel ? `${K.sg} ${K.on}` : K.sg} aria-pressed={n === sel} onClick={() => setSel(n)}>{k === "partita" ? t.partita : `Set ${n}`}</button>
+            <button key={k} type="button" className={n === sel ? `${K.sg} ${K.on}` : K.sg} aria-pressed={n === sel} onClick={() => setSel(n)}>{k === "partita" ? t.partita : `${t.set} ${n}`}</button>
           ))}
         </div>
         {RIGHE.map(([k, v]) => {

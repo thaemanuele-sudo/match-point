@@ -1,12 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { SUPABASE_URL, SUPABASE_KEY } from "@/lib/supabase/config";
 
 // Pagine dell'app aperte a tutti (accesso, registrazione, benvenuto)
 const LIBERE = ["/app/accesso", "/app/registrati", "/app/benvenuto", "/app/recupero"];
 
 export async function middleware(req: NextRequest) {
   let res = NextResponse.next({ request: req });
-  const sb = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+  const sb = createServerClient(SUPABASE_URL, SUPABASE_KEY, {
     cookies: {
       getAll: () => req.cookies.getAll(),
       setAll: (list) => {

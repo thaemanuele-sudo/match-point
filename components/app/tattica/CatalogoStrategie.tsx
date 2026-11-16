@@ -87,7 +87,7 @@ export function CatalogoStrategie() {
             <h1 className={K.h1}>{t.strategies}</h1>
           </div>
         </header>
-        <div className={K.chips} style={{ marginBottom: "2px" }}>
+        <div role="group" aria-label={t.superficie} className={K.chips} style={{ marginBottom: "2px" }}>
           {FILTRI.map((f) => (
             <button key={f} type="button" className={f === sup ? `${K.chip} ${K.on}` : K.chip} aria-pressed={f === sup} onClick={() => setSup(f)}>{f === "tutte" ? t.tutte : t[f]}</button>
           ))}

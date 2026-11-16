@@ -4,6 +4,7 @@
  * campi del modulo, caricamento file su Supabase Storage.
  * L'accesso vero è protetto nel database: qui si mostra solo ciò che il database lascia fare.
  */
+import { SUPABASE_URL, SUPABASE_KEY } from "@/lib/supabase/config";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { FASCE, type Fascia } from "@/lib/types";
@@ -166,12 +167,12 @@ export async function caricaContenuto(sb: SupabaseClient, file: File, cartella: 
   const { data: s } = await sb.auth.getSession();
   const token = s.session?.access_token;
   if (!token) throw new Error("Sessione scaduta: esci e rientra.");
-  const base = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const base = SUPABASE_URL;
   await new Promise<void>((ok, ko) => {
     const x = new XMLHttpRequest();
     x.open("POST", `${base}/storage/v1/object/contenuti/${path}`);
     x.setRequestHeader("Authorization", `Bearer ${token}`);
-    x.setRequestHeader("apikey", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+    x.setRequestHeader("apikey", SUPABASE_KEY);
     x.setRequestHeader("x-upsert", "false");
     x.setRequestHeader("cache-control", "max-age=31536000");
     x.upload.onprogress = (e) => { if (e.lengthComputable) onProgress?.(e.loaded / e.total); };

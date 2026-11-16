@@ -113,7 +113,7 @@ export function PartitaLive() {
         <circle cx="57" cy="81" r="3.5" fill="#3D8BFF"></circle>
       </svg>
       <div style={{ position: "absolute", left: "56px", right: "40px", bottom: "18px", display: "flex", alignItems: "center", gap: "12px" }}>
-        <button type="button" className={K.icon} aria-label={pausa ? t.play : t.pause} aria-pressed={pausa} onClick={() => setPausa((p) => !p)} style={{ background: "rgba(5,5,5,.7)" }}>
+        <button type="button" className={K.icon} aria-label={pausa ? t.play : t.pause} onClick={() => setPausa((p) => !p)} style={{ background: "rgba(5,5,5,.7)" }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d={pausa ? "M8 5v14l11-7z" : "M8 5v14M16 5v14"}></path>
           </svg>

@@ -25,7 +25,6 @@ const T = {
     basso: "Basso",
     medio: "Medio",
     alto: "Alto",
-    rischio: "Rischio massimo",
   },
   en: {
     back: "Back",
@@ -44,7 +43,6 @@ const T = {
     basso: "Low",
     medio: "Medium",
     alto: "High",
-    rischio: "Maximum risk",
   },
 };
 

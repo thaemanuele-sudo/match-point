@@ -63,7 +63,7 @@ export function ProfiliAvversario() {
             <h1 className={K.h1}>{t.opponentProfile}</h1>
           </div>
         </header>
-        <div className={K.g3}>
+        <div role="group" aria-label={t.opponentProfile} className={K.g3}>
           {lista.map((c, n) => (
             <button key={c[0]} type="button" className={n === i ? `${K.chip} ${K.on}` : K.chip} aria-pressed={n === i} onClick={() => setI(n)} style={{ justifyContent: "center", padding: "0 6px", fontSize: 12 }}>{c[0]}</button>
           ))}

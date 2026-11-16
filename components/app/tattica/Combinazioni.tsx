@@ -12,6 +12,7 @@ const T = {
     combinations: "Combinazioni",
     game: "GAME",
     points: "PUNTI",
+    set: "SET",
     tommaso: "Tommaso",
     opponent: "Avversario",
     risk: "Rischio",
@@ -29,6 +30,7 @@ const T = {
     combinations: "Combinations",
     game: "GAME",
     points: "POINTS",
+    set: "SET",
     tommaso: "Tommaso",
     opponent: "Opponent",
     risk: "Risk",
@@ -85,7 +87,7 @@ export function Combinazioni() {
         <div className={S.board}>
           <div className={S.brow} style={{ marginBottom: "6px" }}>
             <span></span>
-            <span className={S.muted} style={{ fontSize: "11px", fontWeight: "700", textAlign: "center" }}>SET</span>
+            <span className={S.muted} style={{ fontSize: "11px", fontWeight: "700", textAlign: "center" }}>{t.set}</span>
             <span className={S.muted} style={{ fontSize: "11px", fontWeight: "700", textAlign: "center" }}>{t.game}</span>
             <span className={S.muted} style={{ fontSize: "11px", fontWeight: "700", textAlign: "center" }}>{t.points}</span>
           </div>

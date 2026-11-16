@@ -8,6 +8,7 @@ import K from "./comune.module.css";
 const T = {
   it: {
     back: "Indietro",
+    strokesCount: "6.700",
     lastMonthSensorAnd: "Ultimo mese · sensore e video",
     yourStrokes: "I tuoi colpi",
     strokes: "colpi",
@@ -24,6 +25,7 @@ const T = {
   },
   en: {
     back: "Back",
+    strokesCount: "6.700",
     lastMonthSensorAnd: "Last month · sensor and video",
     yourStrokes: "Your strokes",
     strokes: "strokes",
@@ -58,7 +60,7 @@ export function Distribuzione() {
         </header>
         <div className={K.g3}>
           <div className={K.tile}>
-            <b>6.700</b>
+            <b>{t.strokesCount}</b>
             <span>{t.strokes}</span>
           </div>
           <div className={K.tile}>
