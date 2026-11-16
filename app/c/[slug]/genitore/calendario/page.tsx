@@ -1,6 +1,7 @@
-import { Segnaposto } from "@/components/centro/Segnaposto";
+"use client";
+// Schermata G2 Calendario: la logica sta in components/centro/famiglia/GenitoreCalendario.tsx.
+import GenitoreCalendario from "@/components/centro/famiglia/GenitoreCalendario";
 
-// Segnaposto: l'area responsabile sostituisce questo file con la schermata vera.
 export default function Page() {
-  return <Segnaposto codice="G2" ruolo="genitore" tab="calendario" />;
+  return <GenitoreCalendario />;
 }

@@ -1,6 +1,7 @@
-import { Segnaposto } from "@/components/centro/Segnaposto";
+"use client";
+// Schermata G7 Figli e consensi: la logica sta in components/centro/famiglia/GenitoreFigli.tsx.
+import GenitoreFigli from "@/components/centro/famiglia/GenitoreFigli";
 
-// Segnaposto: l'area responsabile sostituisce questo file con la schermata vera.
 export default function Page() {
-  return <Segnaposto codice="G7" ruolo="genitore" tab="home" />;
+  return <GenitoreFigli />;
 }

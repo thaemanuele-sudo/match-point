@@ -1,6 +1,7 @@
-import { Segnaposto } from "@/components/centro/Segnaposto";
+"use client";
+// Schermata A1 Il mio percorso: la logica sta in components/centro/famiglia/AllievoPercorso.tsx.
+import AllievoPercorso from "@/components/centro/famiglia/AllievoPercorso";
 
-// Segnaposto: l'area responsabile sostituisce questo file con la schermata vera.
 export default function Page() {
-  return <Segnaposto codice="A1" ruolo="allievo" tab="percorso" />;
+  return <AllievoPercorso />;
 }

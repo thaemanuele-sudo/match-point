@@ -45,8 +45,7 @@ const chiaveFiglio = (centroId: string) => `mp-figlio-${centroId}`;
  * Usa sempre il membro "attivo" (vistaCome ?? membro), mai auth.uid(): così il titolare può vedere come un genitore.
  */
 export function useFigli(modo: "famiglia" | "allievo" = "famiglia") {
-  const { centro, membro, vistaCome, sb, ruolo } = useCentro();
-  const ma = vistaCome ?? membro;
+  const { centro, membroAttivo: ma, sb } = useCentro();
   const [figli, setFigli] = useState<Figlio[]>([]);
   const [campi, setCampi] = useState<RCampo[]>([]);
   const [caricamento, setCaricamento] = useState(true);
@@ -65,13 +64,15 @@ export function useFigli(modo: "famiglia" | "allievo" = "famiglia") {
         return;
       }
       setErrore(null);
-      // 1) gli allievi: i figli (allievi_famiglie) oppure, per l'account del ragazzo, il proprio profilo (allievi.membro_id)
+      // 1) gli allievi: il proprio profilo (account del ragazzo, allievi.membro_id) e, se non c'è, i figli (allievi_famiglie):
+      //    un genitore che usa la Modalità ragazzo sul suo telefono entra nelle pagine dell'allievo con i dati dei figli
       let allievi: RAllievo[] = [];
-      if (modo === "allievo" && ruolo === "allievo") {
+      if (modo === "allievo") {
         const r = await sb.from("allievi").select("*").eq("centro_id", centro.id).eq("membro_id", ma.id);
         if (r.error) return void (vivo && (setErrore(r.error.message), setCaricamento(false)));
         allievi = (r.data ?? []) as RAllievo[];
-      } else {
+      }
+      if (!allievi.length) {
         const fam = await sb.from("allievi_famiglie").select("allievo_id").eq("centro_id", centro.id).eq("membro_id", ma.id);
         if (fam.error) return void (vivo && (setErrore(fam.error.message), setCaricamento(false)));
         const ids = [...new Set((fam.data ?? []).map((x: { allievo_id: string }) => x.allievo_id))];
@@ -135,7 +136,7 @@ export function useFigli(modo: "famiglia" | "allievo" = "famiglia") {
       if (vivo) { setErrore(e instanceof Error ? e.message : String(e)); setCaricamento(false); }
     });
     return () => { vivo = false; };
-  }, [centro.id, ma?.id, modo, ruolo, sb, giro]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [centro.id, ma?.id, modo, sb, giro]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // il figlio scelto si ricorda per la sessione (stesso figlio in Home, Calendario, Progressi…)
   useEffect(() => {

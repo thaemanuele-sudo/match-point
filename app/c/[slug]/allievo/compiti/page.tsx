@@ -1,6 +1,7 @@
-import { Segnaposto } from "@/components/centro/Segnaposto";
+"use client";
+// Schermata A2 Compiti a casa: la logica sta in components/centro/famiglia/AllievoCompiti.tsx.
+import AllievoCompiti from "@/components/centro/famiglia/AllievoCompiti";
 
-// Segnaposto: l'area responsabile sostituisce questo file con la schermata vera.
 export default function Page() {
-  return <Segnaposto codice="A2" ruolo="allievo" tab="compiti" />;
+  return <AllievoCompiti />;
 }

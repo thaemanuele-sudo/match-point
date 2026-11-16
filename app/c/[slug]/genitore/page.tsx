@@ -1,6 +1,7 @@
-import { Segnaposto } from "@/components/centro/Segnaposto";
+"use client";
+// Schermata G1 Home genitore: la logica sta in components/centro/famiglia/GenitoreHome.tsx.
+import GenitoreHome from "@/components/centro/famiglia/GenitoreHome";
 
-// Segnaposto: l'area responsabile sostituisce questo file con la schermata vera.
 export default function Page() {
-  return <Segnaposto codice="G1" ruolo="genitore" tab="home" />;
+  return <GenitoreHome />;
 }

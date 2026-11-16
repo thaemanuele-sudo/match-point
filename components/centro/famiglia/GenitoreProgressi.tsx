@@ -63,12 +63,12 @@ export default function GenitoreProgressi() {
   useEffect(() => {
     if (!idAll) { setVals(null); return; }
     let vivo = true;
-    sb.from("valutazioni").select("colpo,competenza,voto,test,data").eq("centro_id", centro.id).eq("allievo_id", idAll).order("data", { ascending: false }).limit(500)
-      .then((x) => {
-        if (!vivo) return;
-        if (x.error) setErrVal(x.error.message);
-        setVals((x.data ?? []) as RValutazione[]);
-      });
+    (async () => {
+      const x = await sb.from("valutazioni").select("colpo,competenza,voto,test,data").eq("centro_id", centro.id).eq("allievo_id", idAll).order("data", { ascending: false }).limit(500);
+      if (!vivo) return;
+      if (x.error) setErrVal(x.error.message);
+      setVals((x.data ?? []) as RValutazione[]);
+    })();
     return () => { vivo = false; };
   }, [idAll, centro.id, sb]);
 

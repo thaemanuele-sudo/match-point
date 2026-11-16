@@ -1,6 +1,7 @@
-import { Segnaposto } from "@/components/centro/Segnaposto";
+"use client";
+// Schermata G3 Progressi: la logica sta in components/centro/famiglia/GenitoreProgressi.tsx.
+import GenitoreProgressi from "@/components/centro/famiglia/GenitoreProgressi";
 
-// Segnaposto: l'area responsabile sostituisce questo file con la schermata vera.
 export default function Page() {
-  return <Segnaposto codice="G3" ruolo="genitore" tab="progressi" />;
+  return <GenitoreProgressi />;
 }

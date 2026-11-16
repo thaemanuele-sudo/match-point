@@ -1,6 +1,7 @@
-import { Segnaposto } from "@/components/centro/Segnaposto";
+"use client";
+// Schermata G4 Report del mese: la logica sta in components/centro/famiglia/GenitoreReport.tsx.
+import GenitoreReport from "@/components/centro/famiglia/GenitoreReport";
 
-// Segnaposto: l'area responsabile sostituisce questo file con la schermata vera.
 export default function Page() {
-  return <Segnaposto codice="G4" ruolo="genitore" tab="progressi" />;
+  return <GenitoreReport />;
 }
