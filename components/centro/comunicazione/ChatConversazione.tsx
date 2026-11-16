@@ -75,7 +75,6 @@ export default function ChatConversazione() {
   const nome = nomeConv(conv, me.id, { famigliaDi: t.famigliaDi, chatDi: t.chatDi, segreteria: t.segreteria, staff: t.staff }) || nomeMembro(me);
   const bimbo = rs === "allievo";
   const banner = c.tipo === "allievo_maestro" ? (bimbo ? t.bannerAlBimbo : f(t.bannerAl, { anni: imp.chat_genitori_fino })) : c.tipo === "famiglia_segreteria" ? t.bannerSegr : c.tipo === "famiglia_maestro" ? t.bannerFa : t.bannerStaff;
-  const primo = nome.split(" ")[0];
   const rapide = bimbo ? [t.rb1, t.rb2, t.rb3] : mioRuolo === "genitore" ? [] : [t.r1, t.r2, t.r3];
 
   return (
@@ -86,7 +85,6 @@ export default function ChatConversazione() {
           <span>{banner}</span>
         </div>
         <ThreadChat id={c.id} stile={bimbo ? "bimbo" : "adulto"} alto mostraAutore={!bimbo} separaGiorni={bimbo} rapide={rapide} rapideInvia={bimbo} segnaposto={t.scrivi} piede={bimbo ? f(t.piedeBimbo, { ora: hhmm(imp.silenzio_da) }) : undefined} />
-        <span style={{ display: "none" }}>{primo}</span>
       </div>
     </SchermoCentro>
   );
