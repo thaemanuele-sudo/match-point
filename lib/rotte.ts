@@ -76,5 +76,10 @@ export const ROTTE = {
   WatchOut: "/app/watch-out", // 73 · Watch · chiamata OUT
   WatchPunteggio: "/app/watch-punteggio", // 74 · Watch · punteggio live
   WatchAllenamento: "/app/watch-allenamento", // 75 · Watch · allenamento
+  // pagine di account fuori dai disegni
+  Accesso: "/app/accesso",
+  Registrati: "/app/registrati",
+  Recupero: "/app/recupero",
+  Esci: "/app/esci",
 } as const;
 export type NomeSchermata = keyof typeof ROTTE;

@@ -55,9 +55,13 @@ export default function Registrati() {
     const e: Partial<Record<keyof Campi, string>> = {};
     if (!f.nome.trim()) e.nome = t.obbl;
     if (!f.cognome.trim()) e.cognome = t.obbl;
-    if (!EMAIL_RE.test(f.email.trim())) e.email = t.emailNon;
-    if (!normalizzaTelefono(f.telefono)) e.telefono = t.telNon;
-    if (f.password.length < 8) e.password = t.passCorta;
+    // Il telefono parte con "+39 ": se resta solo il prefisso (o è vuoto) il campo è vuoto.
+    if (!f.email.trim()) e.email = t.obbl;
+    else if (!EMAIL_RE.test(f.email.trim())) e.email = t.emailNon;
+    if (/^\+?\d{0,3}$/.test(f.telefono.trim())) e.telefono = t.obbl;
+    else if (!normalizzaTelefono(f.telefono)) e.telefono = t.telNon;
+    if (!f.password) e.password = t.obbl;
+    else if (f.password.length < 8) e.password = t.passCorta;
     if (f.conferma !== f.password) e.conferma = t.passDiverse;
     if (!f.privacy) e.privacy = t.privObbl;
     setErr(e);
