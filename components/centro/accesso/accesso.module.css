@@ -1,0 +1,133 @@
+/* Stile delle tre schermate di ingresso ai centri (P1, P2, P3): copiato dai mockup ruoli/Main, UniscitiCentro, RegistraCentro.
+   Il contenitore .q sta dentro <Schermo>; i selettori "a.xxx" servono a vincere su `.mp a` (che colora i link di giallo). */
+.q{position:relative;z-index:1;display:flex;flex-direction:column;gap:12px;min-width:0}
+.q.alto{min-height:calc(100dvh - 48px)}
+.q.fitto{gap:10px}
+.grow{flex:1;min-width:0}
+.disp{font-family:var(--font-barlow),"Barlow Condensed",sans-serif}
+
+/* prato in alto di P1 */
+.prato{position:absolute;left:0;right:0;top:0;height:250px;overflow:hidden;background:repeating-linear-gradient(90deg,#1E6A44 0 36px,#24764C 36px 72px);z-index:0;pointer-events:none}
+.prato svg{position:absolute;inset:0;width:100%;height:100%}
+.pratoVelo{position:absolute;left:0;right:0;bottom:0;height:150px;background:linear-gradient(180deg,rgba(5,5,5,0),#050505)}
+.marchio{font-family:var(--font-hanken),"Hanken Grotesk",sans-serif;font-size:19px;font-weight:800;letter-spacing:-.4px;color:#fff}
+.saluto{margin-top:20px}
+.big{margin:0;font-family:var(--font-barlow),"Barlow Condensed",sans-serif;font-size:46px;line-height:1;font-weight:800;font-style:italic}
+.intro{margin:8px 0 0;font-size:14.5px;line-height:1.4;color:#D1D1D6}
+
+/* intestazione con freccia */
+.hdr{display:flex;align-items:center;gap:10px}
+.kick{font-size:12px;font-weight:600;color:#A1A1A6}
+.h1{margin:0;font-family:var(--font-barlow),"Barlow Condensed",sans-serif;font-size:27px;line-height:1.05;font-weight:700}
+.q a.indietro{width:40px;height:40px;flex:none;border-radius:50%;background:#161618;border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;color:#F3F6F1;text-decoration:none}
+.q a.indietro:hover{color:#F3F6F1}
+
+/* righe del profilo */
+.li{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:18px;background:#161618;border:1.5px solid rgba(255,255,255,.06);text-decoration:none;color:#F3F6F1;width:100%;box-sizing:border-box;font:inherit;text-align:left;cursor:pointer}
+.li:hover{background:#1C1C1F}
+.li.on{border-color:#D8F34A;background:#1C1C1F}
+.li:disabled{opacity:.5;cursor:default}
+.q a.li,.q a.li:hover{color:#F3F6F1}
+.q a.liNuovo{border:1px dashed rgba(216,243,74,.45);background:transparent}
+.t{display:block;font-weight:700;font-size:15px}
+.s{display:block;font-size:12.5px;color:#A1A1A6;margin-top:2px}
+.s.stretto{margin-top:1px}
+.tondo{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;color:#fff}
+.ic{width:38px;height:38px;flex:none;border-radius:50%;background:#232326;color:#D8F34A;display:flex;align-items:center;justify-content:center}
+.radio{width:24px;height:24px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;box-sizing:border-box;background:transparent;color:transparent;border:2px solid #3A3A3C}
+.radio.on{background:#D8F34A;color:#0B0B0C;border-color:#D8F34A}
+.tag{display:inline-block;font-size:11px;font-weight:800;padding:3px 7px;border-radius:7px;background:#232326;color:#E5E5EA;white-space:nowrap}
+
+/* pulsanti */
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;height:52px;border-radius:999px;background:#D8F34A;color:#0B0B0C;font-weight:800;font-size:16px;border:0;font-family:inherit;text-decoration:none;flex:none;cursor:pointer;width:100%;box-sizing:border-box}
+.q a.btn,.q a.btn:hover{color:#0B0B0C}
+.btn:disabled{opacity:.45;cursor:default}
+.btn2{display:flex;align-items:center;justify-content:center;gap:8px;height:48px;border-radius:999px;background:#232326;color:#F3F6F1;font-weight:700;font-size:15px;border:0;font-family:inherit;text-decoration:none;flex:1;cursor:pointer}
+.q a.btn2,.q a.btn2:hover{color:#F3F6F1}
+.btn2:disabled{opacity:.5;cursor:default}
+.spingi{margin-top:auto}
+.testoLink{text-align:center;font-size:14px;font-weight:700;text-decoration:none;padding:2px 0 4px}
+.q a.testoLink{color:#D8F34A}
+
+/* riquadri */
+.card{background:#161618;border:1px solid rgba(255,255,255,.07);border-radius:20px;box-sizing:border-box}
+.card.pad{padding:14px}
+.card.giallo{border-color:rgba(216,243,74,.35)}
+.note{font-size:12.5px;line-height:1.4;color:#A1A1A6;background:#0E0E10;border:1px solid #232326;border-radius:14px;padding:10px 12px;display:flex;gap:10px;align-items:flex-start}
+.note svg{flex:none;margin-top:1px}
+.k{font-size:11px;font-weight:800;color:#A1A1A6;letter-spacing:.4px;text-transform:uppercase}
+.v{font-size:13px;line-height:1.38;color:#A1A1A6}
+.errore{font-size:13px;line-height:1.4;color:#FF8A6B;background:rgba(255,138,107,.08);border:1px solid rgba(255,138,107,.25);border-radius:14px;padding:10px 12px}
+.centrato{text-align:center}
+.piccolo{font-size:12px;font-weight:600;color:#A1A1A6;line-height:1.35}
+
+/* segmentato e chip */
+.seg{display:grid;gap:4px;padding:4px;border-radius:14px;background:#161618;grid-template-columns:repeat(2,minmax(0,1fr))}
+.sg{height:34px;border-radius:10px;border:0;background:transparent;color:#A1A1A6;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer}
+.sg.on{background:#2C2C2E;color:#F3F6F1}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:999px;background:#161618;color:#A1A1A6;font-size:13px;font-weight:700;border:0;font-family:inherit;white-space:nowrap;cursor:pointer}
+.chip.on{background:#D8F34A;color:#0B0B0C}
+
+/* codice a 6 caselle (P2) */
+.caselle{position:relative;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+.casella{height:54px;border-radius:12px;background:#0B0B0C;border:1.5px solid #2C2C2E;color:#D8F34A;font-family:var(--font-barlow),"Barlow Condensed",sans-serif;font-size:30px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.casella.attiva{border-color:#D8F34A}
+.casella.errata{border-color:#FF8A6B}
+.caselleInput{position:absolute;inset:0;width:100%;height:100%;opacity:0;font-size:16px;cursor:text;border:0;background:transparent;color:transparent}
+.linkBox{display:flex;align-items:center;height:54px;padding:0 14px;border-radius:12px;background:#0B0B0C;border:1.5px solid #2C2C2E;overflow:hidden}
+.linkBox:focus-within{border-color:#D8F34A}
+.linkBox input{flex:1;min-width:0;border:0;background:transparent;color:#F3F6F1;font-size:15px;font-weight:600;font-family:inherit;outline:none}
+.stato{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#A1A1A6}
+.dot{width:8px;height:8px;border-radius:50%;flex:none;background:#4CD07D}
+.dot.no{background:#FF8A6B}
+.dot.attesa{background:#8E8E93}
+
+/* anteprima del centro (P2) */
+.anteprima{overflow:hidden;padding:0}
+.anteprimaPrato{height:40px;position:relative;background:repeating-linear-gradient(90deg,#1E6A44 0 36px,#24764C 36px 72px)}
+.anteprimaPrato svg{position:absolute;inset:0;width:100%;height:100%}
+.anteprimaCorpo{padding:12px 14px 14px;display:flex;flex-direction:column;gap:6px}
+.anteprimaTesta{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.nomeCentro{font-family:var(--font-barlow),"Barlow Condensed",sans-serif;font-size:26px;font-weight:700;line-height:1.05}
+.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.tile{background:#161618;border-radius:16px;padding:7px 10px;border:1px solid rgba(255,255,255,.06)}
+.tile b{display:block;font-family:var(--font-barlow),"Barlow Condensed",sans-serif;font-size:22px;line-height:1;color:#D8F34A}
+.tile span{font-size:11.5px;color:#A1A1A6;font-weight:700}
+.ruoloTesta{display:flex;align-items:center;gap:10px}
+.ruoloNome{font-size:16px;font-weight:800}
+.scheletro{height:16px;border-radius:8px;background:#232326}
+
+/* passi (P3) */
+.passi{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.passo{display:flex;flex-direction:column;gap:6px;padding:9px 10px;border-radius:16px;background:#161618;border:1px solid rgba(255,255,255,.06)}
+.passo.on{border-color:rgba(216,243,74,.45)}
+.passo .num{width:26px;height:26px;border-radius:50%;background:#232326;color:#A1A1A6;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center}
+.passo.on .num,.passo.fatto .num{background:#D8F34A;color:#0B0B0C}
+.passo span.nomePasso{font-size:12px;font-weight:700;line-height:1.25;color:#A1A1A6}
+.passo.on span.nomePasso,.passo.fatto span.nomePasso{color:#F3F6F1}
+.campo{display:block}
+.campo .k{display:block}
+.campo input{display:block;width:100%;box-sizing:border-box;height:44px;margin-top:4px;padding:0 14px;border-radius:14px;background:#161618;border:1px solid #2C2C2E;color:#F3F6F1;font-size:16px;font-family:inherit;outline:none}
+.campo input:focus{border-color:#D8F34A}
+.campo .aiuto{display:block;margin-top:4px;font-size:11.5px;color:#8E8E93;word-break:break-all}
+.contatore{display:flex;align-items:center;justify-content:space-between;height:44px;margin-top:4px;padding:0 6px;border-radius:14px;background:#161618;border:1px solid #2C2C2E}
+.contatore button{width:32px;height:32px;border-radius:50%;border:0;background:#232326;color:#F3F6F1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
+.contatore b{font-family:var(--font-barlow),"Barlow Condensed",sans-serif;font-size:24px;font-weight:700}
+.notaRuolo{display:flex;align-items:flex-start;gap:6px;margin-top:8px;font-size:12px;line-height:1.35;color:#A1A1A6}
+.notaRuolo svg{flex:none;margin-top:1px}
+
+/* codici invito generati (P3 passo 2) */
+.codiceRiga{display:flex;align-items:center;gap:10px}
+.codiceGrande{font-family:var(--font-barlow),"Barlow Condensed",sans-serif;font-size:34px;font-weight:700;letter-spacing:3px;color:#D8F34A;line-height:1}
+.azioniRiga{display:flex;gap:8px}
+.vittoria{margin:0;font-family:var(--font-barlow),"Barlow Condensed",sans-serif;font-size:40px;line-height:1;font-weight:800;font-style:italic}
+.elenco{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+.elenco li{display:flex;align-items:flex-start;gap:8px;font-size:13px;line-height:1.35;color:#D1D1D6}
+.elenco svg{flex:none;margin-top:2px}
+
+/* riquadro "I miei centri" in /app */
+.mieiCentri{max-width:430px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 10px) 20px 0;background:#050505;box-sizing:border-box}
+.mieiCentriLink{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:18px;background:#161618;border:1px solid rgba(216,243,74,.35);text-decoration:none;color:#F3F6F1}
+:global(.mp) a.mieiCentriLink,:global(.mp) a.mieiCentriLink:hover{color:#F3F6F1}

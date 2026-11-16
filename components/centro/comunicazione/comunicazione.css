@@ -1,0 +1,84 @@
+/* Stili dell'area F2: messaggi, avvisi, notifiche, assenze, segnalazioni.
+   Classi cm-* così non si scontrano con quelle del template (card, chip, btn…) che arrivano da centro.css. */
+.cm-col { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.cm-col.s { gap: 6px; }
+.cm-row { display: flex; align-items: center; gap: 10px; }
+.cm-grow { flex: 1; min-width: 0; }
+.cm-k { font-size: 11px; font-weight: 800; letter-spacing: .6px; color: #A1A1A6; text-transform: uppercase; }
+.cm-muted { color: #A1A1A6; }
+.cm-ell { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cm-stato { padding: 22px 8px; text-align: center; color: #A1A1A6; font-size: 14px; }
+.cm-err { padding: 10px 12px; border-radius: 14px; background: rgba(255,90,95,.12); color: #FF8A8E; font-size: 13px; font-weight: 600; }
+.cm-ok { padding: 10px 12px; border-radius: 14px; background: #10211A; border: 1px solid rgba(76,208,125,.4); color: #4CD07D; font-size: 13px; font-weight: 700; }
+
+/* righe di lista cliccabili (conversazioni, segnalazioni, notifiche) */
+.cm-li { display: flex; align-items: center; gap: 11px; padding: 8px 12px; border-radius: 16px; font-family: inherit; color: #F3F6F1; cursor: pointer; width: 100%; box-sizing: border-box; border: 1px solid rgba(255,255,255,.06); background: #161618; text-align: left; text-decoration: none; }
+.cm-li.on { border-color: rgba(216,243,74,.45); background: #1C1C1F; }
+.cm-av { width: 36px; height: 36px; flex: none; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; background: #232326; color: #D8F34A; }
+.cm-av.l { width: 48px; height: 48px; font-size: 20px; background: #D8F34A; color: #0B0B0C; font-family: "Barlow Condensed", sans-serif; }
+.cm-pallino { width: 8px; height: 8px; border-radius: 50%; background: #D8F34A; flex: none; }
+.cm-tag { display: inline-flex; align-items: center; gap: 4px; font-size: 10.5px; font-weight: 800; padding: 3px 8px; border-radius: 7px; white-space: nowrap; background: #232326; color: #E5E5EA; }
+.cm-tag.v { background: #12281D; color: #4CD07D; }
+.cm-tag.g { background: #2A2410; color: #FFD54A; }
+.cm-tag.r { background: rgba(255,90,95,.16); color: #FF5A5F; }
+.cm-tag.a { background: rgba(255,159,67,.16); color: #FF9F43; }
+
+/* conversazione */
+.cm-thread { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; max-height: 52vh; min-height: 120px; padding: 2px; }
+.cm-thread.alto { max-height: none; flex: 1; }
+.cm-bw { display: flex; }
+.cm-bw.me, .cm-bw.fig { justify-content: flex-end; }
+.cm-b { max-width: 78%; padding: 8px 12px; border-radius: 18px 18px 18px 4px; background: #232326; color: #F3F6F1; }
+.cm-bw.me .cm-b { border-radius: 18px 18px 4px 18px; background: #D8F34A; color: #0B0B0C; }
+.cm-bw.fig .cm-b { border-radius: 18px 18px 4px 18px; background: #1E6A44; color: #F3F6F1; }
+.cm-thread.bimbo .cm-bw.me .cm-b { background: #1E6A44; color: #F3F6F1; }
+.cm-b .chi { font-size: 11px; font-weight: 800; opacity: .75; margin-bottom: 2px; }
+.cm-b .tx { font-size: 14px; line-height: 1.35; white-space: pre-wrap; overflow-wrap: anywhere; }
+.cm-thread.bimbo .cm-b .tx { font-size: 14.5px; }
+.cm-b .or { font-size: 10.5px; opacity: .65; margin-top: 3px; text-align: right; }
+.cm-giorno { text-align: center; font-size: 11.5px; font-weight: 700; color: #8E8E93; }
+.cm-comp { display: flex; gap: 8px; align-items: center; }
+.cm-comp input, .cm-in { flex: 1; min-width: 0; height: 44px; border-radius: 22px; background: #0E0E10; border: 1px solid #2C2C2E; color: #F3F6F1; font: inherit; font-size: 14px; padding: 0 16px; outline: none; }
+.cm-comp input:focus, .cm-in:focus { border-color: rgba(216,243,74,.6); }
+.cm-ta { width: 100%; box-sizing: border-box; min-height: 92px; border-radius: 14px; background: #161618; border: 1px solid #2C2C2E; color: #F3F6F1; font: inherit; font-size: 14px; line-height: 1.4; padding: 11px 14px; outline: none; resize: vertical; }
+.cm-ta:focus { border-color: rgba(216,243,74,.6); }
+.cm-in.r { border-radius: 14px; background: #161618; height: 46px; width: 100%; box-sizing: border-box; }
+.cm-send { width: 42px; height: 42px; flex: none; border-radius: 50%; border: 0; background: #D8F34A; color: #0B0B0C; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.cm-send:disabled { opacity: .4; cursor: default; }
+.cm-piede { font-size: 11px; color: #6E6E73; display: flex; align-items: center; gap: 5px; }
+.cm-rap { display: flex; gap: 5px; flex-wrap: wrap; }
+.cm-rap button { height: 30px; font-size: 12px; padding: 0 11px; border-radius: 999px; border: 0; background: #232326; color: #F3F6F1; font-family: inherit; font-weight: 700; cursor: pointer; }
+.cm-rap.g button { height: 36px; font-size: 14px; padding: 0 14px; }
+.cm-banner { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-radius: 14px; background: #1A2210; border: 1px solid rgba(216,243,74,.45); font-size: 13px; font-weight: 700; color: #F3F6F1; }
+.cm-banner.p { background: #0E0E10; border-color: #232326; font-weight: 500; font-size: 12.5px; color: #E5E5EA; }
+
+/* interruttori e scelte grandi */
+.cm-sw { flex: none; width: 50px; height: 30px; border-radius: 15px; border: 0; padding: 0; position: relative; cursor: pointer; background: #2C2C2E; }
+.cm-sw i { position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #8E8E93; transition: left .15s; }
+.cm-sw[aria-checked="true"] { background: #D8F34A; }
+.cm-sw[aria-checked="true"] i { left: 23px; background: #0B0B0C; }
+.cm-sw:disabled { opacity: .85; cursor: default; }
+.cm-scelta { display: flex; align-items: center; gap: 11px; width: 100%; box-sizing: border-box; padding: 9px 12px; border-radius: 16px; font-family: inherit; color: #F3F6F1; cursor: pointer; background: #161618; border: 2px solid rgba(255,255,255,.07); text-align: left; }
+.cm-scelta[aria-pressed="true"] { background: #1C1C1F; border-color: #D8F34A; }
+.cm-motivi { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+.cm-motivo { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; height: 64px; border-radius: 18px; font-family: inherit; font-size: 14px; font-weight: 800; cursor: pointer; background: #161618; color: #F3F6F1; border: 1px solid rgba(255,255,255,.08); }
+.cm-motivo[aria-pressed="true"] { background: #D8F34A; color: #0B0B0C; border-color: #D8F34A; }
+.cm-grandi { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.cm-grande { height: 118px; border-radius: 22px; font-family: inherit; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 10px; text-align: center; background: #161618; color: #F3F6F1; border: 2px solid #2C2C2E; font-size: 15.5px; font-weight: 800; line-height: 1.15; }
+.cm-grande[aria-pressed="true"] { background: #D8F34A; color: #0B0B0C; border-color: #D8F34A; }
+.cm-bt { display: flex; align-items: center; justify-content: center; gap: 8px; height: 50px; border-radius: 999px; background: #D8F34A; color: #0B0B0C; font-weight: 800; font-size: 15px; border: 0; font-family: inherit; cursor: pointer; text-decoration: none; width: 100%; }
+.cm-bt:disabled { opacity: .4; pointer-events: none; }
+.cm-bt2 { display: flex; align-items: center; justify-content: center; gap: 8px; height: 46px; padding: 0 16px; border-radius: 999px; background: #232326; color: #F3F6F1; font-weight: 700; font-size: 14px; border: 0; font-family: inherit; cursor: pointer; text-decoration: none; }
+.cm-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+
+/* DT e area: sopra 900px diventano dashboard a più colonne; sul telefono resta una colonna */
+.cm-due { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 900px) {
+  .cm-due { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 20px; }
+  .cm-due.pari { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .cm-solo-tel { display: none !important; }
+  .cm-thread { max-height: 62vh; }
+}
+@media (max-width: 899px) {
+  .cm-pannello[data-attivo="0"] { display: none; }
+}

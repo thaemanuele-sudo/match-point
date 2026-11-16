@@ -1,0 +1,55 @@
+/* Area G (famiglia e allievo): solo ciò che il CSS comune dei centri (centro.css) non garantisce.
+   Tutto sotto .mc, come il resto; le classi nuove hanno il prefisso fam- per non scontrarsi con altre aree. */
+.mc .fam-col{display:flex;flex-direction:column;gap:10px}
+.mc .fam-grow{flex:1;min-width:0}
+.mc .fam-disp{font-family:"Barlow Condensed",sans-serif}
+.mc .fam-lawn{background:repeating-linear-gradient(90deg,#1E6A44 0 36px,#24764C 36px 72px);border:0;color:#F3F6F1}
+.mc .fam-ic{width:34px;height:34px;flex:none;border-radius:11px;background:#232326;color:#D8F34A;display:flex;align-items:center;justify-content:center}
+.mc .fam-riga{display:flex;align-items:center;gap:10px}
+.mc .fam-sp{justify-content:space-between}
+.mc .fam-ell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mc .fam-btn-riga{display:flex;gap:8px}
+.mc button:disabled{opacity:.5;cursor:not-allowed}
+.mc .fam-link{color:#D8F34A;font-weight:700;text-decoration:none}
+.mc .fam-err{font-size:12.5px;line-height:1.4;color:#FFB4B6;background:#2A1416;border:1px solid #4A2A2C;border-radius:14px;padding:10px 12px}
+.mc .fam-ok{font-size:12.5px;line-height:1.4;color:#D8F34A;background:#161C0A;border:1px solid rgba(216,243,74,.3);border-radius:14px;padding:10px 12px}
+.mc .fam-txt{width:100%;box-sizing:border-box;min-height:84px;border-radius:14px;border:1px solid #2C2C2E;background:#0E0E10;color:#F3F6F1;font:inherit;font-size:14.5px;padding:10px 12px;resize:vertical}
+.mc .fam-in{width:100%;box-sizing:border-box;height:46px;border-radius:14px;border:1px solid #2C2C2E;background:#0E0E10;color:#F3F6F1;font:inherit;font-size:15px;padding:0 12px}
+.mc .fam-lab{display:block;font-size:11px;font-weight:800;letter-spacing:.4px;color:#A1A1A6;margin:0 0 6px}
+.mc .fam-sw{flex:none;width:44px;height:26px;border-radius:13px;position:relative;background:#3A3A3C;transition:background .15s}
+.mc .fam-sw i{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#E5E5EA;transition:left .15s}
+.mc .fam-sw.on{background:#D8F34A}
+.mc .fam-sw.on i{left:21px;background:#0B0B0C}
+.mc .fam-badge{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center}
+.mc .fam-badge .c{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#161618;color:#6E6E73;border:1px dashed #3A3A3C}
+.mc .fam-badge.on .c{background:#D8F34A;color:#0B0B0C;border:0;box-shadow:0 8px 20px rgba(216,243,74,.2)}
+.mc .fam-badge span.n{font-size:12.5px;font-weight:700;color:#8E8E93}
+.mc .fam-badge.on span.n{color:#F3F6F1}
+.mc .fam-badge small{font-size:11px;color:#8E8E93;font-weight:600}
+@media (prefers-reduced-motion: reduce){.mc .fam-sw,.mc .fam-sw i{transition:none}}
+
+/* Pannello dal basso (Foglio) */
+.mc .fam-fg-bg{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center}
+.mc .fam-fg{width:100%;max-width:430px;max-height:88vh;overflow:auto;box-sizing:border-box;background:#161618;border-radius:24px 24px 0 0;border:1px solid rgba(255,255,255,.08);border-bottom:0;padding:16px 18px 26px;display:flex;flex-direction:column;gap:12px;color:#F3F6F1}
+.mc .fam-fg h2{margin:0;font-family:"Barlow Condensed",sans-serif;font-size:24px;font-weight:700}
+.mc .fam-fg video{width:100%;border-radius:14px;background:#000;max-height:60vh}
+.mc .fam-fg img.fam-media{width:100%;border-radius:14px;max-height:60vh;object-fit:contain;background:#000}
+
+/* Stampa del report: la copia per la stampa è un portale in <body> con classi proprie (niente dipendenza da .mc),
+   così la pagina stampata è bianca e pulita; a schermo resta nascosta. */
+.fam-print-root{display:none}
+@media print{
+  body > *:not(.fam-print-root){display:none !important}
+  .fam-print-root{display:block !important;background:#fff;color:#111;font-family:"Hanken Grotesk",system-ui,sans-serif;padding:0}
+  .fam-print-root h1{font-family:"Barlow Condensed",sans-serif;font-size:30px;margin:0 0 4px}
+  .fam-print-root .p-sub{font-size:13px;color:#444;margin-bottom:14px}
+  .fam-print-root .p-kpi{display:flex;gap:12px;margin-bottom:14px}
+  .fam-print-root .p-kpi div{flex:1;border:1px solid #bbb;border-radius:8px;padding:8px 10px}
+  .fam-print-root .p-kpi b{display:block;font-family:"Barlow Condensed",sans-serif;font-size:26px}
+  .fam-print-root .p-kpi span{font-size:11px;color:#555;font-weight:700}
+  .fam-print-root .p-bl{border:1px solid #bbb;border-radius:8px;padding:10px 12px;margin-bottom:10px;break-inside:avoid}
+  .fam-print-root .p-bl h3{margin:0 0 4px;font-size:11px;letter-spacing:.5px;color:#444}
+  .fam-print-root .p-bl p{margin:0 0 4px;font-size:13.5px;line-height:1.45}
+  .fam-print-root .p-foot{font-size:11px;color:#555;margin-top:14px}
+  @page{margin:16mm}
+}

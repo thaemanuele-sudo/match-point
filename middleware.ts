@@ -19,13 +19,24 @@ export async function middleware(req: NextRequest) {
   });
   const { data } = await sb.auth.getUser();
   const p = req.nextUrl.pathname;
+  // App dei centri: serve l'accesso, ma il manifest PWA deve restare pubblico (il browser lo scarica senza cookie)
+  const centri = (p.startsWith("/c/") || p.startsWith("/centro/")) && !p.endsWith("/manifest.webmanifest");
+  if (centri && !data.user) {
+    const url = req.nextUrl.clone();
+    url.pathname = "/app/benvenuto";
+    url.search = "";
+    url.searchParams.set("dopo", p + req.nextUrl.search);
+    return NextResponse.redirect(url);
+  }
   if (p.startsWith("/app") && !data.user && !LIBERE.some((l) => p.startsWith(l))) {
     const url = req.nextUrl.clone();
     url.pathname = "/app/benvenuto";
-    url.searchParams.set("dopo", p);
+    // la query va conservata: /app/unisciti?c=CODICE non deve perdere il codice dell'invito dopo l'accesso
+    url.search = "";
+    url.searchParams.set("dopo", p + req.nextUrl.search);
     return NextResponse.redirect(url);
   }
   return res;
 }
 
-export const config = { matcher: ["/app/:path*", "/admin/:path*", "/api/:path*"] };
+export const config = { matcher: ["/app/:path*", "/admin/:path*", "/api/:path*", "/c/:path*", "/centro/:path*"] };

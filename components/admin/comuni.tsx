@@ -76,6 +76,12 @@ export const I = {
   freccia: "M5 12h14|M13 6l6 6-6 6",
   scarica: "M12 3v12|M7 11l5 5 5-5|M5 21h14",
   film: "M4 5h16v14H4z|M4 9h16|M4 15h16|M8 5v14|M16 5v14",
+  centri: "M3 21V9l9-6 9 6v12|M9 21v-6h6v6",
+  copia: "M9 9h11v11H9z|M5 15V5h10",
+  esterno: "M14 4h6v6|M20 4l-9 9|M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5",
+  occhio: "M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z|M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z",
+  spunta: "M5 12l5 5 9-10",
+  orologio: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z|M12 7v5l3 2",
 };
 export function Logo({ size = 18 }: { size?: number }) {
   return (

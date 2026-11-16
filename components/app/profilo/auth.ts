@@ -8,9 +8,10 @@ export const PAG_REGISTRATI = "/app/registrati";
 export const PAG_RECUPERO = "/app/recupero";
 export const PAG_ESCI = "/app/esci";
 
-/** Accetta solo percorsi interni dell'app: evita redirect verso siti esterni o verso /app/esci (che scollegherebbe subito). */
+/** Accetta solo percorsi interni (/app, /c/... e /centro/...): evita redirect verso siti esterni o verso /app/esci (che scollegherebbe subito). */
 export function dopoSicuro(raw: string | null | undefined): string {
-  if (!raw || !raw.startsWith("/app") || raw.startsWith("//") || raw.startsWith(PAG_ESCI)) return "";
+  if (!raw || raw.startsWith("//") || raw.includes("\\") || raw.startsWith(PAG_ESCI)) return "";
+  if (!(raw.startsWith("/app") || raw.startsWith("/c/") || raw.startsWith("/centro/"))) return "";
   return raw;
 }
 
