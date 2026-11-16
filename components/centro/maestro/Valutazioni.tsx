@@ -18,7 +18,7 @@ const IT = {
   consCalo: "{nome}: {comp} in calo ({p} → {v}).", consProposta: "Proposta: 10' con \"{es}\" dalla libreria del centro.", consPropostaGen: "Proposta: 10' di lavoro mirato su {comp} nella prossima lezione.",
   consBene: "Nessun calo rispetto al test precedente: il gruppo tiene. Scegli un'altra competenza da spingere nel prossimo blocco.", consPrimo: "Primo test registrato per questo colpo: dai i voti e dal prossimo mese vedrai il confronto.",
   vuoto: "Nessun gruppo", vuotoTesto: "Le valutazioni si danno ai gruppi che segui.", nessunAllievo: "Nessun allievo in questo gruppo.", errSalva: "Non riesco a salvare le valutazioni: {e}",
-  dritto: "Dritto", rovescio: "Rovescio", servizio: "Servizio", risposta: "Risposta", volee: "Volée", gruppo: "Gruppo", test: "Test",
+  colAllievo: "ALLIEVO", dritto: "Dritto", rovescio: "Rovescio", servizio: "Servizio", risposta: "Risposta", volee: "Volée", gruppo: "Gruppo", test: "Test",
 };
 const T = { it: IT, en: { ...IT } };
 
@@ -161,7 +161,7 @@ export function Valutazioni() {
             <>
               <div className="tbl">
                 <div className="tr th" style={{ gridTemplateColumns: "76px repeat(4,minmax(0,1fr))", gap: 4 }}>
-                  <span>ALLIEVO</span>
+                  <span>{t.colAllievo}</span>
                   {comps.map((c) => <span key={c} title={c} style={{ textAlign: "center", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: 10 }}>{c}</span>)}
                 </div>
                 {allievi.map((a) => (

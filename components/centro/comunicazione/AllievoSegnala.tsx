@@ -12,7 +12,7 @@ const it = {
   titolo: "Qualcosa non va?",
   sopra: "Qui puoi dirci tutto",
   nonSbagliato: "Non hai fatto niente di sbagliato.",
-  info: "Se qualcosa ti preoccupa, dillo qui. Il messaggio arriva a {nome}, il responsabile del centro. Il maestro non lo vede.",
+  info: "Se qualcosa ti preoccupa, dillo qui. Il messaggio arriva a {nome}, responsabile del centro. Il maestro non lo vede.",
   infoSenza: "Se qualcosa ti preoccupa, dillo qui. Il messaggio arriva al responsabile del centro. Il maestro non lo vede.",
   cosa: "COSA È SUCCESSO?",
   o_disagio: "Mi sento a disagio",

@@ -47,7 +47,7 @@ const it = {
   famiglieDi: "Famiglie di {nome}",
   area: "Area {nome}",
   tutti: "Tutti",
-  nonAutorizzato: "Gli avvisi sono riservati a direttore tecnico, titolare e responsabili d'area.",
+  nonAutorizzato: "Gli avvisi sono riservati al direttore tecnico, al titolare e ai responsabili d'area.",
   nessunaArea: "Il tuo ruolo non è collegato a un'area.",
   programmatoTag: "programmato",
 };
