@@ -102,11 +102,15 @@ export function analizzaLezione(l: Pick<LezioneB, "piano" | "svolto">): { esito:
   const s = comeLista(l.svolto);
   if (!p.length || !s.length) return { esito: "piano", cambi: [] };
   const cambi: Cambio[] = [];
+  // chiudi_lezione e `_blocco_fatto` nel database cercano il blocco svolto per `indice` (0-based sul piano):
+  // qui si fa lo stesso, con la posizione come ripiego per le righe senza indice
+  const perIndice = new Map<number, any>();
+  s.forEach((x, pos) => { if (x && typeof x === "object") perIndice.set(Number.isInteger(x.indice) ? x.indice : pos, x); else perIndice.set(pos, x); });
   for (let i = 0; i < p.length; i++) {
     const b = p[i] ?? {};
     // "Ogni blocco nasce bloccato": senza modo si tratta come Bloccato
     const bloccato = (b.modo ?? "bloccato") === "bloccato";
-    if (bloccoCambiato(b, s[i])) cambi.push({ titolo: String(b.titolo ?? b.colpo ?? `#${i + 1}`), bloccato });
+    if (bloccoCambiato(b, perIndice.get(i))) cambi.push({ titolo: String(b.titolo ?? b.colpo ?? `#${i + 1}`), bloccato });
   }
   if (cambi.some((c) => c.bloccato)) return { esito: "fuori", cambi };
   return { esito: cambi.length ? "sostituito" : "piano", cambi };

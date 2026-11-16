@@ -6,16 +6,15 @@ import { SchermoCentro } from "@/components/centro/Schermo";
 import { Btn, Campo, Caricamento, Chip, Chips, Errore, Foglio, Ico, Nota, Sezione, Tile, Vuoto } from "@/components/centro/ui";
 import { rotta } from "@/lib/centro/rotte";
 import { fmtData } from "@/lib/centro/date";
-import { aggiungiGiorni, isoGiorno } from "@/lib/centro/date";
 import { useT } from "@/lib/i18n/lingua";
-import { COL_ALLIEVO_LISTA, PAGINA, coloreNome, iniziali, leggiPresenze, leggiValutazioni, meseProgramma, nomeAllievo, nomeCompleto, pulisciRicerca, sostituisci, maestriDi, useDebounce, useOrg, type DatiOrg, type Org } from "./dati";
+import { PAGINA, coloreNome, iniziali, meseProgramma, nomeAllievo, nomeCompleto, sostituisci, useConteggi, useDebounce, useOrg, type DatiOrg, type Org } from "./dati";
 import { InvitoBox, creaInvito } from "./Invito";
-import type { AllievoL, FamigliaR, GruppoR, PresenzaL, ValutazioneL } from "./tipi";
+import type { AllievoL, GruppoR } from "./tipi";
 import "./org.css";
 
 const IT = {
-  titolo: "Allievi del centro", sopra: "{centro} · {mese}", attivi: "allievi attivi", presenze: "presenze del mese", ritardo: "in ritardo", cerca: "Cerca per nome, gruppo o maestro",
-  allievi: "Allievi", progresso: "{c} · progresso del mese", fTutti: "Tutti {n}", fRitardo: "In ritardo {n}", fAssenze: "Assenze ripetute {n}", mostraAltri: "Carica altri allievi", vuotoT: "Nessun allievo", vuotoS: "Aggiungi il primo allievo con la sua famiglia.",
+  titolo: "Allievi del centro", sopra: "{centro} · {mese}", attivi: "allievi attivi", presenze: "presenze del mese", ritardo: "in ritardo", cerca: "Cerca per nome",
+  allievi: "Allievi", progresso: "Presenze · ultimi 30 giorni", fTutti: "Tutti {n}", fRitardo: "In ritardo {n}", fAssenze: "Assenze ripetute {n}", mostraAltri: "Carica altri allievi", vuotoT: "Nessun allievo", vuotoS: "Aggiungi il primo allievo con la sua famiglia.",
   inLinea: "In linea", inRitardo: "In ritardo", assenze: "{a} assenze su {n}", senzaVal: "Nessuna valutazione", aggiungi: "Aggiungi allievo", senzaGruppo: "Senza gruppo", nessunaPres: "Nessuna presenza registrata",
   // nuovo allievo
   nuovoT: "Nuovo allievo", nome: "Nome", cognome: "Cognome", nascita: "Data di nascita", gruppo: "Gruppo", nessuno: "Nessun gruppo ancora", famiglia: "Famiglia", famAiuto: "Il genitore entrerà con il codice che ti diamo dopo.",
@@ -29,161 +28,41 @@ const IT = {
 const T = { it: IT, en: { ...IT } };
 
 const norm = (s: string | null | undefined) => (s ?? "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-const media = (v: number[]) => (v.length ? v.reduce((a, b) => a + b, 0) / v.length : null);
 
-/** Stato di un allievo ricavato da valutazioni e presenze recenti. */
-type Stato = { perc: number | null; ritardo: boolean; assenti: number; su: number };
-const SENZA_STATO: Stato = { perc: null, ritardo: false, assenti: 0, su: 0 };
-type Agg = { colpo: string; val: ValutazioneL[]; pres: PresenzaL[] };
-/** Gli identificativi nei filtri finiscono nell'indirizzo della richiesta: oltre questo numero non si allunga. */
-const MAX_ID_RICERCA = 150;
-const MAX_ID_BLOCCO = 100;
+/** Riga di `allievi_stato_lista` (docs/RPC.md): anagrafica più lo stato calcolato dal database sugli ultimi 30 giorni. */
+type RigaStato = AllievoL & { gruppi: string[]; maestri: string[]; perc: number | null; assenti: number; su: number; ritardo: boolean; ripetute: boolean; totale: number };
+type Pagina = { righe: RigaStato[]; altri: boolean; errore: string | null };
+const FILTRO_RPC = { tutti: "tutti", ritardo: "ritardo", assenze: "ripetute" } as const;
 
 export default function CentroAllievi() {
   const t = useT(T);
   const o = useOrg();
   const { centro, sb, dati: d } = o;
   const r = rotta(centro.slug);
-  const [agg, setAgg] = useState<Agg | null>(null);
-  const [errExtra, setErrExtra] = useState<string | null>(null);
   const [filtro, setFiltro] = useState<"tutti" | "ritardo" | "assenze">("tutti");
   const [q, setQ] = useState("");
   const qDeb = useDebounce(q);
   const [nuovo, setNuovo] = useState(false);
   const [scheda, setScheda] = useState<AllievoL | null>(null);
-  // la lista corrente (una pagina alla volta) e il totale degli allievi dell'area
-  const [lista, setLista] = useState<{ righe: AllievoL[]; altri: boolean; errore: string | null } | null>(null);
+  // la lista corrente (una pagina alla volta, ordinata e filtrata dal database)
+  const [lista, setLista] = useState<Pagina | null>(null);
   const [caricando, setCaricando] = useState(false);
-  const [totale, setTotale] = useState<number | null>(null);
   const [versione, setVersione] = useState(0);
   const rinnova = useCallback(() => setVersione((v) => v + 1), []);
 
-  const oggi = o.oggi;
-  const idGruppiVis = useMemo(() => (o.ids ? o.gruppiVis.map((g) => g.id) : null), [o.ids, o.gruppiVis]);
-  // il colpo del mese decide quali valutazioni servono: si leggono solo quelle
+  // il colpo del mese decide il livello su cui si misura il "in ritardo"
   const colpo = useMemo(() => (d ? colpoDelMese(d, o.gruppiVis) : null), [d, o.gruppiVis]);
+  // un responsabile d'area vede solo la sua area (`ids`); la direzione tutto il centro
+  const { riepilogo, errore: errRiepilogo } = useConteggi(sb, centro.id, o.ids, d ? `${versione}` : null, colpo);
 
-  // valutazioni del colpo e presenze delle ultime 6 settimane: una lettura ciascuna, in parallelo
-  useEffect(() => {
-    if (!colpo) return;
-    let vivo = true;
-    (async () => {
-      const da = isoGiorno(aggiungiGiorni(new Date(), -42));
-      const [v, p] = await Promise.all([leggiValutazioni(sb, centro.id, colpo), leggiPresenze(sb, centro.id, da)]);
-      if (!vivo) return;
-      if (v.errore || p.errore) { setErrExtra(v.errore ?? p.errore); return; }
-      setAgg({ colpo, val: v.righe, pres: p.righe });
-    })();
-    return () => { vivo = false; };
-  }, [sb, centro.id, colpo]);
-
-  // insieme degli allievi dell'area (null = tutto il centro) e gruppi di ciascuno
-  const gruppiDi = useMemo(() => {
-    const m = new Map<string, string[]>();
-    o.iscrAttive.forEach((i) => m.set(i.allievo_id, [...(m.get(i.allievo_id) ?? []), i.gruppo_id]));
-    return m;
-  }, [o.iscrAttive]);
-
-  // "in ritardo" e "assenze ripetute": calcolati una volta sui dati recenti (con una funzione del database sarebbero un'unica riga di risposta)
-  const stat = useMemo(() => {
-    if (!agg || !d) return null;
-    const chiave = agg.colpo === "gambe" ? "gamb" : agg.colpo;
-    const perAllievo = new Map<string, ValutazioneL[]>();
-    for (const x of agg.val) {
-      if (x.voto == null || !(x.data || x.test) || !norm(x.colpo).includes(chiave)) continue;
-      perAllievo.set(x.allievo_id, [...(perAllievo.get(x.allievo_id) ?? []), x]);
-    }
-    // livello raggiunto: media dei voti (1-5) dell'ultimo test dell'allievo sul colpo del mese, in percentuale
-    const livello = (mie: ValutazioneL[]) => {
-      const chiavi = [...new Set(mie.map((x) => x.data ?? x.test ?? ""))].sort().reverse();
-      const di = (k: string | undefined) => (k === undefined ? null : media(mie.filter((x) => (x.data ?? x.test ?? "") === k).map((x) => x.voto as number)));
-      const ora = di(chiavi[0]), prima = di(chiavi[1]);
-      return { ora: ora === null ? null : Math.round((ora / 5) * 100), prima: prima === null ? null : (prima / 5) * 100 };
-    };
-    const presPer = new Map<string, PresenzaL[]>();
-    for (const p of agg.pres) presPer.set(p.allievo_id, [...(presPer.get(p.allievo_id) ?? []), p]);
-
-    const nellArea = o.ids ? new Set(o.iscrAttive.map((i) => i.allievo_id)) : null;
-    const per = new Map<string, Stato & { prima: number | null }>();
-    for (const id of new Set([...perAllievo.keys(), ...presPer.keys()])) {
-      if (nellArea && !nellArea.has(id)) continue;
-      const lv = livello(perAllievo.get(id) ?? []);
-      const ultime = (presPer.get(id) ?? []).sort((x, y) => (y.data > x.data ? 1 : y.data < x.data ? -1 : 0)).slice(0, 6);
-      per.set(id, { perc: lv.ora, prima: lv.prima, ritardo: false, assenti: ultime.filter((p) => !p.presente).length, su: ultime.length });
-    }
-    // "in ritardo": 10 punti sotto la media del suo gruppo, oppure in calo di 5 punti rispetto al test precedente
-    const mediaGruppo = new Map<string, number>();
-    for (const g of o.ids ? o.gruppiVis : d.gruppi) {
-      const m = media(o.iscrAttive.filter((i) => i.gruppo_id === g.id).map((i) => per.get(i.allievo_id)?.perc ?? null).filter((x): x is number => x !== null));
-      if (m !== null) mediaGruppo.set(g.id, m);
-    }
-    const idRit: string[] = [], idAss: string[] = [];
-    per.forEach((x, id) => {
-      const sotto = x.perc !== null && (gruppiDi.get(id) ?? []).some((g) => mediaGruppo.has(g) && x.perc! < (mediaGruppo.get(g) as number) - 10);
-      const calo = x.perc !== null && x.prima !== null && x.perc < x.prima - 5;
-      x.ritardo = sotto || calo;
-      if (x.ritardo) idRit.push(id);
-      if (x.assenti >= 3) idAss.push(id);
+  const leggiPagina = useCallback(async (da: number): Promise<Pagina> => {
+    const x = await sb.rpc("allievi_stato_lista", {
+      p_centro: centro.id, p_aree: o.ids, p_q: qDeb.trim() || null, p_filtro: FILTRO_RPC[filtro], p_colpo: colpo, p_limit: PAGINA, p_offset: da,
     });
-    // presenze del mese
-    const mm = oggi.slice(0, 7);
-    const pm = agg.pres.filter((p) => p.data.startsWith(mm) && (!nellArea || nellArea.has(p.allievo_id)));
-    const percPres = pm.length ? Math.round((pm.filter((p) => p.presente).length / pm.length) * 100) : null;
-    return { per: per as Map<string, Stato>, idRit, idAss, percPres };
-  }, [agg, d, o.ids, o.iscrAttive, o.gruppiVis, gruppiDi, oggi]);
-
-  // quanti allievi ha l'area: solo il conteggio, senza scaricare le righe
-  useEffect(() => {
-    let vivo = true;
-    (async () => {
-      const x = idGruppiVis
-        ? await sb.from("allievi").select("id,iscrizioni!inner(gruppo_id)", { count: "exact", head: true }).eq("centro_id", centro.id).in("iscrizioni.gruppo_id", idGruppiVis).or(`al.is.null,al.gte.${oggi}`, { referencedTable: "iscrizioni" })
-        : await sb.from("allievi").select("id", { count: "exact", head: true }).eq("centro_id", centro.id);
-      if (vivo && !x.error) setTotale(x.count ?? 0);
-    })();
-    return () => { vivo = false; };
-  }, [sb, centro.id, idGruppiVis, oggi, versione]);
-
-  /** Allievi che corrispondono alla ricerca per gruppo o maestro: le iscrizioni in corso sono già in memoria. */
-  const idPerGruppoMaestro = useCallback((tok: string): string[] => {
-    if (!d) return [];
-    const k = norm(tok);
-    const gruppi = new Set(d.gruppi.filter((g) => norm(g.nome).includes(k)).map((g) => g.id));
-    d.membri.filter((m) => m.ruolo === "maestro" && norm(nomeCompleto(m)).includes(k))
-      .forEach((m) => d.gm.filter((x) => x.membro_id === m.id).forEach((x) => gruppi.add(x.gruppo_id)));
-    return [...new Set(o.iscrAttive.filter((i) => gruppi.has(i.gruppo_id)).map((i) => i.allievo_id))].slice(0, MAX_ID_RICERCA);
-  }, [d, o.iscrAttive]);
-
-  const leggiPagina = useCallback(async (da: number): Promise<{ righe: AllievoL[]; altri: boolean; errore: string | null }> => {
-    // con i filtri "in ritardo" e "assenze" gli allievi sono già noti per id: si leggono i nomi a blocchi e si impagina qui
-    if (filtro !== "tutti") {
-      if (!stat) return { righe: [], altri: false, errore: null };
-      const ids = filtro === "ritardo" ? stat.idRit : stat.idAss;
-      const blocchi = Array.from({ length: Math.ceil(ids.length / MAX_ID_BLOCCO) }, (_, i) => ids.slice(i * MAX_ID_BLOCCO, (i + 1) * MAX_ID_BLOCCO));
-      const risp = await Promise.all(blocchi.map((b) => sb.from("allievi").select(COL_ALLIEVO_LISTA).eq("centro_id", centro.id).in("id", b)));
-      const err = risp.find((x) => x.error)?.error;
-      if (err) return { righe: [], altri: false, errore: err.message };
-      const ql = norm(pulisciRicerca(qDeb));
-      const tutti = risp.flatMap((x) => (x.data ?? []) as unknown as AllievoL[])
-        .filter((a) => !ql || norm(`${nomeCompleto(a)} ${(gruppiDi.get(a.id) ?? []).map((g) => d?.gruppi.find((x) => x.id === g)?.nome ?? "").join(" ")}`).includes(ql))
-        .sort((x, y) => (x.cognome ?? "").localeCompare(y.cognome ?? "") || x.nome.localeCompare(y.nome));
-      return { righe: tutti.slice(0, da + PAGINA), altri: tutti.length > da + PAGINA, errore: null };
-    }
-    // filtro "tutti": una pagina dal database, con ordine e ricerca sul server (si chiede una riga in più per sapere se ce ne sono altre)
-    let query = sb.from("allievi")
-      .select(idGruppiVis ? `${COL_ALLIEVO_LISTA},iscrizioni!inner(gruppo_id)` : COL_ALLIEVO_LISTA)
-      .eq("centro_id", centro.id);
-    if (idGruppiVis) query = query.in("iscrizioni.gruppo_id", idGruppiVis).or(`al.is.null,al.gte.${oggi}`, { referencedTable: "iscrizioni" });
-    for (const tok of pulisciRicerca(qDeb).split(" ").filter(Boolean)) {
-      const ids = idPerGruppoMaestro(tok);
-      query = query.or([`nome.ilike.%${tok}%`, `cognome.ilike.%${tok}%`, ids.length ? `id.in.(${ids.join(",")})` : ""].filter(Boolean).join(","));
-    }
-    const x = await query.order("cognome").order("nome").order("id").range(da, da + PAGINA);
     if (x.error) return { righe: [], altri: false, errore: x.error.message };
-    // con il join d'area ogni riga porta anche le sue iscrizioni: alla lista servono solo le colonne dell'allievo
-    const righe = ((x.data ?? []) as unknown as AllievoL[]).map((a) => ({ id: a.id, nome: a.nome, cognome: a.cognome, data_nascita: a.data_nascita, certificato_scade: a.certificato_scade }));
-    return { righe: righe.slice(0, PAGINA), altri: righe.length > PAGINA, errore: null };
-  }, [filtro, stat, qDeb, sb, centro.id, idGruppiVis, oggi, idPerGruppoMaestro, gruppiDi, d]);
+    const righe = ((x.data ?? []) as RigaStato[]).map((a) => ({ ...a, totale: Number(a.totale) }));
+    return { righe, altri: da + righe.length < (righe[0]?.totale ?? 0), errore: null };
+  }, [filtro, qDeb, sb, centro.id, o.ids, colpo]);
 
   // prima pagina: riparte a ogni cambio di filtro, di ricerca (dopo il debounce) o dopo una modifica
   useEffect(() => {
@@ -198,8 +77,7 @@ export default function CentroAllievi() {
     if (!lista || caricando) return;
     setCaricando(true);
     const p = await leggiPagina(lista.righe.length);
-    // la pagina nuova va in coda; con i filtri "in ritardo" e "assenze" `leggiPagina` restituisce già tutte le righe fin lì
-    setLista(filtro === "tutti" ? { righe: [...lista.righe, ...p.righe], altri: p.altri, errore: p.errore } : p);
+    setLista({ righe: [...lista.righe, ...p.righe], altri: p.altri, errore: p.errore });
     setCaricando(false);
   };
 
@@ -209,27 +87,21 @@ export default function CentroAllievi() {
       {corpo}
     </SchermoCentro>
   );
-  if (!d || !stat || lista === null) return schermo(o.errore || errExtra ? <Errore messaggio={o.errore ?? errExtra} onRiprova={() => void o.carica()} /> : <Caricamento />);
+  if (!d || lista === null || !riepilogo) return schermo(o.errore || errRiepilogo ? <Errore messaggio={o.errore ?? errRiepilogo} onRiprova={() => void o.carica()} /> : <Caricamento />);
 
   const adesso = new Date();
   const mese = adesso.toLocaleDateString("it-IT", { month: "long" });
-  const colpoTesto = agg?.colpo ?? colpo ?? "dritto";
-  const statoDi = (id: string): Stato => stat.per.get(id) ?? SENZA_STATO;
-  const ripetute = (x: Stato) => x.assenti >= 3;
-  const nRit = stat.idRit.length;
-  const nAss = stat.idAss.length;
-  const nTot = totale ?? 0;
+  const nRit = riepilogo.in_ritardo;
+  const nAss = riepilogo.assenze_ripetute;
+  const nTot = riepilogo.attivi;
   const col = (p: number) => (p >= 70 ? "#4CD07D" : p >= 55 ? "#FFD54A" : "#FF9F43");
-  const etCol = (x: Stato) => (x.ritardo ? "rgba(255,159,67,.16);color:#FF9F43" : ripetute(x) ? "rgba(255,90,95,.16);color:#FF7A7E" : "rgba(76,208,125,.14);color:#4CD07D");
-  const nomiGruppi = (id: string) => (gruppiDi.get(id) ?? []).map((g) => d.gruppi.find((x) => x.id === g)).filter((g): g is NonNullable<typeof g> => !!g);
-  const maestriAll = (id: string) => [...new Set(nomiGruppi(id).flatMap((g) => maestriDi(d, g.id).map((m) => nomeCompleto(m))))];
-
+  const etCol = (x: RigaStato) => (x.ritardo ? "rgba(255,159,67,.16);color:#FF9F43" : x.ripetute ? "rgba(255,90,95,.16);color:#FF7A7E" : "rgba(76,208,125,.14);color:#4CD07D");
   return schermo(
     <div className="og-pagina">
       <div className="og-dash c3" style={{ gap: 8 }}>
         <div className="g3 og-tutta" style={{ gap: 8 }}>
           <Tile valore={nTot} etichetta={t.attivi} />
-          <Tile valore={stat.percPres === null ? "—" : `${stat.percPres}%`} etichetta={t.presenze} colore="#4CD07D" />
+          <Tile valore={riepilogo.presenze_mese_perc === null ? "—" : `${riepilogo.presenze_mese_perc}%`} etichetta={t.presenze} colore="#4CD07D" />
           <Tile valore={nRit} etichetta={t.ritardo} colore="#FF9F43" />
         </div>
       </div>
@@ -239,13 +111,13 @@ export default function CentroAllievi() {
         <Chip on={filtro === "ritardo"} onClick={() => setFiltro("ritardo")}>{sostituisci(t.fRitardo, { n: nRit })}</Chip>
         <Chip on={filtro === "assenze"} onClick={() => setFiltro("assenze")}>{sostituisci(t.fAssenze, { n: nAss })}</Chip>
       </Chips>
-      <Sezione titolo={t.allievi} azione={<span className="muted">{sostituisci(t.progresso, { c: colpoTesto.charAt(0).toUpperCase() + colpoTesto.slice(1) })}</span>} />
-      {lista.errore ? <Errore messaggio={lista.errore} onRiprova={rinnova} /> : totale === 0 && filtro === "tutti" && !qDeb.trim() ? <Vuoto titolo={t.vuotoT} testo={t.vuotoS} icona="user" /> : (
+      <Sezione titolo={t.allievi} azione={<span className="muted">{t.progresso}</span>} />
+      {lista.errore ? <Errore messaggio={lista.errore} onRiprova={rinnova} /> : nTot === 0 && lista.righe.length === 0 && filtro === "tutti" && !qDeb.trim() ? <Vuoto titolo={t.vuotoT} testo={t.vuotoS} icona="user" /> : (
         <div className="og-dash c2" style={{ gap: 7 }}>
           {lista.righe.map((a) => {
-            const x = statoDi(a.id);
-            const gr = nomiGruppi(a.id).map((g) => g.nome);
-            const ma = maestriAll(a.id);
+            const x = a;
+            const gr = a.gruppi;
+            const ma = a.maestri;
             return (
               <button key={a.id} type="button" className="li" style={{ padding: "8px 12px", textAlign: "left", font: "inherit" }} onClick={() => setScheda(a)}>
                 <span className="og-av" style={{ background: coloreNome(nomeCompleto(a)) }} aria-hidden="true">{iniziali(a)}</span>
@@ -254,7 +126,7 @@ export default function CentroAllievi() {
                 <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3 }}>
                   <span className="disp" style={{ fontSize: 20, fontWeight: 700, lineHeight: 1, color: x.perc === null ? "#8E8E93" : col(x.perc) }}>{x.perc === null ? "—" : `${x.perc}%`}</span>
                   <span style={{ fontSize: 10.5, fontWeight: 800, padding: "2px 7px", borderRadius: 7, whiteSpace: "nowrap", background: etCol(x).split(";")[0], color: etCol(x).split("color:")[1] }}>
-                    {x.ritardo ? t.inRitardo : ripetute(x) ? sostituisci(t.assenze, { a: x.assenti, n: x.su }) : x.perc === null ? t.senzaVal : t.inLinea}
+                    {x.ritardo ? t.inRitardo : x.ripetute ? sostituisci(t.assenze, { a: x.assenti, n: x.su }) : x.perc === null ? t.nessunaPres : t.inLinea}
                   </span>
                 </span>
               </button>
@@ -273,14 +145,14 @@ export default function CentroAllievi() {
   );
 }
 
-/** Il colpo del mese: quello del programma più usato dai gruppi visibili, altrimenti il dritto. */
+/** Il colpo del mese: quello del programma più usato dai gruppi visibili (scritto come nel database), altrimenti il dritto. */
 function colpoDelMese(d: DatiOrg, gruppiVis: GruppoR[]): string {
   const conta = new Map<string, number>();
   gruppiVis.forEach((g) => {
     const c = meseProgramma(d.programmi.find((p) => p.id === g.programma_id))?.colpo;
-    if (c) conta.set(norm(c), (conta.get(norm(c)) ?? 0) + 1);
+    if (c) conta.set(c, (conta.get(c) ?? 0) + 1);
   });
-  return [...conta.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "dritto";
+  return [...conta.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "Dritto";
 }
 
 type Genitore = { nome: string; cognome: string; email: string; telefono: string; relazione: string };

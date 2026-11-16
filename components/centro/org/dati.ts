@@ -184,35 +184,45 @@ export function useDebounce<T>(valore: T, ms: number = DEBOUNCE_MS): T {
   return v;
 }
 
-/** Inizio del nome del colpo usato come filtro sul server: tollera accenti e plurali, il confronto preciso resta nel client. */
-const prefissoColpo = (chiave: string) => chiave.slice(0, 3);
+// ───────── aggregati dal database ─────────
+// I numeri delle dashboard (allievi attivi, presenze, in ritardo, allievi per gruppo) li calcola il database con le RPC di
+// docs/RPC.md, sezione Aggregati: il client non scarica presenze né valutazioni per contarle.
+export type RiepilogoAllievi = { attivi: number; presenze_mese_perc: number | null; in_ritardo: number; assenze_ripetute: number };
+export type RigaConteggioGruppo = { gruppo_id: string; n_allievi: number };
 
-/** Valutazioni di un solo colpo (non di tutte le competenze), a colonne ridotte. */
-export function leggiValutazioni(sb: SB, centroId: string, chiave: string) {
-  return tuttePagine<ValutazioneL>((da, a, conta) =>
-    sb.from("valutazioni").select("id,allievo_id,colpo,voto,data,test", conta ? { count: "exact" } : undefined)
-      .eq("centro_id", centroId).ilike("colpo", `%${prefissoColpo(chiave)}%`).order("id").range(da, a));
-}
-
-type RigaPresenza = { lezione_id: string; allievo_id: string; presente: boolean; lezioni: { data: string; gruppo_id: string } | { data: string; gruppo_id: string }[] | null };
+/** Il colpo si scrive nel database com'è (es. "Dritto", "Volée", "Gioco di gambe"): le RPC lo confrontano per uguaglianza. */
+export const COLPI_DB = { dritto: "Dritto", rovescio: "Rovescio", servizio: "Servizio", volee: "Volée", gambe: "Gioco di gambe" } as const;
 
 /**
- * Presenze delle lezioni chiuse dal giorno `da`, con data e gruppo della lezione, in una sola lettura (join) invece di
- * una richiesta ogni 60 lezioni. Con `gruppi` si limita ai gruppi indicati.
+ * Conteggi dell'organizzazione calcolati dal database: allievi attivi per gruppo (`conteggi_gruppi`) e riepilogo
+ * (`allievi_riepilogo`, con `p_colpo` per i "in ritardo"). Si rileggono quando cambia `dati` (dopo ogni modifica).
  */
-export async function leggiPresenze(sb: SB, centroId: string, da: string, gruppi?: string[]): Promise<{ righe: PresenzaL[]; errore: string | null }> {
-  const r = await tuttePagine<RigaPresenza>((x, y, conta) => {
-    let q = sb.from("presenze").select("id,lezione_id,allievo_id,presente,lezioni!inner(data,gruppo_id)", conta ? { count: "exact" } : undefined)
-      .eq("centro_id", centroId).eq("lezioni.stato", "chiusa").gte("lezioni.data", da);
-    if (gruppi) q = q.in("lezioni.gruppo_id", gruppi);
-    return q.order("id").range(x, y);
-  });
-  const righe: PresenzaL[] = [];
-  for (const p of r.righe) {
-    const l = Array.isArray(p.lezioni) ? p.lezioni[0] : p.lezioni;
-    if (l) righe.push({ allievo_id: p.allievo_id, presente: p.presente, lezione_id: p.lezione_id, data: l.data, gruppo_id: l.gruppo_id });
-  }
-  return { righe, errore: r.errore };
+export function useConteggi(sb: SB, centroId: string, aree: string[] | null, dati: unknown, colpo: string | null = null) {
+  const [x, setX] = useState<{ chiave: string; perGruppo: Map<string, number>; riepilogo: RiepilogoAllievi } | null>(null);
+  const [errore, setErrore] = useState<string | null>(null);
+  const chiave = `${centroId}|${aree?.join(",") ?? "*"}|${colpo ?? ""}`;
+  useEffect(() => {
+    if (!dati) return;
+    let vivo = true;
+    (async () => {
+      const [c, r] = await Promise.all([
+        sb.rpc("conteggi_gruppi", { p_centro: centroId, p_aree: aree }),
+        sb.rpc("allievi_riepilogo", { p_centro: centroId, p_aree: aree, p_colpo: colpo }),
+      ]);
+      if (!vivo) return;
+      const err = c.error ?? r.error;
+      if (err) { setErrore(err.message); return; }
+      setErrore(null);
+      const perGruppo = new Map<string, number>(((c.data ?? []) as RigaConteggioGruppo[]).map((g) => [g.gruppo_id, g.n_allievi]));
+      setX({ chiave, perGruppo, riepilogo: r.data as RiepilogoAllievi });
+    })();
+    return () => { vivo = false; };
+    // `aree` è un array nuovo a ogni render: la chiave testuale lo rappresenta
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sb, centroId, chiave, dati]);
+  // finché non arrivano i numeri della selezione corrente non si mostrano quelli di un'altra
+  const pronto = x && x.chiave === chiave ? x : null;
+  return { perGruppo: pronto?.perGruppo ?? null, riepilogo: pronto?.riepilogo ?? null, errore };
 }
 
 // ───────── lettura dei dati ─────────
