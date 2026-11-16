@@ -2,7 +2,7 @@ import "server-only";
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase/server";
 import { leggiImpostazioni } from "@/lib/ai/impostazioni";
-import { audioKitten, vociItaliane } from "@/lib/ai/kitten";
+import { audioKitten, elencoVoci } from "@/lib/ai/kitten";
 import { errore } from "@/lib/ai/guardia";
 
 export const runtime = "nodejs";
@@ -23,13 +23,14 @@ async function controllo() {
   return { chiave: imp.kittenKey, imp };
 }
 
-/** GET: elenco delle voci italiane di KittenML (comprese le clonate) e la voce attualmente scelta. */
-export async function GET() {
+/** GET: elenco delle voci di KittenML (italiane + sempre le clonate; con ?tutte=1 ogni lingua) e la voce attualmente scelta. */
+export async function GET(req: Request) {
   const c = await controllo();
   if ("risposta" in c) return c.risposta;
   try {
-    const voci = await vociItaliane(c.chiave);
-    return NextResponse.json({ voci, scelta: c.imp.kittenVoceId }, { headers: { "Cache-Control": "no-store" } });
+    const tutte = new URL(req.url).searchParams.get("tutte") === "1";
+    const { voci, ricevute, clonate } = await elencoVoci(c.chiave, tutte);
+    return NextResponse.json({ voci, ricevute, clonate, scelta: c.imp.kittenVoceId }, { headers: { "Cache-Control": "no-store" } });
   } catch (e) {
     console.error("[admin] voci kitten:", e instanceof Error ? e.message : "errore");
     return errore(502, "errore_kitten", e instanceof Error ? e.message : "KittenML non risponde.");

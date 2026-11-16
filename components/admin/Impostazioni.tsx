@@ -36,6 +36,10 @@ export function Impostazioni() {
   const [erroreVoci, setErroreVoci] = useState<string | null>(null);
   const [caricoVoci, setCaricoVoci] = useState(false);
   const [ascolto, setAscolto] = useState<string | null>(null);
+  // elenco completo (ogni lingua), conteggi ricevuti da KittenML, ID incollato a mano
+  const [tutte, setTutte] = useState(false);
+  const [conteggi, setConteggi] = useState<{ ricevute: number; clonate: number } | null>(null);
+  const [idManuale, setIdManuale] = useState("");
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const carica = useCallback(async () => {
@@ -76,13 +80,14 @@ export function Impostazioni() {
   const caricaVoci = useCallback(async () => {
     setCaricoVoci(true); setErroreVoci(null);
     try {
-      const r = await fetch("/api/admin/voci", { cache: "no-store" });
+      const r = await fetch(`/api/admin/voci${tutte ? "?tutte=1" : ""}`, { cache: "no-store" });
       const j = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(j.messaggio || "Impossibile leggere le voci.");
       setVoci(j.voci as VoceKitten[]);
+      setConteggi(typeof j.ricevute === "number" ? { ricevute: j.ricevute, clonate: Number(j.clonate) || 0 } : null);
     } catch (e) { setErroreVoci(e instanceof Error ? e.message : "Impossibile leggere le voci."); setVoci([]); }
     setCaricoVoci(false);
-  }, []);
+  }, [tutte]);
   const haKitten = !!righe?.kittenml_api_key?.impostata;
   useEffect(() => { if (haKitten && voci === null) void caricaVoci(); }, [haKitten, voci, caricaVoci]);
   useEffect(() => () => { audioRef.current?.pause(); }, []);
@@ -100,6 +105,7 @@ export function Impostazioni() {
       await a.play();
     } catch (e) { setErroreVoci(e instanceof Error ? e.message : "Anteprima non disponibile."); setAscolto(null); }
   };
+  const idPulito = idManuale.trim();
   const usaVoce = (v: VoceKitten) => void scrivi("voce:" + v.id, [["kitten_voce_id", v.id, false], ["kitten_voce_nome", v.nome, false]], `Voce di Match Point: ${v.nome}`);
   const salvaGenerali = () => {
     const b = Number(f.budget.replace(",", "."));
@@ -171,7 +177,9 @@ export function Impostazioni() {
           {!haKitten && <p className="db-nota">Salva prima la chiave API KittenML per vedere le voci italiane.</p>}
           {haKitten && caricoVoci && <div className="db-caric"><span className="db-spin" aria-label="Caricamento voci" /></div>}
           <Errore testo={erroreVoci} />
-          {haKitten && voci && voci.length === 0 && !caricoVoci && !erroreVoci && <p className="db-nota">KittenML non ha restituito voci italiane.</p>}
+          {haKitten && <label className="db-nota" style={{ display: "flex", gap: 8, alignItems: "center", padding: "4px 0" }}>
+            <input type="checkbox" checked={tutte} onChange={(e) => { setTutte(e.target.checked); setVoci(null); }} /> Mostra tutte le lingue</label>}
+          {haKitten && voci && voci.length === 0 && !caricoVoci && !erroreVoci && <p className="db-nota">KittenML non ha restituito voci{tutte ? "" : " italiane"}.</p>}
           {voci && voci.map((v) => {
             const scelta = righe.kitten_voce_id?.value === v.id;
             return (
@@ -187,6 +195,20 @@ export function Impostazioni() {
               </div>
             );
           })}
+          {haKitten && conteggi && <p className="db-nota" style={{ fontSize: 12 }}>{conteggi.ricevute} voci ricevute da KittenML, di cui {conteggi.clonate} clonate</p>}
+          {haKitten && (
+            <div style={{ paddingTop: 8 }}>
+              <label className="db-nota" htmlFor="voce-id-manuale">Oppure incolla l&apos;ID della voce (es. voice_…, si trova su platform.kittenml.com/voices)</label>
+              <div className="db-sec-pwd" style={{ alignItems: "center", gap: 8, paddingTop: 4 }}>
+                <input id="voce-id-manuale" type="text" value={idManuale} maxLength={200} placeholder="voice_…" autoComplete="off" spellCheck={false}
+                  onChange={(e) => setIdManuale(e.target.value)} style={{ flex: "1 1 200px" }} />
+                <button type="button" className="db-btn2" disabled={!idPulito || ascolto === idPulito} onClick={() => void ascolta(idPulito)}>{ascolto === idPulito ? "Ascolto…" : "▶ Ascolta"}</button>
+                <button type="button" className="db-btn2 acc" disabled={!idPulito || righe.kitten_voce_id?.value === idPulito || occ === "voce:" + idPulito}
+                  onClick={() => usaVoce({ id: idPulito, nome: voci?.find((x) => x.id === idPulito)?.nome ?? idPulito, genere: null, clonata: idPulito.startsWith("voice_") })}>
+                  {righe.kitten_voce_id?.value === idPulito ? "In uso" : occ === "voce:" + idPulito ? "Salvo…" : "Usa questa voce"}</button>
+              </div>
+            </div>
+          )}
         </div></div>
         {haKitten && <div className="db-azioni"><button type="button" className="db-btn2" disabled={caricoVoci} onClick={() => void caricaVoci()}>Aggiorna elenco</button></div>}
       </section>
