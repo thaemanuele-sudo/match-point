@@ -1,0 +1,13 @@
+.form{display:flex;flex-direction:column;gap:10px;padding:14px}
+.campo{display:flex;flex-direction:column;gap:5px}
+.campo label{font-size:12px;font-weight:700;color:#A1A1A6}
+.campo input[disabled]{opacity:.65}
+.doppia{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.valore{color:#A1A1A6;font-size:13.5px;font-weight:600}
+.errore{font-size:13px;color:#FF8A6B}
+.ok{font-size:13px;color:#4CD07D}
+.spesa{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px}
+.spesa b{font-family:var(--font-barlow),"Barlow Condensed",sans-serif;font-size:28px;color:#D8F34A;line-height:1}
+.spesa span{font-size:13.5px;font-weight:700}
+.off{opacity:.45;cursor:default}
+.esci{color:#FF8A6B !important}

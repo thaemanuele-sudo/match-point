@@ -1,0 +1,56 @@
+/* Classi grafiche ricorrenti delle schermate del gruppo "profilo" (tratte dal foglio di stile dei disegni).
+   Il contenitore .col è dentro Schermo; i selettori "a.xxx" servono a vincere su `.mp a` (colore giallo). */
+.col{display:flex;flex-direction:column;gap:14px;min-width:0}
+.col.stretto{gap:12px}
+.col.fitto{gap:10px}
+.grow{flex:1;min-width:0}
+.hdr{display:flex;align-items:center;gap:10px}
+.kick{font-size:12px;font-weight:600;color:#A1A1A6}
+.h1{margin:0;font-family:var(--font-barlow),"Barlow Condensed",sans-serif;font-size:27px;line-height:1.05;font-weight:700}
+.big{margin:0;font-family:var(--font-barlow),"Barlow Condensed",sans-serif;font-size:44px;line-height:1;font-weight:800;font-style:italic}
+.disp{font-family:var(--font-barlow),"Barlow Condensed",sans-serif}
+.pad{padding:14px}
+.k{font-size:11px;font-weight:800;color:#A1A1A6;letter-spacing:.4px;text-transform:uppercase}
+.testoMuted{margin:0;font-size:14px;line-height:1.4;color:#A1A1A6}
+.sezione{display:flex;align-items:baseline;justify-content:space-between}
+.sezione h2{margin:0;font-size:18px;font-weight:700}
+.sezione span,.sezione a{font-size:13px;font-weight:700;text-decoration:none}
+.col a.piccolo{color:#D8F34A}
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.g4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.g5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.g7{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.tile{background:#161618;border-radius:16px;padding:10px 12px;border:1px solid rgba(255,255,255,.06)}
+.tile b{display:block;font-family:var(--font-barlow),"Barlow Condensed",sans-serif;font-size:26px;line-height:1;color:#D8F34A}
+.tile span{font-size:11.5px;color:#A1A1A6;font-weight:700}
+.tile.centro{text-align:center}
+.tile.centro b{color:#F3F6F1}
+.li{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:18px;background:#161618;border:1px solid rgba(255,255,255,.06);text-decoration:none;color:#F3F6F1;width:100%;box-sizing:border-box;font:inherit;text-align:left}
+.col a.li,.col a.li:hover{color:#F3F6F1}
+.col a.li:hover{background:#1C1C1F}
+.liT{display:block;font-weight:700;font-size:15px}
+.liS{display:block;font-size:12.5px;color:#A1A1A6;margin-top:2px}
+.ic{width:38px;height:38px;flex:none;border-radius:12px;background:#232326;color:#D8F34A;display:flex;align-items:center;justify-content:center}
+.tag{display:inline-block;font-size:11px;font-weight:800;padding:3px 7px;border-radius:7px;background:#232326;color:#E5E5EA;white-space:nowrap}
+.code{display:inline-block;font-family:var(--font-barlow),"Barlow Condensed",sans-serif;font-size:15px;font-weight:700;padding:2px 8px;border-radius:7px;background:#0B0B0C;color:#D8F34A;border:1px solid #2C2C2E}
+.num{width:26px;height:26px;flex:none;border-radius:50%;background:#D8F34A;color:#0B0B0C;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center}
+.dot{width:10px;height:10px;border-radius:50%;flex:none}
+.bar{height:12px;border-radius:6px;background:#2C2C2E;position:relative;overflow:hidden}
+.bar i{position:absolute;left:0;top:0;bottom:0;border-radius:6px}
+.seg{display:grid;gap:4px;padding:4px;border-radius:14px;background:#161618}
+.sg{height:34px;border-radius:10px;border:0;background:transparent;color:#A1A1A6;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer}
+.sg.on{background:#2C2C2E;color:#F3F6F1}
+.note{font-size:12.5px;line-height:1.4;color:#A1A1A6;background:#0E0E10;border:1px solid #232326;border-radius:14px;padding:10px 12px}
+.note svg{vertical-align:-3px;margin-right:4px}
+.inp{display:flex;align-items:center;justify-content:space-between;height:46px;padding:0 14px;border-radius:14px;background:#161618;font-size:15px}
+.inp span:last-child{color:#A1A1A6;font-weight:600}
+.btn2{display:flex;align-items:center;justify-content:center;gap:8px;height:48px;border-radius:999px;background:#232326;color:#F3F6F1;font-weight:700;font-size:15px;border:0;font-family:inherit;text-decoration:none;flex:1;cursor:pointer}
+.col a.btn2,.col a.btn2:hover{color:#F3F6F1}
+.avatar{border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;flex:none}
+.lawnLink{display:flex;align-items:center;gap:12px;padding:12px;border-radius:20px;text-decoration:none;color:#F3F6F1}
+.col a.lawnLink,.col a.lawnLink:hover{color:#F3F6F1}
+.playTondo{width:46px;height:46px;border-radius:50%;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;flex:none}
+.destra{display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.col.pieno{min-height:calc(100dvh - 48px)}

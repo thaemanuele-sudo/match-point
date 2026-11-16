@@ -1,0 +1,8 @@
+.ruolo{display:flex;align-items:center;gap:14px;padding:14px;border-radius:22px;border:2px solid #161618;background:#161618;font-family:inherit;color:#F3F6F1;cursor:pointer;width:100%;text-align:left}
+.ruolo.on{background:#1C2610;border-color:#D8F34A}
+.lettera{width:52px;height:52px;border-radius:16px;background:#0B0B0C;display:flex;align-items:center;justify-content:center;flex:none;font-family:var(--font-barlow),"Barlow Condensed",sans-serif;font-size:26px;font-weight:800;color:#D8F34A}
+.testi{display:flex;flex-direction:column;gap:4px}
+.testi b{font-weight:800;font-size:17px}
+.testi span{font-size:13px;line-height:1.35;opacity:.8}
+.spazio{flex:1}
+.errore{font-size:13.5px;color:#FF8A6B}

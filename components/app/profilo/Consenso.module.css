@@ -1,0 +1,7 @@
+.voce{display:flex;align-items:center;gap:12px;padding:12px;border-radius:16px;background:#161618;cursor:pointer}
+.voce b{display:block;font-weight:700;font-size:14.5px}
+.voce small{display:block;font-size:12.5px;line-height:1.35;color:#A1A1A6}
+.voce input{width:22px;height:22px;accent-color:#D8F34A;flex:none}
+.scudo{display:flex;gap:12px;align-items:center;padding:14px}
+.scudo span:last-child{font-size:13.5px;line-height:1.4}
+.spazio{flex:1}

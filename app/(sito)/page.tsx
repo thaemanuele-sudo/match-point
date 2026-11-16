@@ -1,3 +1,9 @@
+import { Sito } from "@/components/sito/Sito";
+import { it } from "@/lib/sito/it";
+import { metaPagina } from "@/lib/sito/meta";
+
+export const metadata = metaPagina(it);
+
 export default function Pagina() {
-  return <main style={{ padding: 40 }}>Match Point</main>;
+  return <Sito lang="it" d={it} />;
 }

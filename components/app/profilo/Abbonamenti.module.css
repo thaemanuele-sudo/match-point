@@ -1,0 +1,6 @@
+.piano{border-radius:20px;padding:12px 14px;border:1px solid rgba(255,255,255,.07);background:#161618;display:flex;flex-direction:column;gap:6px}
+.piano.pro{border:2px solid #D8F34A;background:linear-gradient(160deg,#1C2610,#161618 70%)}
+.testa{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.testa b{font-weight:800;font-size:16px}
+.testa span{font-family:var(--font-barlow),"Barlow Condensed",sans-serif;font-size:20px;font-weight:700;color:#D8F34A;text-align:right}
+.voci{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12.5px;color:#A1A1A6}

@@ -1,0 +1,10 @@
+.riga{display:flex;align-items:center;gap:14px}
+.avatar{width:62px;height:62px;border-radius:50%;background:#8A3E6C;border:3px solid #D8F34A;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px;flex:none}
+.nome{font-weight:800;font-size:19px}
+.sotto{font-size:13px;color:#A1A1A6}
+.anello{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center}
+.valore{font-family:var(--font-barlow),"Barlow Condensed",sans-serif;font-size:17px;font-weight:700}
+.etichetta{font-size:11px;font-weight:700;line-height:1.2;color:#A1A1A6}
+.barre{display:flex;align-items:flex-end;gap:3px;height:34px}
+.barre span{flex:1;border-radius:2px;opacity:.5}
+.barre span.forte{opacity:1}

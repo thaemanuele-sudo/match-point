@@ -1,0 +1,3 @@
+/* Schermo intero della partita live: il video è un palco 852×393 centrato, scalato e (in verticale) ruotato. */
+.fuori{position:fixed;inset:0;z-index:60;background:#000;overflow:hidden;color:#F3F6F1}
+.stage{position:absolute;left:50%;top:50%;width:852px;height:393px;margin:-196.5px 0 0 -426px;overflow:hidden;transform-origin:center;background:radial-gradient(ellipse at 50% 28%,#12352A 0%,#07140F 55%,#030504 100%)}

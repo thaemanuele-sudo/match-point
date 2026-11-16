@@ -1,0 +1,55 @@
+:global(.mp) :global(.mp-screen) .app{position:relative;height:100dvh;overflow:hidden;background:#050505;color:#F3F6F1;margin:calc(-16px - env(safe-area-inset-top)) -20px calc(-1 * (var(--mp-tab-h) + 24px + env(safe-area-inset-bottom)))}
+:global(.mp) :global(.mp-screen) .disp{font-family:"Barlow Condensed",sans-serif}
+:global(.mp) :global(.mp-screen) .icon{width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,.7);border:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;color:#F3F6F1;text-decoration:none}
+:global(.mp) :global(.mp-screen) .icon:hover{color:#F3F6F1}
+:global(.mp) :global(.mp-screen) .lawn{background:repeating-linear-gradient(90deg,#1E6A44 0 36px,#24764C 36px 72px)}
+:global(.mp) :global(.mp-screen) .card{background:#161618;border:1px solid rgba(255,255,255,.07);border-radius:22px}
+:global(.mp) :global(.mp-screen) .muted{color:#A1A1A6}
+:global(.mp) :global(.mp-screen) .ex{display:flex;align-items:center;gap:12px;padding:12px;border-radius:18px;background:#161618;border:1px solid rgba(255,255,255,.07)}
+:global(.mp) :global(.mp-screen) .ex b{font-size:15px}
+:global(.mp) :global(.mp-screen) .pill{font-size:12px;font-weight:700;color:#0B0B0C;background:#D8F34A;border-radius:8px;padding:3px 7px}
+:global(.mp) :global(.mp-screen) .e1.e1{position:absolute;inset:0 0 calc(var(--mp-tab-h) + env(safe-area-inset-bottom)) 0;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column}
+:global(.mp) :global(.mp-screen) .e2.e2{position:relative;height:330px;flex:none;background:radial-gradient(ellipse at 50% 28%,#12352A 0%,#07140F 55%,#030504 100%)}
+:global(.mp) :global(.mp-screen) .e3.e3{position:absolute;inset:0}
+:global(.mp) :global(.mp-screen) .e4.e4{position:absolute;top:54px;left:16px;right:16px;display:flex;justify-content:space-between}
+:global(.mp) :global(.mp-screen) .e5.e5{align-self:center;font-size:13px;font-weight:700;background:rgba(0,0,0,.7);padding:7px 12px;border-radius:999px}
+:global(.mp) :global(.mp-screen) .e6.e6{position:absolute;right:16px;top:110px;font-size:11.5px;font-weight:800;color:#4FD1FF;background:rgba(5,5,5,.8);border:1px solid rgba(79,209,255,.4);padding:4px 8px;border-radius:8px}
+:global(.mp) :global(.mp-screen) .e7.e7{position:absolute;left:16px;right:16px;bottom:14px;display:flex;flex-direction:column;gap:8px}
+:global(.mp) :global(.mp-screen) .e8.e8{height:34px;border-radius:10px;background:rgba(0,0,0,.7);display:flex;align-items:center;gap:3px;padding:0 8px}
+:global(.mp) :global(.mp-screen) .e9.e9{flex:1;height:14px;border-radius:3px;background:#2E7D55}
+:global(.mp) :global(.mp-screen) .e10.e10{flex:1;height:20px;border-radius:3px;background:#F0454A}
+:global(.mp) :global(.mp-screen) .e11.e11{flex:1;margin-top:-22px;background:#050505;border-radius:28px 28px 0 0;position:relative;padding:20px 20px 0;display:flex;flex-direction:column;gap:16px}
+:global(.mp) :global(.mp-screen) .e12.e12{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+:global(.mp) :global(.mp-screen) .e13.e13{font-size:12px;font-weight:700;color:#FF8A6B;letter-spacing:.4px}
+:global(.mp) :global(.mp-screen) .e14.e14{margin:4px 0 0;font-size:34px;line-height:1;font-weight:700}
+:global(.mp) :global(.mp-screen) .e15.e15{text-align:right;flex:none}
+:global(.mp) :global(.mp-screen) .e16.e16{font-size:40px;line-height:1;font-weight:700;color:#FF8A6B}
+:global(.mp) :global(.mp-screen) .e17.e17{font-size:11px}
+:global(.mp) :global(.mp-screen) .e18.e18{height:8px;border-radius:4px;background:linear-gradient(90deg,#D8F34A,#FFC44D 55%,#F0454A);position:relative}
+:global(.mp) :global(.mp-screen) .e19.e19{position:absolute;left:72%;top:-5px;width:4px;height:18px;border-radius:2px;background:#fff;box-shadow:0 0 0 3px #050505}
+:global(.mp) :global(.mp-screen) .e20.e20{padding:14px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+:global(.mp) :global(.mp-screen) .e21.e21{font-size:12px;font-weight:600}
+:global(.mp) :global(.mp-screen) .e22.e22{font-size:14px;font-weight:600;margin-top:3px}
+:global(.mp) :global(.mp-screen) .e23.e23{display:flex;align-items:baseline;justify-content:space-between}
+:global(.mp) :global(.mp-screen) .e24.e24{margin:0;font-size:19px}
+:global(.mp) :global(.mp-screen) .e25.e25{font-size:14px;font-weight:600;text-decoration:none}
+:global(.mp) :global(.mp-screen) .e26.e26{width:48px;height:48px;border-radius:12px;flex:none;display:flex;align-items:center;justify-content:center}
+:global(.mp) :global(.mp-screen) .e27.e27{flex:1}
+:global(.mp) :global(.mp-screen) .e28.e28{font-size:13px}
+:global(.mp) :global(.mp-screen) .foto{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+:global(.mp) :global(.mp-screen) .ok.ok{color:#D8F34A}
+:global(.mp) :global(.mp-screen) .sez{display:flex;flex-direction:column;gap:10px}
+:global(.mp) :global(.mp-screen) .testo{padding:14px;font-size:14px;line-height:1.45}
+:global(.mp) :global(.mp-screen) .fase{padding:12px 14px;display:flex;flex-direction:column;gap:8px;font-size:14px}
+:global(.mp) :global(.mp-screen) .faseTesta{display:flex;justify-content:space-between;align-items:baseline}
+:global(.mp) :global(.mp-screen) .voto{font-size:22px;font-weight:700;color:#D8F34A}
+:global(.mp) :global(.mp-screen) .fasebar{height:6px;border-radius:3px;background:#2C2C2E;overflow:hidden}
+:global(.mp) :global(.mp-screen) .fasebar i{display:block;height:100%;border-radius:3px;background:#D8F34A}
+:global(.mp) :global(.mp-screen) .nota{font-size:13px;line-height:1.4}
+:global(.mp) :global(.mp-screen) .errore{display:flex;gap:12px;padding:12px;text-align:left;color:inherit;font:inherit;cursor:pointer;width:100%}
+:global(.mp) :global(.mp-screen) .errore.attivo{border-color:#D8F34A}
+:global(.mp) :global(.mp-screen) .mini{width:64px;height:64px;border-radius:12px;object-fit:cover;flex:none}
+:global(.mp) :global(.mp-screen) .errTesto{display:flex;flex-direction:column;gap:4px;min-width:0}
+:global(.mp) :global(.mp-screen) .errTesta{display:flex;justify-content:space-between;gap:8px;align-items:center}
+:global(.mp) :global(.mp-screen) .btnNuova{margin:4px 0 24px;text-decoration:none}
+:global(.mp) :global(.mp-screen) .e11.e11{padding-bottom:28px}

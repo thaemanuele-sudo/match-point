@@ -1,0 +1,8 @@
+.riga{display:flex;align-items:center;gap:14px}
+.avatar{width:68px;height:68px;border-radius:50%;background:#3E5D8A;border:3px solid #D8F34A;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:22px;flex:none}
+.nome{font-weight:800;font-size:18px}
+.sotto{font-size:13px;color:#A1A1A6}
+.fasce{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+.fasce :global(.chip){justify-content:center;padding:0 4px}
+.errore{font-size:13.5px;color:#FF8A6B}
+.ok{font-size:13.5px;color:#4CD07D}

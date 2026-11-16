@@ -1,0 +1,26 @@
+.r{display:flex;flex-direction:column;gap:14px}
+.r .hdr{display:flex;align-items:center;gap:10px}
+.r .icon{width:40px;height:40px;flex:none;border-radius:50%;background:#161618;border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;color:#F3F6F1;text-decoration:none}
+.r .icon:hover{color:#F3F6F1}
+.r .grow{flex:1;min-width:0}
+.r .kick{font-size:12px;font-weight:600;color:#A1A1A6}
+.r .h1{margin:0;font-family:"Barlow Condensed",sans-serif;font-size:27px;line-height:1.05;font-weight:700}
+.r .code{display:inline-block;font-family:"Barlow Condensed",sans-serif;font-size:15px;font-weight:700;padding:2px 8px;border-radius:7px;background:#0B0B0C;color:#D8F34A;border:1px solid #2C2C2E;flex:none}
+.r .pannello{display:flex;flex-direction:column;gap:6px}
+.r .schermo{position:relative;border-radius:20px;overflow:hidden;background:radial-gradient(ellipse at 50% 28%,#12352A 0%,#07140F 55%,#030504 100%);aspect-ratio:16/10;border:1.5px solid var(--c)}
+.r .schermo video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
+.r .mancante{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:16px;font-size:13px;font-weight:600;color:#A1A1A6}
+.r .segno{position:absolute;left:10px;top:8px;font-weight:900;font-size:20px;color:var(--c);text-shadow:0 1px 6px rgba(0,0,0,.7);pointer-events:none;z-index:2}
+.r .didascalia{font-size:12.5px;font-weight:700;text-align:center}
+.r .k{font-size:11px;font-weight:800;color:#A1A1A6;letter-spacing:.4px}
+.r .v{font-size:14px;line-height:1.38;margin-top:3px}
+.r .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.r .chip{display:inline-flex;align-items:center;height:28px;padding:0 11px;border-radius:999px;background:#232326;color:#E5E5EA;font-size:12px;font-weight:700}
+.r .btn{display:flex;align-items:center;justify-content:center;gap:8px;height:52px;border-radius:999px;background:#D8F34A;color:#0B0B0C;font-weight:800;font-size:16px;border:0;font-family:inherit;cursor:pointer;flex:none}
+.r .btn:hover{filter:brightness(1.05)}
+.r .btn2{display:flex;align-items:center;justify-content:center;gap:8px;height:48px;border-radius:999px;background:#232326;color:#F3F6F1;font-weight:700;font-size:15px;border:0;font-family:inherit;text-decoration:none;flex:none}
+.r .btn2:hover{color:#fff}
+.r .vuoto{display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;padding:48px 12px;color:#A1A1A6;font-size:14px;line-height:1.4}
+.r .vuoto b{color:#F3F6F1;font-size:17px}
+.r .scheletro{border-radius:20px;background:linear-gradient(100deg,#161618 30%,#1E1E21 50%,#161618 70%);background-size:200% 100%;animation:sk 1.4s linear infinite}
+@keyframes sk{from{background-position:200% 0}to{background-position:-200% 0}}

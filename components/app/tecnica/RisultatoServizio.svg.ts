@@ -1,0 +1,4 @@
+// Figure vettoriali dei disegni (statiche, nostre): inserite come HTML.
+export const SVG: string[] = [
+"<g fill=\"none\" stroke=\"#5A6A62\" stroke-width=\"1.5\"><path d=\"M30 210 L110 60 L250 60 L330 210Z\"></path><path d=\"M70 135 L290 135 M90 98 L270 98 M180 98 L180 210 M60 160 H300\"></path></g><path d=\"M74 128 H286 L286 104 H74Z\" fill=\"rgba(255,255,255,.08)\" stroke=\"#A1A1A6\" stroke-width=\"1.5\"></path><path class=\"arc\" d=\"M205 205 Q 190 80 132 88\" fill=\"none\" stroke=\"#4CD07D\" stroke-width=\"3.5\"></path><circle cx=\"132\" cy=\"88\" r=\"7\" fill=\"#D8F34A\"></circle><path d=\"M150 112 L150 99\" stroke=\"#4CD07D\" stroke-width=\"2\" stroke-dasharray=\"3 3\"></path><text x=\"156\" y=\"108\" font-size=\"11\" font-weight=\"800\" fill=\"#4CD07D\" font-family=\"system-ui\">84 cm</text>"
+];

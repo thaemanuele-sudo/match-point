@@ -1,0 +1,5 @@
+.grafico{width:100%;height:auto;display:block}
+.titoloGrafico{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px}
+.titoloGrafico h2{margin:0;font-size:15px;font-weight:700}
+.delta{font-size:13px;font-weight:700;color:#4CD07D}
+.valore{font-weight:800}

@@ -1,0 +1,1099 @@
+/* Sito di presentazione di Match Point (/ e /en).
+   Stile sobrio alla Apple, come il sito di Archimede: sfondo nero, font di sistema, molto spazio, un solo accento (giallo palla).
+   Tutto vive sotto .sito: nessuno stile globale. */
+
+.sito {
+  --s-bg: #000;
+  --s-bg2: #0b0b0d;
+  --s-bg3: #141416;
+  --s-tx: #f5f5f7;
+  --s-tx2: #a1a1a6; /* 7,9:1 su nero, 6,9:1 su #141416 */
+  --s-linea: rgba(255, 255, 255, 0.12);
+  --s-acc: #d8f34a;
+  --s-su-acc: #0b0b0c; /* testo su accento: 15:1 */
+  --s-verde: #1e6a44; /* solo sfondi decorativi */
+  --s-barra: rgba(0, 0, 0, 0.72);
+  --s-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, "Helvetica Neue", Arial, sans-serif;
+  --s-display: var(--font-barlow, "Barlow Condensed"), "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --s-max: 1160px;
+  --s-gutter: clamp(16px, 4vw, 28px);
+
+  position: relative;
+  min-height: 100vh;
+  background: var(--s-bg);
+  color: var(--s-tx);
+  font-family: var(--s-sans);
+  font-size: 17px;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  overflow-x: clip;
+  color-scheme: dark;
+}
+.sito *,
+.sito *::before,
+.sito *::after {
+  box-sizing: border-box;
+}
+.sito :where(h1, h2, p, figure, ul) {
+  margin: 0;
+  padding: 0;
+}
+.sito :where(ul) {
+  list-style: none;
+}
+.sito :where(a) {
+  color: inherit;
+  text-decoration: none;
+}
+.sito :where(img, video) {
+  display: block;
+  max-width: 100%;
+}
+.sito :where(button) {
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+}
+.sito :focus-visible {
+  outline: 3px solid var(--s-acc);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+.sito section[id] {
+  scroll-margin-top: 108px;
+}
+
+.s-wrap {
+  width: 100%;
+  max-width: var(--s-max);
+  margin: 0 auto;
+  padding-inline: var(--s-gutter);
+}
+
+.s-salta {
+  position: absolute;
+  inset-inline-start: 8px;
+  top: 8px;
+  z-index: 200;
+  transform: translateY(-300%);
+  background: var(--s-acc);
+  color: var(--s-su-acc) !important;
+  font-weight: 600;
+  padding: 9px 16px;
+  border-radius: 10px;
+}
+.s-salta:focus {
+  transform: none;
+}
+
+/* ---------- Barra in vetro ---------- */
+.s-barra {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--s-barra);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid var(--s-linea);
+}
+.s-barra-in {
+  padding-block: 0;
+  max-width: var(--s-max);
+  margin: 0 auto;
+  padding-inline: var(--s-gutter);
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.s-marchio {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 650;
+  font-size: 17px;
+  letter-spacing: -0.025em;
+  white-space: nowrap;
+  min-height: 44px;
+}
+.s-voci {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.s-voci a {
+  font-size: 14px;
+  color: var(--s-tx2);
+  padding: 8px 12px;
+  border-radius: 8px;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+.s-voci a:hover {
+  color: var(--s-tx);
+  background: rgba(255, 255, 255, 0.07);
+}
+.s-barra-az {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.s-lingua {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--s-linea);
+  border-radius: 980px;
+}
+.s-lingua a {
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  color: var(--s-tx2);
+  min-width: 36px;
+  min-height: 28px;
+  padding: 0 9px;
+  border-radius: 980px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.s-lingua a[aria-current="true"] {
+  background: rgba(255, 255, 255, 0.16);
+  color: var(--s-tx);
+}
+.s-lingua a:not([aria-current]):hover {
+  color: var(--s-tx);
+}
+.s-pillola {
+  background: var(--s-acc);
+  color: var(--s-su-acc) !important;
+  font-size: 13px;
+  font-weight: 650;
+  padding: 0 15px;
+  min-height: 32px;
+  border-radius: 980px;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  transition: filter 0.2s ease, transform 0.2s ease;
+}
+.s-pillola:hover {
+  filter: brightness(1.06);
+}
+
+/* ---------- Tipografia comune ---------- */
+.s-occhiello {
+  color: var(--s-acc);
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: 0;
+  margin-bottom: 12px;
+}
+.sito h2 {
+  font-size: clamp(32px, 4.8vw, 54px);
+  font-weight: 700;
+  line-height: 1.06;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+  margin-bottom: 20px;
+}
+.s-intro {
+  font-size: clamp(18px, 2vw, 21px);
+  line-height: 1.45;
+  color: var(--s-tx2);
+  letter-spacing: -0.015em;
+  text-wrap: pretty;
+}
+
+/* ---------- Pulsanti ---------- */
+.s-cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 14px 26px;
+  margin-top: 32px;
+}
+.s-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 28px;
+  border-radius: 980px;
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  transition: transform 0.2s ease, filter 0.2s ease, background-color 0.2s ease;
+}
+.s-btn:hover {
+  transform: translateY(-1px);
+}
+.s-btn-acc {
+  background: var(--s-acc);
+  color: var(--s-su-acc) !important;
+  box-shadow: 0 10px 30px -10px rgba(216, 243, 74, 0.45);
+}
+.s-btn-acc:hover {
+  filter: brightness(1.05);
+}
+.s-btn-vuoto {
+  border: 1px solid rgba(255, 255, 255, 0.28);
+}
+.s-btn-vuoto:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.s-btn-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  font-size: 17px;
+  color: var(--s-acc);
+  letter-spacing: -0.015em;
+}
+.s-btn-link svg {
+  transition: transform 0.2s ease;
+}
+.s-btn-link:hover svg {
+  transform: translateX(3px);
+}
+
+/* ---------- Apertura ---------- */
+.s-apertura {
+  position: relative;
+  text-align: center;
+  padding: clamp(48px, 9vw, 104px) 0 clamp(56px, 8vw, 96px);
+  /* luce verde campo dietro al titolo: solo decorazione */
+  background:
+    radial-gradient(60% 55% at 50% 0%, rgba(30, 106, 68, 0.5), transparent 72%),
+    radial-gradient(40% 30% at 85% 12%, rgba(216, 243, 74, 0.07), transparent 70%);
+}
+.s-titolo {
+  font-family: var(--s-display);
+  font-style: italic;
+  font-weight: 800;
+  text-transform: uppercase;
+  font-size: clamp(54px, 12.4vw, 140px);
+  line-height: 0.92;
+  letter-spacing: -0.005em;
+  text-wrap: balance;
+}
+.s-titolo span {
+  display: block;
+}
+.s-acc {
+  color: var(--s-acc);
+}
+.s-sotto {
+  max-width: 44ch;
+  margin: clamp(20px, 3vw, 30px) auto 0;
+  font-size: clamp(19px, 2.2vw, 24px);
+  line-height: 1.38;
+  letter-spacing: -0.02em;
+  color: var(--s-tx2);
+  text-wrap: pretty;
+}
+.s-apertura-video {
+  margin-top: clamp(40px, 6vw, 72px);
+}
+
+/* entrata dell'apertura: solo CSS, niente JavaScript che ritardi il primo disegno */
+@media (prefers-reduced-motion: no-preference) {
+  .s-titolo,
+  .s-sotto,
+  .s-apertura .s-cta,
+  .s-apertura-video {
+    animation: s-entra 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  .s-sotto {
+    animation-delay: 0.08s;
+  }
+  .s-apertura .s-cta {
+    animation-delay: 0.16s;
+  }
+  .s-apertura-video {
+    animation-delay: 0.26s;
+  }
+}
+@keyframes s-entra {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---------- Video di presentazione ---------- */
+.s-video {
+  position: relative;
+  width: 100%;
+  max-width: 1040px;
+  margin: 0 auto;
+  aspect-ratio: 16 / 9;
+  border-radius: clamp(16px, 3vw, 32px);
+  overflow: hidden;
+  background: #050507;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow:
+    0 50px 120px -40px rgba(30, 106, 68, 0.7),
+    0 24px 60px -24px rgba(0, 0, 0, 0.9);
+}
+.s-video video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #050507;
+}
+.s-play {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  appearance: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  text-align: start;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0) 38%);
+  border-radius: inherit;
+}
+.s-play:focus-visible {
+  outline-offset: -4px;
+  border-radius: inherit;
+}
+/* prima dell'avvio i comandi nativi stanno nascosti: il pulsante play è l'unico invito */
+.s-video:not(.s-in-corso) video::-webkit-media-controls {
+  display: none !important;
+}
+.s-play-pill {
+  margin: clamp(12px, 2.4vw, 28px);
+  display: inline-flex;
+  align-items: center;
+  gap: clamp(10px, 1.4vw, 16px);
+  padding: clamp(5px, 0.7vw, 8px) clamp(16px, 2vw, 26px) clamp(5px, 0.7vw, 8px) clamp(5px, 0.7vw, 8px);
+  border-radius: 980px;
+  background: rgba(24, 24, 27, 0.62);
+  -webkit-backdrop-filter: saturate(160%) blur(18px);
+  backdrop-filter: saturate(160%) blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #fff;
+  transition: background-color 0.25s ease, transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.s-play:hover .s-play-pill {
+  background: rgba(40, 40, 44, 0.72);
+  transform: translateY(-2px);
+}
+.s-play-cerchio {
+  flex: none;
+  width: clamp(44px, 5.4vw, 64px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--s-acc);
+  color: var(--s-su-acc);
+  box-shadow: 0 8px 24px -6px rgba(216, 243, 74, 0.5);
+}
+.s-play-cerchio svg {
+  width: 42%;
+  height: auto;
+  margin-inline-start: 6%;
+}
+.s-play-testo {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0 10px;
+  font-size: clamp(14px, 1.5vw, 17px);
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+.s-play-testo strong {
+  font-weight: 650;
+}
+.s-play-testo span {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+/* ---------- Sezioni funzione ---------- */
+.s-funz {
+  border-top: 1px solid var(--s-linea);
+  padding: clamp(72px, 10vw, 128px) 0;
+}
+.s-funz-in {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.12fr);
+  gap: clamp(40px, 6vw, 96px);
+  align-items: center;
+}
+.s-largo .s-funz-in {
+  grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.3fr);
+}
+.s-inverso .s-funz-in {
+  grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr);
+}
+.s-inverso.s-largo .s-funz-in {
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.82fr);
+}
+.s-inverso .s-f-testo {
+  order: 2;
+}
+.s-inverso .s-f-imm {
+  order: 1;
+}
+.s-f-testo {
+  max-width: 480px;
+}
+.s-cosa {
+  font-size: clamp(18px, 1.7vw, 20px);
+  line-height: 1.45;
+  letter-spacing: -0.015em;
+  color: var(--s-tx);
+  text-wrap: pretty;
+}
+.s-cosa strong {
+  color: var(--s-acc);
+  font-weight: 650;
+}
+.s-par {
+  margin-top: 14px;
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--s-tx2);
+  text-wrap: pretty;
+}
+
+/* telefoni di una sezione: alone verde campo dietro, per dare profondità sul nero */
+.s-f-imm {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: clamp(14px, 2.2vw, 28px);
+  isolation: isolate;
+}
+.s-f-imm::before {
+  content: "";
+  position: absolute;
+  inset: 8% -4% 2%;
+  z-index: -1;
+  background: radial-gradient(closest-side, rgba(30, 106, 68, 0.55), rgba(30, 106, 68, 0) 100%);
+  filter: blur(12px);
+}
+.s-inverso .s-f-imm::before {
+  background: radial-gradient(closest-side, rgba(30, 106, 68, 0.42), rgba(30, 106, 68, 0) 100%);
+}
+.s-f-imm .s-tel {
+  flex: 1 1 0;
+}
+.s-n1 .s-tel {
+  max-width: 300px;
+}
+.s-n2 .s-tel {
+  max-width: 260px;
+}
+.s-n2 .s-tel:nth-child(2) {
+  margin-top: 64px;
+}
+.s-n3 .s-tel {
+  max-width: 230px;
+}
+.s-n3 .s-tel:nth-child(2) {
+  margin-top: 52px;
+}
+.s-n3 .s-tel:nth-child(3) {
+  margin-top: 16px;
+}
+.s-n4 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  justify-items: center;
+  row-gap: 24px;
+}
+.s-n4 .s-tel {
+  width: 100%;
+  max-width: 236px;
+}
+.s-n4 .s-tel:nth-child(even) {
+  margin-top: 56px;
+}
+
+/* ---------- Cornice iPhone 16 in CSS ----------
+   Il figure è un contenitore: tutte le misure sono in cqw, quindi la cornice scala con il telefono. */
+.s-tel {
+  container-type: inline-size;
+  width: 100%;
+}
+.s-tel-corpo {
+  position: relative;
+  padding: 1.1cqw;
+  border-radius: 14.5cqw;
+  /* bordo in titanio scuro */
+  background: linear-gradient(145deg, #5a5a60 0%, #26262a 22%, #3d3d42 48%, #1b1b1e 74%, #4a4a50 100%);
+  box-shadow:
+    0 0 0 0.35cqw rgba(0, 0, 0, 0.9),
+    0 6cqw 12cqw -4cqw rgba(0, 0, 0, 0.85),
+    inset 0 0 0 0.25cqw rgba(255, 255, 255, 0.1);
+}
+/* tasti laterali: azione e volume a sinistra, accensione a destra */
+.s-tel-corpo::before,
+.s-tel-corpo::after {
+  content: "";
+  position: absolute;
+  width: 1.1cqw;
+  background: linear-gradient(90deg, #2a2a2e, #4f4f55);
+  border-radius: 0.6cqw;
+}
+.s-tel-corpo::before {
+  inset-inline-start: -1cqw;
+  top: 21cqw;
+  height: 22cqw;
+  box-shadow: 0 27cqw 0 #35353a;
+}
+.s-tel-corpo::after {
+  inset-inline-end: -1cqw;
+  top: 33cqw;
+  height: 30cqw;
+  background: linear-gradient(270deg, #2a2a2e, #4f4f55);
+}
+.s-tel-schermo {
+  position: relative;
+  padding: 2.4cqw; /* bordo nero attorno al display */
+  background: #000;
+  border-radius: 13.2cqw;
+  overflow: hidden;
+}
+.s-tel-schermo img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 640 / 1387;
+  object-fit: cover;
+  border-radius: 10.8cqw;
+  background: #0b0b0d;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.s-tel-isola {
+  position: absolute;
+  top: 5.2cqw;
+  left: 50%;
+  width: 27cqw;
+  height: 7.9cqw;
+  transform: translateX(-50%);
+  border-radius: 99cqw;
+  background: #000;
+  box-shadow: inset 0 0 0 0.3cqw rgba(255, 255, 255, 0.05);
+}
+
+/* schermate dell'orologio: si ritaglia l'angolo 420x512 dell'immagine (640 / 420 = 152,4% di larghezza) */
+.s-orol {
+  position: relative;
+  aspect-ratio: 420 / 512;
+  overflow: hidden;
+  border-radius: 22cqw;
+  background: #000;
+  box-shadow:
+    0 0 0 1.2cqw #2c2c30,
+    0 6cqw 12cqw -4cqw rgba(0, 0, 0, 0.85);
+}
+.s-orol img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 152.381%;
+  max-width: none;
+  height: auto;
+}
+.s-tel:has(.s-orol) {
+  padding: 1.2cqw;
+}
+
+/* ---------- Tutte le schermate ---------- */
+.s-galleria {
+  border-top: 1px solid var(--s-linea);
+  padding: clamp(72px, 10vw, 128px) 0 clamp(72px, 9vw, 112px);
+  background: var(--s-bg2);
+}
+.s-gal-testa {
+  text-align: center;
+  max-width: 640px;
+  margin: 0 auto clamp(32px, 5vw, 48px);
+}
+.s-chip-riga {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: clamp(32px, 5vw, 56px);
+}
+.s-chip {
+  appearance: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 15px;
+  border-radius: 980px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: transparent;
+  font-size: 15px;
+  font-weight: 550;
+  color: var(--s-tx);
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+.s-chip:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.s-chip[aria-pressed="true"] {
+  background: var(--s-acc);
+  border-color: var(--s-acc);
+  color: var(--s-su-acc);
+}
+.s-chip-n {
+  font-size: 12px;
+  font-weight: 650;
+  opacity: 0.7;
+  font-variant-numeric: tabular-nums;
+}
+.s-gal {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 148px), 1fr));
+  gap: clamp(24px, 3.4vw, 40px) clamp(14px, 2.4vw, 28px);
+}
+.s-gal li {
+  display: flex;
+  justify-content: center;
+}
+.s-gal-voce {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  width: 100%;
+  max-width: 190px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  border-radius: 16px;
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.s-gal-voce:hover {
+  transform: translateY(-5px);
+}
+.s-gal-cap {
+  font-size: 13px;
+  line-height: 1.3;
+  color: var(--s-tx2);
+  text-align: center;
+  letter-spacing: -0.005em;
+  text-wrap: balance;
+  transition: color 0.2s ease;
+}
+.s-gal-voce:hover .s-gal-cap {
+  color: var(--s-tx);
+}
+
+/* dialogo di ingrandimento */
+.sito .s-dlg {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: var(--s-tx);
+  background: rgba(0, 0, 0, 0.88);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+}
+.sito .s-dlg:not([open]) {
+  display: none;
+}
+.s-dlg::backdrop {
+  background: rgba(0, 0, 0, 0.5);
+}
+.s-dlg-in {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) 72px;
+  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-areas: "prec scena succ" "cap cap cap";
+  align-items: center;
+  padding: 0 0 max(20px, env(safe-area-inset-bottom));
+}
+.s-dlg-scena {
+  grid-area: scena;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 56px 0 8px;
+  min-height: 0;
+  overflow: auto;
+  touch-action: pan-y;
+}
+.s-dlg .s-tel-grande {
+  width: min(88vw, calc((100dvh - 190px) * 0.45));
+  max-width: 400px;
+  min-width: 120px;
+  margin: auto;
+  animation: s-zoom 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes s-zoom {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.s-dlg-cap {
+  grid-area: cap;
+  text-align: center;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  padding: 0 16px;
+  text-wrap: balance;
+}
+.s-dlg-n {
+  position: absolute;
+  top: 18px;
+  inset-inline-start: 20px;
+  font-size: 14px;
+  color: var(--s-tx2);
+  font-variant-numeric: tabular-nums;
+}
+.s-dlg-x,
+.s-dlg-freccia {
+  appearance: none;
+  cursor: pointer;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  display: grid;
+  place-items: center;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+.s-dlg-x:hover,
+.s-dlg-freccia:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+.s-dlg-x {
+  position: absolute;
+  top: 10px;
+  inset-inline-end: 14px;
+  z-index: 2;
+}
+.s-dlg-prec {
+  grid-area: prec;
+  justify-self: center;
+}
+.s-dlg-succ {
+  grid-area: succ;
+  justify-self: center;
+}
+
+/* ---------- Chiusura e piede ---------- */
+.s-chiusura {
+  border-top: 1px solid var(--s-linea);
+  text-align: center;
+  padding: clamp(88px, 12vw, 152px) 0 clamp(96px, 13vw, 168px);
+  background:
+    radial-gradient(55% 60% at 50% 100%, rgba(30, 106, 68, 0.55), transparent 75%),
+    var(--s-bg);
+}
+.s-logo-grande {
+  width: 88px;
+  height: 88px;
+  margin: 0 auto 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 24px;
+  background: #050505;
+  border: 1px solid var(--s-linea);
+  box-shadow: 0 24px 60px -20px rgba(216, 243, 74, 0.25);
+}
+.s-chiusura h2 {
+  font-size: clamp(40px, 7vw, 76px);
+  margin-bottom: 16px;
+}
+.s-chiusura .s-intro {
+  max-width: 34ch;
+  margin: 0 auto;
+}
+.s-piede {
+  border-top: 1px solid var(--s-linea);
+  background: var(--s-bg);
+}
+.s-piede-in {
+  padding-block: 22px 30px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 10px 24px;
+  font-size: 13px;
+  color: var(--s-tx2);
+}
+.s-piede-in a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+}
+.s-piede-in a:hover {
+  color: var(--s-tx);
+}
+
+/* ---------- Comparsa allo scorrimento (solo se il movimento è permesso) ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  .sito.s-js .s-appare {
+    opacity: 0;
+    transform: translateY(32px);
+    transition:
+      opacity 0.9s cubic-bezier(0.2, 0.8, 0.2, 1),
+      transform 0.9s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .sito.s-js .s-appare.s-vista {
+    opacity: 1;
+    transform: none;
+  }
+  html:has(.sito) {
+    scroll-behavior: smooth;
+  }
+}
+
+/* ---------- Tablet ---------- */
+@media (max-width: 900px) {
+  .s-barra-in {
+    flex-wrap: wrap;
+    row-gap: 0;
+    padding-top: 4px;
+    padding-bottom: 0;
+  }
+  /* seconda riga: le voci scorrono in orizzontale sotto marchio e pillola */
+  .s-voci {
+    order: 3;
+    width: calc(100% + 2 * var(--s-gutter));
+    margin-inline: calc(-1 * var(--s-gutter));
+    padding-inline: calc(var(--s-gutter) - 8px);
+    overflow-x: auto;
+    scrollbar-width: none;
+    border-top: 1px solid var(--s-linea);
+    min-height: 44px;
+  }
+  .s-voci::-webkit-scrollbar {
+    display: none;
+  }
+  .s-voci a {
+    flex: none;
+    min-height: 44px;
+    padding-inline: 12px;
+  }
+  .sito section[id] {
+    scroll-margin-top: 112px;
+  }
+
+  .s-funz-in,
+  .s-largo .s-funz-in,
+  .s-inverso .s-funz-in,
+  .s-inverso.s-largo .s-funz-in {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 48px;
+    text-align: center;
+  }
+  .s-f-testo {
+    margin-inline: auto;
+    max-width: 560px;
+  }
+  .s-inverso .s-f-testo,
+  .s-inverso .s-f-imm {
+    order: 0;
+  }
+  .s-n1 .s-tel {
+    max-width: 280px;
+  }
+  .s-n2 .s-tel {
+    max-width: 240px;
+  }
+  .s-n3 .s-tel {
+    max-width: 210px;
+  }
+  .s-n4 {
+    max-width: 520px;
+    margin-inline: auto;
+    width: 100%;
+  }
+  .s-dlg-in {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-areas: "scena" "cap";
+  }
+  /* su schermi stretti le frecce stanno sopra la didascalia, ai lati */
+  .s-dlg-freccia {
+    position: absolute;
+    bottom: max(14px, env(safe-area-inset-bottom));
+    z-index: 2;
+  }
+  .s-dlg-prec {
+    inset-inline-start: 14px;
+  }
+  .s-dlg-succ {
+    inset-inline-end: 14px;
+  }
+  .s-dlg-cap {
+    padding: 4px 76px 10px;
+    min-height: 58px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .s-dlg-in {
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
+  .s-dlg .s-tel-grande {
+    width: min(80vw, calc((100dvh - 190px) * 0.45));
+  }
+}
+
+/* ---------- Telefono ---------- */
+@media (max-width: 620px) {
+  .sito {
+    font-size: 16px;
+  }
+  .s-n2 {
+    gap: 12px;
+  }
+  .s-n2 .s-tel {
+    max-width: 46%;
+  }
+  .s-n2 .s-tel:nth-child(2) {
+    margin-top: 40px;
+  }
+  /* 3 e 4 schermate: carosello con aggancio, una schermata e un pezzo della prossima */
+  .s-n3,
+  .s-n4 {
+    display: flex;
+    justify-content: flex-start;
+    align-items: flex-start;
+    gap: 14px;
+    max-width: none;
+    width: calc(100% + 2 * var(--s-gutter));
+    margin-inline: calc(-1 * var(--s-gutter));
+    padding: 4px var(--s-gutter) 12px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: var(--s-gutter);
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+  }
+  .s-n3::-webkit-scrollbar,
+  .s-n4::-webkit-scrollbar {
+    display: none;
+  }
+  .s-n3 .s-tel,
+  .s-n4 .s-tel {
+    flex: 0 0 min(62vw, 250px);
+    width: min(62vw, 250px);
+    max-width: none;
+    scroll-snap-align: center;
+  }
+  .s-n3 .s-tel:nth-child(n),
+  .s-n4 .s-tel:nth-child(n) {
+    margin-top: 0;
+  }
+  .s-n3 .s-tel:first-child,
+  .s-n4 .s-tel:first-child {
+    scroll-snap-align: start;
+  }
+  /* la cornice non ha il padding di lato quando c'è il carosello: l'alone resta dietro */
+  .s-n3::before,
+  .s-n4::before {
+    display: none;
+  }
+  .s-f-testo .s-par {
+    font-size: 16px;
+  }
+  .s-gal {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .s-chip {
+    min-height: 40px;
+    padding: 0 13px;
+    font-size: 14px;
+  }
+  .s-piede-in {
+    justify-content: center;
+    text-align: center;
+  }
+}
+@media (max-width: 440px) {
+  .s-marchio span {
+    display: none;
+  }
+  .s-barra-az {
+    gap: 8px;
+  }
+}
+@media (max-width: 360px) {
+  .s-pillola {
+    padding: 0 12px;
+    font-size: 12px;
+  }
+  .s-lingua a {
+    min-width: 32px;
+    padding: 0 7px;
+  }
+  .s-btn {
+    padding: 0 22px;
+  }
+}
+
+/* ---------- Schermi larghi ---------- */
+@media (min-width: 1280px) {
+  .s-n3 .s-tel {
+    max-width: 240px;
+  }
+}
+
+/* ---------- Movimento ridotto ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .sito *,
+  .sito *::before,
+  .sito *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* contrasto forzato (Windows): i pulsanti restano leggibili */
+@media (forced-colors: active) {
+  .s-btn-acc,
+  .s-pillola,
+  .s-chip[aria-pressed="true"] {
+    border: 1px solid CanvasText;
+  }
+}

@@ -1,0 +1,29 @@
+/* Card e pagina degli schemi animati (tabella game_schemes). */
+.lista{display:flex;flex-direction:column;gap:10px}
+.card{display:flex;gap:14px;align-items:stretch;padding:10px;border-radius:20px;background:#161618;border:1px solid rgba(255,255,255,.07);text-decoration:none;color:#F3F6F1}
+.card:hover{background:#1C1C1F}
+:global(.mp) a.card,:global(.mp) a.card:hover{color:#F3F6F1}
+.prev{width:118px;flex:none;pointer-events:none}
+/* nelle anteprime niente note né pulsante: restano nella pagina di dettaglio */
+.prev > div > div,.prev button{display:none}
+.info{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px;justify-content:center}
+.titolo{font-size:16px;line-height:1.2}
+.obiettivo{font-size:12.5px;line-height:1.4;color:#A1A1A6;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.dots{display:inline-flex;gap:4px;align-items:center}
+.dot,.dotOn{display:block;width:8px;height:8px;border-radius:50%;background:#2C2C2E}
+.dotOn{background:#D8F34A}
+.tags{display:flex;gap:5px;flex-wrap:wrap}
+.tag{font-size:11px;font-weight:800;padding:3px 7px;border-radius:7px;background:#232326;color:#E5E5EA;white-space:nowrap}
+.demo{align-self:flex-start;font-size:10.5px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;padding:3px 7px;border-radius:7px;background:#D8F34A;color:#0B0B0C}
+/* pagina di dettaglio */
+.pagina{display:flex;flex-direction:column;gap:16px}
+/* il campo è alto il doppio della larghezza: lo tengo dentro lo schermo */
+.campo{width:min(100%,max(200px,calc((100dvh - 300px) / 2)));margin:0 auto}
+.kick{font-size:12px;font-weight:600;color:#A1A1A6}
+.h1{margin:0;font-family:var(--font-barlow),"Barlow Condensed",sans-serif;font-size:30px;line-height:1.05;font-weight:700}
+.blocco{background:#161618;border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:5px}
+.k{font-size:11px;font-weight:800;color:#A1A1A6;letter-spacing:.4px;text-transform:uppercase}
+.v{font-size:14.5px;line-height:1.45}
+.riga{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.vuoto{font-size:14px;color:#A1A1A6;text-align:center;padding:24px 0}
+.tagsRiga{display:flex;gap:6px;flex-wrap:wrap}

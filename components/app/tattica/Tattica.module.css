@@ -1,0 +1,11 @@
+.age{height:36px;padding:0 14px;border-radius:999px;border:0;background:#161618;color:#A1A1A6;font-size:14px;font-weight:700;font-family:inherit;white-space:nowrap;cursor:pointer}
+.age.on{background:#D8F34A;color:#0B0B0C}
+.str{display:flex;gap:14px;align-items:center;padding:10px;border-radius:20px;background:#161618;border:1px solid rgba(255,255,255,.07);text-decoration:none;color:#F3F6F1}
+.str:hover{color:#F3F6F1;background:#1C1C1F}
+:global(.mp) a.str,:global(.mp) a.str:hover{color:#F3F6F1}
+.mini{width:64px;height:84px;border-radius:12px;flex:none}
+.tag{font-size:11px;font-weight:700;padding:3px 7px;border-radius:7px;background:#232326;color:#E5E5EA}
+.scr{display:flex;flex-direction:column;gap:14px}
+.muted{color:#A1A1A6}
+.disp{font-family:var(--font-barlow),"Barlow Condensed",sans-serif}
+.lawn{background:repeating-linear-gradient(0deg,#1E6A44 0 14px,#24764C 14px 28px)}
