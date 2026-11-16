@@ -1,6 +1,9 @@
-import { Segnaposto } from "@/components/centro/Segnaposto";
+"use client";
+import { useParams } from "next/navigation";
+import { Chiusura } from "@/components/centro/maestro/Chiusura";
 
-// Segnaposto: l'area responsabile sostituisce questo file con la schermata vera.
-export default function Page() {
-  return <Segnaposto codice="M7" ruolo="maestro" tab="nuovo" />;
+// M7 · Chiusura lezione
+export default function Pagina() {
+  const { id } = useParams<{ id: string }>();
+  return <Chiusura id={id} />;
 }

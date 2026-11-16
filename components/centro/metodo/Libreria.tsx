@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useT } from "@/lib/i18n/lingua";
 import { SchermoCentro } from "@/components/centro/Schermo";
 import { BarraMattoni, kickMattone } from "./Barra";
@@ -8,7 +8,7 @@ import { FormEsercizio, type DatiEsercizio } from "./FormEsercizio";
 import { Pannello, useToast } from "./Pannello";
 import { Ico } from "./ico";
 import { comune, fmt } from "./testi";
-import { COLPI, leggiEsercizio, nomeColpo, norm, rangeFasce, type ColpoK, type Esercizio } from "./dati";
+import { COLONNE_ESERCIZIO, COLPI, PAGINA, filtroColpo, leggiEsercizio, nomeColpo, rangeFasce, ricercaSicura, type ColpoK, type Esercizio } from "./dati";
 import { useMetodo } from "./useMetodo";
 import "./metodo.css";
 
@@ -79,42 +79,94 @@ export default function Libreria() {
   const [errore, setErrore] = useState("");
   const [toast, mostra] = useToast();
 
-  const leggi = useCallback(async () => {
-    const [a, b] = await Promise.all([
-      sb.from("esercizi").select("*").eq("centro_id", centro.id).order("created_at", { ascending: false }),
-      sb.from("membri").select("id,nome,cognome").eq("centro_id", centro.id),
-    ]);
-    if (a.error) {
-      setKo(true);
+  const [tot, setTot] = useState(0);
+  const [nDaApprovare, setNDaApprovare] = useState(0);
+  const [altri, setAltri] = useState(false);
+  const [qServer, setQServer] = useState("");
+  const richiesta = useRef(0);
+  const nomiNoti = useRef<Set<string>>(new Set());
+
+  // La ricerca parte sul server 300 ms dopo l'ultimo tasto, non a ogni lettera
+  useEffect(() => {
+    const id = setTimeout(() => setQServer(ricercaSicura(q)), 300);
+    return () => clearTimeout(id);
+  }, [q]);
+
+  // Filtri (colpo, fonte, testo) e ordine sono del database: la libreria di un grande centro non si scarica per filtrarla nel browser
+  const costruisci = useCallback(() => {
+    let s = sb.from("esercizi").select(COLONNE_ESERCIZIO, { count: "exact" }).eq("centro_id", centro.id).neq("stato", "rifiutato");
+    if (colpo !== "tutti") s = s.or(filtroColpo(colpo));
+    if (fonte === "da") s = s.eq("stato", "proposto");
+    else if (fonte === "matchpoint") s = s.neq("stato", "proposto").eq("fonte", "matchpoint");
+    else if (fonte === "centro") s = s.neq("stato", "proposto").neq("fonte", "matchpoint");
+    if (qServer) s = s.or(`titolo.ilike.%${qServer}%,materiale.ilike.%${qServer}%,descrizione.ilike.%${qServer}%`);
+    return s.order("created_at", { ascending: false }).order("id");
+  }, [sb, centro.id, colpo, fonte, qServer]);
+
+  // I nomi di chi ha proposto si chiedono solo per le righe mostrate, non per tutti i membri del centro
+  const risolviNomi = useCallback(
+    async (righe: Esercizio[]) => {
+      const ids = [...new Set(righe.map((e) => e.proposto_da).filter((x): x is string => !!x && !nomiNoti.current.has(x)))];
+      if (!ids.length) return;
+      ids.forEach((i) => nomiNoti.current.add(i));
+      const { data } = await sb.from("membri").select("id,nome,cognome").eq("centro_id", centro.id).in("id", ids);
+      setNomi((p) => {
+        const m = { ...p };
+        (data ?? []).forEach((r: Record<string, unknown>) => {
+          m[String(r.id)] = [r.nome, r.cognome].filter(Boolean).join(" ");
+        });
+        return m;
+      });
+    },
+    [sb, centro.id],
+  );
+
+  /** Prima pagina (o, dopo una modifica, tante righe quante ne erano già aperte). */
+  const leggi = useCallback(
+    async (quante: number = PAGINA) => {
+      const mia = ++richiesta.current;
+      const [a, p] = await Promise.all([
+        costruisci().range(0, Math.max(quante, PAGINA) - 1),
+        sb.from("esercizi").select("id", { count: "exact", head: true }).eq("centro_id", centro.id).eq("stato", "proposto"),
+      ]);
+      if (mia !== richiesta.current) return; // è arrivata una richiesta più recente (altro filtro)
+      if (a.error) {
+        setKo(true);
+        setCarica(false);
+        return;
+      }
+      const righe = (a.data ?? []).map((r: Record<string, unknown>) => leggiEsercizio(r));
+      setEx(righe);
+      setTot(a.count ?? righe.length);
+      setAltri(righe.length < (a.count ?? righe.length));
+      setNDaApprovare(p.count ?? 0);
+      setKo(false);
       setCarica(false);
-      return;
-    }
-    setEx((a.data ?? []).map((r: Record<string, unknown>) => leggiEsercizio(r)));
-    const m: Record<string, string> = {};
-    (b.data ?? []).forEach((r: Record<string, unknown>) => {
-      m[String(r.id)] = [r.nome, r.cognome].filter(Boolean).join(" ");
-    });
-    setNomi(m);
-    setKo(false);
-    setCarica(false);
-  }, [sb, centro.id]);
+      void risolviNomi(righe);
+    },
+    [costruisci, sb, centro.id, risolviNomi],
+  );
   useEffect(() => {
     leggi();
   }, [leggi]);
 
-  const viva = useMemo(() => ex.filter((e) => e.stato !== "rifiutato"), [ex]);
-  const nDaApprovare = viva.filter((e) => e.stato === "proposto").length;
-  const etichettaFonte = (e: Esercizio) => (e.stato === "proposto" ? "da" : e.fonte === "matchpoint" ? "matchpoint" : "centro");
+  async function caricaAltri() {
+    const mia = richiesta.current;
+    setBusy(true);
+    const { data, error, count } = await costruisci().range(ex.length, ex.length + PAGINA - 1);
+    setBusy(false);
+    if (error || mia !== richiesta.current) return;
+    const nuove = (data ?? []).map((r: Record<string, unknown>) => leggiEsercizio(r));
+    const visti = new Set(ex.map((e) => e.id));
+    const tutte = [...ex, ...nuove.filter((e: Esercizio) => !visti.has(e.id))];
+    setEx(tutte);
+    setTot(count ?? tutte.length);
+    setAltri(tutte.length < (count ?? tutte.length));
+    void risolviNomi(nuove);
+  }
 
-  const lista = viva.filter((e) => {
-    if (colpo !== "tutti" && e.colpo !== colpo) return false;
-    if (fonte !== "tutti" && etichettaFonte(e) !== fonte) return false;
-    if (q.trim()) {
-      const n = norm(q);
-      if (!norm(`${e.titolo} ${e.materiale} ${e.descrizione}`).includes(n)) return false;
-    }
-    return true;
-  });
+  const etichettaFonte = (e: Esercizio) => (e.stato === "proposto" ? "da" : e.fonte === "matchpoint" ? "matchpoint" : "centro");
+  const lista = ex;
 
   const meta = (e: Esercizio) => {
     const c = e.colpo ? t[`colpo_${e.colpo}`] : "";
@@ -146,7 +198,7 @@ export default function Libreria() {
     await avvisa(e, t.notifica_ok_t, fmt(t.notifica_ok_x, { n: e.titolo }));
     mostra(t.approvato_ok);
     setAperto(null);
-    leggi();
+    leggi(ex.length);
   }
   async function rifiuta() {
     if (!rifiuto) return;
@@ -160,7 +212,7 @@ export default function Libreria() {
     setMotivo("");
     setAperto(null);
     mostra(t.rifiutato_ok);
-    leggi();
+    leggi(ex.length);
   }
   async function salvaNuovo(d: DatiEsercizio) {
     setBusy(true);
@@ -174,7 +226,7 @@ export default function Libreria() {
     await reg("metodo.esercizio.crea", d.titolo, { colpo: d.colpo, fasce: d.fasce, durata: d.durata, video: !!d.video_path });
     setNuovo(false);
     mostra(t.aggiunto);
-    leggi();
+    leggi(ex.length);
   }
   async function salvaModifica(d: DatiEsercizio) {
     if (!aperto) return;
@@ -187,7 +239,7 @@ export default function Libreria() {
     setModifica(false);
     setAperto(null);
     mostra(t.salvato_ok);
-    leggi();
+    leggi(ex.length);
   }
   async function archivia(e: Esercizio) {
     setBusy(true);
@@ -197,10 +249,10 @@ export default function Libreria() {
     await reg("metodo.esercizio.archivia", e.titolo, { id: e.id });
     setAperto(null);
     mostra(t.archiviato_ok);
-    leggi();
+    leggi(ex.length);
   }
 
-  const conta = lista.length === 1 ? fmt(t.uno, { n: 1 }) : fmt(t.molti, { n: lista.length });
+  const conta = tot === 1 ? fmt(t.uno, { n: 1 }) : fmt(t.molti, { n: tot });
   const fonti: { k: Fonte; l: string }[] = [
     { k: "tutti", l: t.tutti },
     { k: "matchpoint", l: t.fonte_matchpoint },
@@ -273,6 +325,7 @@ export default function Libreria() {
               );
             })}
           </div>
+          {altri ? <button type="button" className="mm-btn2" style={{ marginTop: 10 }} disabled={busy} onClick={caricaAltri}>{t.carica_altri}</button> : null}
         </div>
       </div>
 

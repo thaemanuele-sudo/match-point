@@ -1,6 +1,9 @@
-import { Segnaposto } from "@/components/centro/Segnaposto";
+"use client";
+import { useParams } from "next/navigation";
+import { LezioneInCorso } from "@/components/centro/maestro/LezioneInCorso";
 
-// Segnaposto: l'area responsabile sostituisce questo file con la schermata vera.
-export default function Page() {
-  return <Segnaposto codice="M6" ruolo="maestro" tab="nuovo" />;
+// M6 · Lezione in corso
+export default function Pagina() {
+  const { id } = useParams<{ id: string }>();
+  return <LezioneInCorso id={id} />;
 }

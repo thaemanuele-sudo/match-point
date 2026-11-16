@@ -1,6 +1,7 @@
-import { Segnaposto } from "@/components/centro/Segnaposto";
+"use client";
+import { Gruppi } from "@/components/centro/maestro/Gruppi";
 
-// Segnaposto: l'area responsabile sostituisce questo file con la schermata vera.
-export default function Page() {
-  return <Segnaposto codice="M2" ruolo="maestro" tab="allievi" />;
+// M2 · I miei gruppi
+export default function Pagina() {
+  return <Gruppi />;
 }

@@ -1,17 +1,17 @@
 "use client";
 // C9 · Gruppi e orari: elenco dei gruppi con maestri, campo abituale e programma; vista settimana con i conflitti di campo;
 // crea e modifica un gruppo (giorni, ora, campo abituale, maestri, allievi iscritti).
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { SchermoCentro } from "@/components/centro/Schermo";
 import { Btn, Campo, Caricamento, Chip, Chips, Errore, Foglio, Ico, Interruttore, Nota, Seg, Tag, Vuoto } from "@/components/centro/ui";
 import { rotta } from "@/lib/centro/rotte";
 import { aggiungiGiorni, fmtData, fmtGiorni, fmtOra, inizioSettimana, isoGiorno } from "@/lib/centro/date";
 import { useT } from "@/lib/i18n/lingua";
 import {
-  FASCE, colorePerArea, conflittiPosti, maestriDi, nomeAllievo, nomeBreve, postiDelGiorno, settimanaProgramma, sostituisci, allieviDelGruppo,
-  useOrg, type DatiOrg, type Org,
+  COL_ALLIEVO_LISTA, FASCE, PAGINA, colorePerArea, conflittiPosti, maestriDi, nomeAllievo, nomeBreve, postiDelGiorno, pulisciRicerca, settimanaProgramma, sostituisci, allieviDelGruppo,
+  useDebounce, useOrg, type DatiOrg, type Org,
 } from "./dati";
-import type { GruppoMaestroR, GruppoR } from "./tipi";
+import type { AllievoL, GruppoMaestroR, GruppoR } from "./tipi";
 import "./org.css";
 
 const IT = {
@@ -23,7 +23,7 @@ const IT = {
   // foglio
   modifica: "Modifica gruppo", crea: "Nuovo gruppo", nome: "Nome del gruppo", area: "Area", fascia: "Fascia", livello: "Livello", giorni: "Giorni", ora: "Ora", durata: "Durata in minuti",
   campoAb: "Campo abituale", maestri: "Maestri", maestriAiuto: "Il primo scelto è il maestro principale.", principale: "principale", programma: "Programma", nessuno: "Nessuno", attivo: "Gruppo attivo",
-  salva: "Salva", crea2: "Crea gruppo", annulla: "Annulla", salvataggio: "Salvo…", iscritti: "Allievi iscritti", nessunIscritto: "Nessun allievo iscritto.", rimuovi: "Rimuovi", aggiungi: "Aggiungi allievo", scegli: "Scegli un allievo",
+  salva: "Salva", crea2: "Crea gruppo", annulla: "Annulla", salvataggio: "Salvo…", iscritti: "Allievi iscritti", nessunIscritto: "Nessun allievo iscritto.", rimuovi: "Rimuovi", aggiungi: "Aggiungi allievo", scegli: "Scegli un allievo", cercaAllievo: "Cerca un allievo per nome",
   aggiungiBtn: "Iscrivi", obbligatorio: "Scrivi il nome e scegli almeno un giorno e l'ora.", scegliArea: "Scegli l'area", rimuoviA: "Rimuovi {n} dal gruppo",
   libero: "Orario libero: nessun conflitto.", warnMaestro: "Attenzione: {m} ha già un altro gruppo in quell'orario.",
 };
@@ -217,7 +217,30 @@ function FoglioGruppo({ o, d, gruppo, onChiudi }: { o: Org; d: DatiOrg; gruppo: 
   };
 
   const iscritti = gruppo ? allieviDelGruppo(o.iscrAttive, gruppo.id) : [];
-  const liberi = d.allievi.filter((a) => !iscritti.includes(a.id));
+  // nomi degli iscritti: una sola lettura per id (un gruppo ne ha poche decine); la ricerca di chi aggiungere va sul server a blocchi di 50
+  const [nomiIscritti, setNomiIscritti] = useState<Map<string, AllievoL>>(new Map());
+  const [cercaAll, setCercaAll] = useState("");
+  const cercaDeb = useDebounce(cercaAll);
+  const [liberi, setLiberi] = useState<AllievoL[]>([]);
+  const chiaveIscritti = iscritti.join(",");
+  useEffect(() => {
+    if (!chiaveIscritti) { setNomiIscritti(new Map()); return; }
+    let vivo = true;
+    void sb.from("allievi").select(COL_ALLIEVO_LISTA).in("id", chiaveIscritti.split(",")).then((x: { data: unknown }) => {
+      if (vivo) setNomiIscritti(new Map(((x.data ?? []) as AllievoL[]).map((a) => [a.id, a])));
+    });
+    return () => { vivo = false; };
+  }, [sb, chiaveIscritti]);
+  const mostraIscrizione = !!gruppo && o.can("iscrizioni", gruppo.area_id);
+  useEffect(() => {
+    if (!mostraIscrizione) return;
+    let vivo = true;
+    let query = sb.from("allievi").select(COL_ALLIEVO_LISTA).eq("centro_id", centro.id);
+    if (chiaveIscritti) query = query.not("id", "in", `(${chiaveIscritti})`);
+    for (const tok of pulisciRicerca(cercaDeb).split(" ").filter(Boolean)) query = query.or(`nome.ilike.%${tok}%,cognome.ilike.%${tok}%`);
+    void query.order("cognome").order("nome").order("id").limit(PAGINA).then((x: { data: unknown }) => { if (vivo) setLiberi((x.data ?? []) as AllievoL[]); });
+    return () => { vivo = false; };
+  }, [sb, centro.id, mostraIscrizione, chiaveIscritti, cercaDeb]);
   const iscrivi = async () => {
     if (!gruppo || !nuovoAllievo) return;
     const r = await sb.from("iscrizioni").insert({ centro_id: centro.id, allievo_id: nuovoAllievo, gruppo_id: gruppo.id, dal: oggi });
@@ -291,7 +314,7 @@ function FoglioGruppo({ o, d, gruppo, onChiudi }: { o: Org; d: DatiOrg; gruppo: 
             <div className="og-k">{t.iscritti} · {iscritti.length}</div>
             {iscritti.length === 0 && <div className="og-s">{t.nessunIscritto}</div>}
             {iscritti.map((id) => {
-              const a = d.allievi.find((x) => x.id === id);
+              const a = nomiIscritti.get(id);
               return a ? (
                 <div key={id} className="li" style={{ padding: "8px 12px" }}>
                   <span className="grow og-t">{nomeAllievo(a)}</span>
@@ -299,6 +322,7 @@ function FoglioGruppo({ o, d, gruppo, onChiudi }: { o: Org; d: DatiOrg; gruppo: 
                 </div>
               ) : null;
             })}
+            <input className="og-inp" type="search" aria-label={t.cercaAllievo} placeholder={t.cercaAllievo} value={cercaAll} onChange={(e) => setCercaAll(e.target.value)} />
             <div className="og-riga">
               <div className="grow"><Campo etichetta={t.aggiungi} valore={nuovoAllievo} onChange={setNuovoAllievo} opzioni={[{ valore: "", etichetta: t.scegli }, ...liberi.map((a) => ({ valore: a.id, etichetta: [a.nome, a.cognome].filter(Boolean).join(" ") }))]} /></div>
               <Btn pieno={false} variante="secondario" disabled={!nuovoAllievo} onClick={() => void iscrivi()}>{t.aggiungiBtn}</Btn>

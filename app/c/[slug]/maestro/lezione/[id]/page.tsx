@@ -1,6 +1,9 @@
-import { Segnaposto } from "@/components/centro/Segnaposto";
+"use client";
+import { useParams } from "next/navigation";
+import { PianoLezione } from "@/components/centro/maestro/PianoLezione";
 
-// Segnaposto: l'area responsabile sostituisce questo file con la schermata vera.
-export default function Page() {
-  return <Segnaposto codice="M5" ruolo="maestro" tab="nuovo" />;
+// M5 · Piano lezione. L'id "nuova" (il + della barra) crea la prossima lezione dal programma del gruppo.
+export default function Pagina() {
+  const { id } = useParams<{ id: string }>();
+  return <PianoLezione id={id} />;
 }

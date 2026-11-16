@@ -1,6 +1,7 @@
-import { Segnaposto } from "@/components/centro/Segnaposto";
+"use client";
+import { Valutazioni } from "@/components/centro/maestro/Valutazioni";
 
-// Segnaposto: l'area responsabile sostituisce questo file con la schermata vera.
-export default function Page() {
-  return <Segnaposto codice="M8" ruolo="maestro" tab="allievi" />;
+// M8 · Valutazioni periodiche
+export default function Pagina() {
+  return <Valutazioni />;
 }

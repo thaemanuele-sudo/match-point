@@ -1,6 +1,7 @@
-import { Segnaposto } from "@/components/centro/Segnaposto";
+"use client";
+import { Allievi } from "@/components/centro/maestro/Allievi";
 
-// Segnaposto: l'area responsabile sostituisce questo file con la schermata vera.
-export default function Page() {
-  return <Segnaposto codice="M3" ruolo="maestro" tab="allievi" />;
+// M3 · I miei allievi
+export default function Pagina() {
+  return <Allievi />;
 }
