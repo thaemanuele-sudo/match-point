@@ -196,8 +196,9 @@ export default function MaestroMetodo() {
       // Avviso al DT: se la policy non lo permette, la proposta resta comunque in libreria da approvare
       const r = await sb.from("membri").select("id").eq("centro_id", centro.id).in("ruolo", ["dt", "titolare"]);
       const chi = [attivo?.nome, attivo?.cognome].filter(Boolean).join(" ") || t.maestro;
-      const righe = (r.data ?? []).map((m: Record<string, unknown>) => ({ centro_id: centro.id, membro_id: String(m.id), tipo: "sistema", titolo: t.notifica_t, testo: fmt(t.notifica_x, { chi, n: d.titolo }), link: `/c/${centro.slug}/dt/metodo/libreria`, mittente: attivo?.id ?? null }));
-      if (righe.length) await sb.from("notifiche").insert(righe);
+      const ids = (r.data ?? []).map((m: Record<string, unknown>) => String(m.id));
+      // Il maestro non può scrivere direttamente su notifiche: la RPC controlla che i destinatari siano DT o titolare del centro
+      if (ids.length) await sb.rpc("notifica_membri", { p_centro: centro.id, p_membri: ids, p_tipo: "sistema", p_titolo: t.notifica_t, p_testo: fmt(t.notifica_x, { chi, n: d.titolo }), p_link: `/c/${centro.slug}/dt/metodo/libreria` });
     } catch {
       /* ignorata */
     }

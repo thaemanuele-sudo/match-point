@@ -20,10 +20,11 @@ Eseguibili solo da utenti autenticati, tranne `centro_pubblico` (anche anonimi).
 | RPC | Parametri | Ritorna |
 |---|---|---|
 | `invia_messaggio` | `conversazione uuid, testo text` | riga `messaggi` (consegna rimandata fuori orario: silenzio 21:00-08:00 ora di Roma) |
-| `conta_destinatari` | `centro uuid, destinatari jsonb` | `jsonb { allievi, famiglie, maestri }` |
+| `conta_destinatari` | `centro uuid, destinatari jsonb` | `jsonb { allievi, famiglie, maestri }` (conta solo le iscrizioni con `dal <= oggi` e `al` vuoto o `>= oggi`) |
 | `invia_avviso` | `titolo text, testo text, destinatari jsonb, conferma bool = false, promemoria bool = false, consegna_il timestamptz = null, centro uuid = null` | `jsonb { avviso_id, destinatari, consegna_il }` |
 | `letture_avvisi` | `avvisi uuid[]` | tabella `(avviso_id uuid, letti bigint, totale bigint, letti_24h bigint)` |
 | `ricorda_avviso` | `avviso uuid` | `int` (quante notifiche di promemoria create) |
+| `notifica_membri` | `p_centro uuid, p_membri uuid[], p_tipo text, p_titolo text, p_testo text = null, p_link text = null` | `int` (notifiche create; migrazione `0011`). Definer. Staff (titolare, dt, responsabile d'area, segreteria) e admin: qualunque membro non sospeso del centro. Maestro: solo titolare/dt e i genitori/allievi (con account) degli allievi iscritti ai suoi gruppi; gli altri destinatari vengono saltati senza errore. Altri ruoli: `42501`. `p_tipo` come il check di `notifiche.tipo` (altrimenti `22023`); `p_link` solo percorso interno che inizia con `/` (non `//`); massimo 500 destinatari; il mittente e' il nome del membro che chiama. Il maestro non ha piu' l'insert diretto su `notifiche`: usa questa RPC |
 
 `destinatari` = `{ "tipo": "centro"|"fascia"|"gruppo"|"area"|"maestro", "valori": [text] }`.
 
@@ -49,6 +50,7 @@ Un campo non `disponibile` o occupato nello stesso orario dà errore (`P0001`, m
 - `presenze` = `[{ allievo_id, presente, voto_rapido?, nota? }]`.
 - `compito` = `{ titolo, durata_min?, esercizio_id?, scadenza?, allievo_id? }` (senza `allievo_id` vale per tutto il gruppo).
 - `svolto` usa l'indice 0-based dei blocchi del piano.
+- `motivi` = `{ "<indice blocco>": "motivo" }` per i blocchi che si discostano dal piano (tipi `ArgomentiChiudiLezione` e `MotiviChiusura` in `lib/centro/tipi.ts`).
 
 ## Funzioni interne (non chiamabili dal client)
 
@@ -56,11 +58,11 @@ Un campo non `disponibile` o occupato nello stesso orario dà errore (`P0001`, m
 `_aderenza_maestri`, `_conv_senza_risposta` (queste ultime due: definer senza permesso di esecuzione ai client, le usano solo le RPC definer degli aggregati).
 Funzioni di supporto degli aggregati, eseguibili ma senza interesse per il client: `f_unaccent`, `_jarr`, `_blocco_fatto`, `_allievi_ripetute`, `_allievi_test`.
 
-## Aggregati (migrazione `0008_aggregati`)
+## Aggregati (migrazione `0008_aggregati`, completati e verificati con `0011`)
 
 Calcolano nel database i numeri delle dashboard (regola "Aggregati" di `docs/CENTRI.md`, sezione Scala). Eseguibili solo da utenti autenticati.
 Sicurezza: **invoker** = la RLS limita il risultato al perimetro del chiamante (maestro, area, famiglia); **definer** = controllo esplicito dentro la funzione.
-Le cinque RPC gia' descritte sopra (`aderenza_maestro`, `conta_destinatari`, `letture_avvisi`, `ricorda_avviso`, `letture_cambio_campo`) esistevano gia' e non sono cambiate.
+Le cinque RPC gia' descritte sopra (`aderenza_maestro`, `conta_destinatari`, `letture_avvisi`, `ricorda_avviso`, `letture_cambio_campo`) esistevano gia'; da `0011` solo `conta_destinatari` e' cambiata (iscrizioni con `dal <= oggi`).
 "Ultimi 30 giorni" = `data > oggi - 30` sulle sole lezioni `chiusa`. Il **livello** (0-100) e' la media dei voti 1-5 di un test per 20; **delta** = punti di livello rispetto al test precedente.
 Le funzioni che ritornano un solo oggetto danno `json`; quelle a piu' righe danno una tabella (array di oggetti con le colonne indicate).
 
@@ -78,7 +80,7 @@ Le funzioni che ritornano un solo oggetto danno `json`; quelle a piu' righe dann
 
 | RPC | Sicurezza | Parametri | Ritorna |
 |---|---|---|---|
-| `esercizi_cerca` | invoker | `p_centro uuid, p_testo text = null, p_colpo text = null, p_fonte text = null, p_da int = 0, p_a int = 49` | tabella `(id, titolo, colpo, fasce, durata_min, materiale, descrizione, video_path, fonte, stato, proposto_da, created_at, totale bigint)`. Ricerca senza accenti e senza maiuscole su titolo, descrizione e materiale. `p_da`/`p_a` = estremi inclusi della pagina (come `.range()`), massimo 200 righe. Ordine per titolo |
+| `esercizi_cerca` | invoker | `p_centro uuid, p_testo text = null, p_colpo text = null, p_fonte text = null, p_da int = 0, p_a int = 49, p_stato text = 'approvato'` | tabella `(id, titolo, colpo, fasce, durata_min, materiale, descrizione, video_path, fonte, stato, proposto_da, created_at, totale bigint)`. Ricerca senza accenti e senza maiuscole su titolo, descrizione e materiale. `p_da`/`p_a` = estremi inclusi della pagina (come `.range()`), massimo 200 righe. Ordine per titolo. `p_colpo` si confronta senza accenti e maiuscole (`volee` trova `Volée`); `p_stato` = `approvato` (default), `proposto`, `rifiutato`, oppure `null` per tutti (migrazione `0011`; la vecchia firma a 6 parametri e' rinominata `esercizi_cerca_v1_obsoleta` e non e' piu' eseguibile dal client) |
 
 ### Allievi e progressi
 

@@ -508,6 +508,19 @@ export type PresenzaChiusura = { allievo_id: string; presente: boolean; voto_rap
 /** Compito inviato a `chiudi_lezione`; senza `allievo_id` vale per tutto il gruppo. */
 export type CompitoChiusura = { titolo: string; durata_min?: number; esercizio_id?: string; scadenza?: string; allievo_id?: string };
 
+/** Motivi dello scostamento dal piano inviati a `chiudi_lezione`: chiave = indice 0-based del blocco, valore = motivo scritto dal maestro. */
+export type MotiviChiusura = Record<string, string>;
+/** Argomenti di `chiudi_lezione`; `compito` e `motivi` sono facoltativi. */
+export type ArgomentiChiudiLezione = {
+  lezione: string;
+  svolto: SvoltoBlocco[];
+  presenze: PresenzaChiusura[];
+  compito?: CompitoChiusura | null;
+  motivi?: MotiviChiusura | null;
+};
+/** Argomenti di `notifica_membri` (ritorna il numero di notifiche create). */
+export type ArgomentiNotificaMembri = { p_centro: string; p_membri: string[]; p_tipo: string; p_titolo: string; p_testo?: string | null; p_link?: string | null };
+
 /** Ritorni per nome di RPC (`aderenza_maestro` ritorna 0-100, null se nessun blocco bloccato). */
 export type RitornoRpc = {
   centro_pubblico: CentroPubblico | null;

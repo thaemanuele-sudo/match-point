@@ -147,7 +147,7 @@ begin
 
   -- ---- gruppi: 30, coerenti con le aree e gli orari ----
   -- ord, nome, area, fascia, livello, giorni (1 = lun), ora, minuti, campo, maestro principale (idx), secondo maestro, n allievi, anni di nascita da-a, programma annuale
-  create temp table if not exists _qg (ord int, nome text, area text, fascia text, livello text, giorni int[], ora time, durata int, campo int,
+  create temp table if not exists _qg (ord int, nome text, area text, fascia text, livello text, giorni int[], ora text, durata int, campo int,
                          m1 int, m2 int, n int, a0 int, a1 int, prog text);
   insert into _qg select * from (values
     -- Scuola Tennis (4-16 anni): gruppi omogenei, sessioni da 80 minuti con preparazione atletica, pomeriggio 16:30-19:30 e sabato mattina
@@ -190,7 +190,7 @@ begin
   where not exists (select 1 from _qg);
 
   insert into public.gruppi (centro_id, area_id, nome, fascia, livello, giorni, ora, durata_min, campo_id, programma_id, attivo)
-  select b, (select a.id from public.aree a where a.centro_id = b and a.nome = g.area), g.nome, g.fascia, g.livello, g.giorni, g.ora, g.durata,
+  select b, (select a.id from public.aree a where a.centro_id = b and a.nome = g.area), g.nome, g.fascia, g.livello, g.giorni, g.ora::time, g.durata,
          (select k.id from public.campi k where k.centro_id = b and k.numero = g.campo),
          -- il programma annuale è quello clonato dal modello, assegnato ai gruppi junior
          (select p.id from public.programmi p where p.centro_id = b and p.nome = 'Programma annuale 2026 · ' || g.prog), true
@@ -220,7 +220,7 @@ begin
           from (select g.*, sum(g.n) over (order by g.ord) - g.n pos from _qg g) h
           cross join lateral generate_series(1, h.n) i) t;
     update _qa x set cognome = y.cognome, fam = y.k from _qa y where x.sib and y.k = x.k - 1;
-    update _qa set adulto = nascita < date '2008-01-01';
+    update _qa set adulto = nascita < date '2008-01-01' where k > 0;
 
     insert into public.allievi (id, centro_id, nome, cognome, data_nascita, certificato_scade)
     select id, b, nome, cognome, nascita,

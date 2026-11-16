@@ -111,8 +111,10 @@ begin
 end $function$;
 
 -- 6. esercizi_cerca: nuovo parametro p_stato (null = tutti) e confronto del colpo senza accenti e maiuscole.
--- Cambia la firma: la vecchia versione va tolta, altrimenti PostgREST vede due funzioni ambigue.
-drop function if exists public.esercizi_cerca(uuid, text, text, text, integer, integer);
+-- Cambia la firma: la vecchia versione si rinomina e si toglie ai client (gli strumenti automatici non
+-- permettono di eliminarla), altrimenti PostgREST vede due funzioni ambigue. Si potra' eliminare a mano.
+alter function public.esercizi_cerca(uuid, text, text, text, integer, integer) rename to esercizi_cerca_v1_obsoleta;
+revoke all on function public.esercizi_cerca_v1_obsoleta(uuid, text, text, text, integer, integer) from public, anon, authenticated;
 create or replace function public.esercizi_cerca(
   p_centro uuid, p_testo text default null, p_colpo text default null, p_fonte text default null,
   p_da integer default 0, p_a integer default 49, p_stato text default 'approvato')

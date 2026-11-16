@@ -163,10 +163,11 @@ export function Chiusura({ id }: { id: string }) {
       n = new Set(righe.map((x) => x.allievo_id)).size;
       const gen = [...new Set(righe.map((x) => x.membro_id))];
       if (gen.length) {
-        await sb.from("notifiche").insert(gen.map((mid) => ({
-          centro_id: centro.id, membro_id: mid, tipo: "sistema", titolo: `${d?.gruppo?.nome ?? ""}: riassunto della lezione`, testo: riassunto.trim().slice(0, 200),
-          link: rotta(centro.slug).genitore.base, mittente: ma ? [ma.nome, ma.cognome].filter(Boolean).join(" ") : null,
-        })));
+        // RPC: il maestro non scrive direttamente su notifiche; il database verifica che i genitori siano dei suoi allievi
+        await sb.rpc("notifica_membri", {
+          p_centro: centro.id, p_membri: gen, p_tipo: "sistema", p_titolo: `${d?.gruppo?.nome ?? ""}: riassunto della lezione`, p_testo: riassunto.trim().slice(0, 200),
+          p_link: rotta(centro.slug).genitore.base,
+        });
       }
     }
     setFamiglie(n); setOk(true); setModifica(false); setLavoro(false);
