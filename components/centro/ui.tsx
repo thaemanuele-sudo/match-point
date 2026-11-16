@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useId, useRef, type CSSProperties, type ReactNode } from "react";
+import { memo, useEffect, useId, useRef, type CSSProperties, type ReactNode } from "react";
 import { useT } from "@/lib/i18n/lingua";
 import { ICONE, type IconaNome } from "./icone";
 
@@ -11,14 +11,14 @@ const T = {
 
 const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(" ");
 
-/** Icona del mockup per nome (SVG a tratto, mai emoji). Decorativa se non ha `etichetta`. */
-export function Ico({ nome, size = 20, className, etichetta, tratto = 2 }: { nome: IconaNome; size?: number; className?: string; etichetta?: string; tratto?: number }) {
+/** Icona del mockup per nome (SVG a tratto, mai emoji). Decorativa se non ha `etichetta`. Le proprietà sono tutte semplici: con `memo` non si ridisegna a ogni cambio della lista che la contiene. */
+export const Ico = memo(function Ico({ nome, size = 20, className, etichetta, tratto = 2 }: { nome: IconaNome; size?: number; className?: string; etichetta?: string; tratto?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={tratto} strokeLinecap="round" strokeLinejoin="round"
       className={className} aria-hidden={etichetta ? undefined : true} aria-label={etichetta} role={etichetta ? "img" : undefined}
       dangerouslySetInnerHTML={{ __html: ICONE[nome] }} />
   );
-}
+});
 
 type Cliccabile = { href?: string; onClick?: () => void };
 
@@ -215,14 +215,18 @@ export function Foglio({ aperto, onChiudi, titolo, children }: { aperto: boolean
   const t = useT(T);
   const ref = useRef<HTMLDivElement>(null);
   const titoloId = useId();
+  // onChiudi di solito è una funzione nuova a ogni disegno del genitore: letta da un ref, così il foglio non rimette il focus
+  // sul pannello (e non rimonta l'ascolto dei tasti) a ogni lettera digitata in un campo al suo interno
+  const chiudiRef = useRef(onChiudi);
+  chiudiRef.current = onChiudi;
   useEffect(() => {
     if (!aperto) return;
     const prima = document.activeElement as HTMLElement | null;
     ref.current?.focus();
-    const tasto = (e: KeyboardEvent) => { if (e.key === "Escape") onChiudi(); };
+    const tasto = (e: KeyboardEvent) => { if (e.key === "Escape") chiudiRef.current(); };
     document.addEventListener("keydown", tasto);
     return () => { document.removeEventListener("keydown", tasto); prima?.focus?.(); };
-  }, [aperto, onChiudi]);
+  }, [aperto]);
   if (!aperto) return null;
   return (
     <div className="mc-foglio-fondo" onClick={onChiudi}>

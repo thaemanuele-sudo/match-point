@@ -135,8 +135,9 @@ async function caricaDati(): Promise<Dati | "accesso"> {
       }
       const idAllievi = [...perAllievo.keys()];
       if (!idAllievi.length) return;
-      const { data: isc } = await sb.from("iscrizioni").select("allievo_id, gruppo_id, al").in("allievo_id", idAllievi);
-      const attive = (isc ?? []).filter((i: { al: string | null }) => !i.al || i.al >= oggi) as { allievo_id: string; gruppo_id: string }[];
+      // solo le iscrizioni in corso: la storia dei gruppi passati non serve a questa schermata
+      const { data: isc } = await sb.from("iscrizioni").select("allievo_id, gruppo_id").in("allievo_id", idAllievi).or(`al.is.null,al.gte.${oggi}`);
+      const attive = (isc ?? []) as { allievo_id: string; gruppo_id: string }[];
       const idG = [...new Set(attive.map((i) => i.gruppo_id))];
       if (!idG.length) return;
       const { data: gr } = await sb.from("gruppi").select("id, nome, giorni, ora").in("id", idG);
@@ -163,12 +164,16 @@ async function caricaDati(): Promise<Dati | "accesso"> {
     }),
     // segnalazioni nuove per direttore e titolare (le vedono solo loro: lo decide l'RLS)
     accessorio(async () => {
+      // un conteggio per centro, non per ruolo: chi è sia titolare sia direttore nello stesso centro non lo fa due volte
+      const direzione = membri.filter((x) => x.ruolo === "dt" || x.ruolo === "titolare");
+      const perCentro = new Map<string, number>();
       await Promise.all(
-        membri.filter((x) => x.ruolo === "dt" || x.ruolo === "titolare").map(async (x) => {
-          const { count } = await sb.from("segnalazioni").select("id", { count: "exact", head: true }).eq("centro_id", x.centro_id).eq("stato", "nuova");
-          dati.segnalazioni.set(x.id, count ?? 0);
+        [...new Set(direzione.map((x) => x.centro_id))].map(async (centroId) => {
+          const { count } = await sb.from("segnalazioni").select("id", { count: "exact", head: true }).eq("centro_id", centroId).eq("stato", "nuova");
+          perCentro.set(centroId, count ?? 0);
         }),
       );
+      direzione.forEach((x) => dati.segnalazioni.set(x.id, perCentro.get(x.centro_id) ?? 0));
     }),
   ]);
   return dati;

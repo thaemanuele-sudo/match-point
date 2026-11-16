@@ -6,11 +6,15 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import { Campo, Conferma, Errore, I, Ico, data, errMsg, useAdmin } from "../comuni";
-import { NOME_RUOLO, RUOLI, doppione, generaCodice, urlInvito, type Area, type CentroConConteggi, type Gruppo, type Invito, type RuoloCentro } from "./tipi";
+import { COL_INVITO, NOME_RUOLO, PAGINA, RUOLI, doppione, generaCodice, urlInvito, type Area, type CentroConConteggi, type Gruppo, type Invito, type RuoloCentro } from "./tipi";
 
 export function Inviti({ centro, aree }: { centro: CentroConConteggi; aree: Area[] }) {
   const { sb, avvisa } = useAdmin();
+  // a pagine di 50 con "carica altri": un grande centro ha un invito per ogni allievo
   const [lista, setLista] = useState<Invito[] | null>(null);
+  const [altri, setAltri] = useState(false);
+  const [totale, setTotale] = useState<number | null>(null);
+  const [caricando, setCaricando] = useState(false);
   const [gruppi, setGruppi] = useState<Gruppo[]>([]);
   const [io, setIo] = useState<string | null>(null); // la riga "membro" del super admin in questo centro, se c'è
   const [errore, setErrore] = useState<string | null>(null);
@@ -25,12 +29,30 @@ export function Inviti({ centro, aree }: { centro: CentroConConteggi; aree: Area
   const [giorni, setGiorni] = useState("14");
   const [usiMax, setUsiMax] = useState("1");
 
+  const leggi = useCallback(
+    // si chiede una riga in più per sapere se c'è un'altra pagina
+    (da: number) => sb.from("inviti").select(COL_INVITO).eq("centro_id", centro.id).order("created_at", { ascending: false }).order("id").range(da, da + PAGINA),
+    [sb, centro.id],
+  );
   const carica = useCallback(async () => {
-    const { data: d, error } = await sb.from("inviti").select("*").eq("centro_id", centro.id).order("created_at", { ascending: false });
-    if (error) return setErrore(errMsg(error));
+    const [r, n] = await Promise.all([leggi(0), sb.from("inviti").select("id", { count: "exact", head: true }).eq("centro_id", centro.id)]);
+    if (r.error) return setErrore(errMsg(r.error));
     setErrore(null);
-    setLista((d ?? []) as Invito[]);
-  }, [sb, centro.id]);
+    const righe = (r.data ?? []) as Invito[];
+    setLista(righe.slice(0, PAGINA));
+    setAltri(righe.length > PAGINA);
+    setTotale(n.count ?? righe.length);
+  }, [sb, centro.id, leggi]);
+  const caricaAltri = async () => {
+    if (!lista || caricando) return;
+    setCaricando(true);
+    const { data: d, error } = await leggi(lista.length);
+    setCaricando(false);
+    if (error) return setErrore(errMsg(error));
+    const righe = (d ?? []) as Invito[];
+    setLista([...lista, ...righe.slice(0, PAGINA)]);
+    setAltri(righe.length > PAGINA);
+  };
   useEffect(() => { void carica(); }, [carica]);
 
   useEffect(() => {
@@ -65,7 +87,7 @@ export function Inviti({ centro, aree }: { centro: CentroConConteggi; aree: Area
         area_id: usaArea ? areaEff : null, gruppo_id: usaGruppo && gruppoId ? gruppoId : null,
       };
       if (io) riga.creato_da = io;
-      const { data: nuovo, error } = await sb.from("inviti").insert(riga).select("*").maybeSingle();
+      const { data: nuovo, error } = await sb.from("inviti").insert(riga).select(COL_INVITO).maybeSingle();
       if (!error) {
         setOcc(false);
         setNuovoCodice(nuovo as Invito | null);
@@ -142,7 +164,7 @@ export function Inviti({ centro, aree }: { centro: CentroConConteggi; aree: Area
       </section>
 
       <section className="db-card">
-        <div className="db-card-testa"><h2 className="db-h2">Inviti del centro</h2><span className="db-nota">{lista?.length ?? 0} in tutto</span></div>
+        <div className="db-card-testa"><h2 className="db-h2">Inviti del centro</h2><span className="db-nota">{totale ?? lista?.length ?? 0} in tutto</span></div>
         {!lista && !errore && <div className="db-vuoto">Carico gli inviti…</div>}
         {lista?.map((i) => {
           const s = stato(i);
@@ -162,6 +184,7 @@ export function Inviti({ centro, aree }: { centro: CentroConConteggi; aree: Area
           );
         })}
         {lista && !lista.length && <div className="db-vuoto">Nessun invito: genera il primo qui sopra.</div>}
+        {altri && <div className="db-sottoazioni" style={{ justifyContent: "center" }}><button type="button" className="db-btn2" disabled={caricando} onClick={() => void caricaAltri()}>Carica altri</button></div>}
       </section>
 
       {elimina && (

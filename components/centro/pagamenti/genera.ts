@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { inBlocchi, tuttePagine } from "./dati";
 import { oggiISO, type Corso, type PeriodoNuovo } from "./util";
 
 export type EsitoGenera = { create: number; giaPresenti: number; corsiSenzaQuota: number; senzaIscritti: number; scontate: number };
@@ -27,18 +28,20 @@ export async function generaQuote(
 
   const oggi = oggiISO();
   const gruppiIds = Array.from(new Set(pronti.map((c) => c.gruppo_id as string)));
-  const { data: isc, error: e1 } = await sb.from("iscrizioni").select("allievo_id,gruppo_id,dal,al").eq("centro_id", centroId).in("gruppo_id", gruppiIds);
-  if (e1) throw new Error(e1.message);
-  const attive = ((isc ?? []) as Iscr[]).filter((i) => (!i.dal || i.dal <= per.scade_il) && (!i.al || i.al >= oggi));
+  // Iscrizioni in corso: le date si filtrano nel database (non si scarica lo storico di due anni) e si leggono a blocchi di 1000,
+  // perché con 1500 allievi per centro una sola richiesta si fermerebbe alla millesima riga senza avvisare.
+  const attive = await tuttePagine<Iscr>((x, y) =>
+    sb.from("iscrizioni").select("allievo_id,gruppo_id,dal,al").eq("centro_id", centroId).in("gruppo_id", gruppiIds)
+      .or(`dal.is.null,dal.lte.${per.scade_il}`).or(`al.is.null,al.gte.${oggi}`).order("id").range(x, y),
+  );
   if (!attive.length) {
     esito.senzaIscritti = pronti.length;
     return esito;
   }
   const allievi = Array.from(new Set(attive.map((i) => i.allievo_id)));
 
-  const { data: leg, error: e2 } = await sb.from("allievi_famiglie").select("allievo_id,membro_id").eq("centro_id", centroId).in("allievo_id", allievi);
-  if (e2) throw new Error(e2.message);
-  const legami = (leg ?? []) as Leg[];
+  // `in(...)` a gruppi di 100 id: 1500 uuid in un solo indirizzo superano il limite del server
+  const legami = await inBlocchi<Leg>(allievi, (b) => sb.from("allievi_famiglie").select("allievo_id,membro_id").eq("centro_id", centroId).in("allievo_id", b));
 
   // Famiglie = gruppi di allievi che condividono almeno un genitore (union-find sugli allievi).
   const padre = new Map<string, string>(allievi.map((a) => [a, a]));
@@ -69,9 +72,9 @@ export async function generaQuote(
   });
 
   // Quote già presenti per questo periodo (anche quelle divise in rate).
-  const { data: esistenti, error: e3 } = await sb.from("quote").select("allievo_id,corso_id,periodo").eq("centro_id", centroId).in("allievo_id", allievi).like("periodo", `${per.codice}%`);
-  if (e3) throw new Error(e3.message);
-  const ci = new Set(((esistenti ?? []) as { allievo_id: string; corso_id: string | null; periodo: string }[]).map((q) => `${q.allievo_id}|${q.corso_id}`));
+  const esistenti = await inBlocchi<{ allievo_id: string; corso_id: string | null; periodo: string }>(allievi, (b) =>
+    sb.from("quote").select("allievo_id,corso_id,periodo").eq("centro_id", centroId).in("allievo_id", b).like("periodo", `${per.codice}%`));
+  const ci = new Set(esistenti.map((q) => `${q.allievo_id}|${q.corso_id}`));
 
   type Nuova = { centro_id: string; allievo_id: string; corso_id: string; periodo: string; importo_cent: number; scade_il: string; stato: "attesa" };
   const nuove: Nuova[] = [];
@@ -92,8 +95,9 @@ export async function generaQuote(
 
   // Quota di iscrizione: una sola per allievo e anno, sul primo corso con quota.
   if (opz.iscrizione) {
-    const { data: gia } = await sb.from("quote").select("allievo_id").eq("centro_id", centroId).in("allievo_id", allievi).eq("periodo", opz.iscrizione.codice);
-    const fatti = new Set(((gia ?? []) as { allievo_id: string }[]).map((q) => q.allievo_id));
+    const codiceIscrizione = opz.iscrizione.codice;
+    const gia = await inBlocchi<{ allievo_id: string }>(allievi, (b) => sb.from("quote").select("allievo_id").eq("centro_id", centroId).in("allievo_id", b).eq("periodo", codiceIscrizione));
+    const fatti = new Set(gia.map((q) => q.allievo_id));
     const primoCorso = new Map<string, string>();
     for (const c of pronti) for (const i of attive) if (i.gruppo_id === c.gruppo_id && !primoCorso.has(i.allievo_id)) primoCorso.set(i.allievo_id, c.id);
     primoCorso.forEach((corsoId, allievoId) => {
@@ -102,9 +106,13 @@ export async function generaQuote(
     });
   }
 
-  for (let i = 0; i < nuove.length; i += 200) {
-    const { error } = await sb.from("quote").insert(nuove.slice(i, i + 200));
-    if (error) throw new Error(error.message);
+  // inserimenti a blocchi di 200, a gruppi di 4 richieste insieme: migliaia di righe non si mandano una richiesta per volta
+  const blocchi: Nuova[][] = [];
+  for (let i = 0; i < nuove.length; i += 200) blocchi.push(nuove.slice(i, i + 200));
+  for (let i = 0; i < blocchi.length; i += 4) {
+    const esiti = await Promise.all(blocchi.slice(i, i + 4).map((b) => sb.from("quote").insert(b)));
+    const errore = esiti.find((x) => x.error)?.error;
+    if (errore) throw new Error(errore.message);
   }
   esito.create = nuove.length;
   return esito;

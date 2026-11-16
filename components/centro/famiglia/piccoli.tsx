@@ -1,7 +1,7 @@
 "use client";
 // Pezzi piccoli e riusabili delle schermate famiglia: icone, pannello dal basso, selettore del figlio e foglio "assenza".
 // Usano solo le classi comuni di centro.css (card, chip, btn…) e le poche classi fam-* di famiglia.css.
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import "./famiglia.css";
 import { useT } from "@/lib/i18n/lingua";
@@ -57,11 +57,14 @@ export function Tratto({ d, size = 18, sw = 2 }: { d: string; size?: number; sw?
 /** Pannello dal basso: chiude con Esc o toccando lo sfondo. */
 export function Foglio({ titolo, onChiudi, children }: { titolo: string; onChiudi: () => void; children: ReactNode }) {
   const t = useT(T_PICCOLI);
+  // onChiudi cambia a ogni disegno del genitore: letta da un ref, l'ascolto dei tasti si monta una volta sola
+  const chiudiRef = useRef(onChiudi);
+  chiudiRef.current = onChiudi;
   useEffect(() => {
-    const k = (e: KeyboardEvent) => e.key === "Escape" && onChiudi();
+    const k = (e: KeyboardEvent) => e.key === "Escape" && chiudiRef.current();
     window.addEventListener("keydown", k);
     return () => window.removeEventListener("keydown", k);
-  }, [onChiudi]);
+  }, []);
   return (
     <div className="fam-fg-bg" onClick={onChiudi}>
       <div className="fam-fg" role="dialog" aria-modal="true" aria-label={titolo} onClick={(e) => e.stopPropagation()}>

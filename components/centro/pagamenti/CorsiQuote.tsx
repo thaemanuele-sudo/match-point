@@ -5,6 +5,7 @@ import { SchermoCentro } from "@/components/centro/Schermo";
 import { useCentro } from "@/lib/centro/contesto";
 import { useT } from "@/lib/i18n/lingua";
 import { FoglioLocale, Interruttore } from "./FoglioLocale";
+import { catalogoCentro } from "./dati";
 import { generaQuote, type EsitoGenera } from "./genera";
 import s from "./pagamenti.module.css";
 import {
@@ -99,16 +100,15 @@ export default function CorsiQuote() {
   const [imp, setImp] = useState<ImpPagamenti>(() => leggiImp(centro.impostazioni));
   const [foglio, setFoglio] = useState<null | { tipo: "corso"; corso: Corso | null } | { tipo: "regole" } | { tipo: "genera" }>(null);
 
+  // corsi e gruppi del centro: poche decine di righe, colonne esplicite; la lettura aggiorna anche la cache condivisa con i pagamenti
   const carica = useCallback(async () => {
-    const [c, g] = await Promise.all([
-      sb.from("corsi").select("*").eq("centro_id", centro.id).order("created_at"),
-      sb.from("gruppi").select("id,nome,fascia,giorni,ora").eq("centro_id", centro.id).order("nome"),
-    ]);
-    if (c.error || g.error) setErr((c.error ?? g.error)!.message);
-    else {
+    try {
+      const cat = await catalogoCentro(sb, centro.id, true);
       setErr("");
-      setCorsi((c.data ?? []) as Corso[]);
-      setGruppi((g.data ?? []) as GruppoMin[]);
+      setCorsi(cat.corsi);
+      setGruppi(cat.gruppi);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
     }
     setCaricato(true);
   }, [sb, centro.id]);

@@ -71,7 +71,7 @@ export default function CentroOrganigramma() {
         <div className="og-dash c2" style={{ gap: 6 }}>
           {d.aree.map((a) => {
             const gs = d.gruppi.filter((g) => g.area_id === a.id && g.attivo);
-            const n = new Set(gs.flatMap((g) => allieviDelGruppo(d.iscrizioni.filter((i) => !i.al || i.al >= o.oggi), g.id))).size;
+            const n = new Set(gs.flatMap((g) => allieviDelGruppo(d.iscrizioni, g.id))).size;
             const rs = d.membri.filter((m) => m.ruolo === "responsabile_area" && m.area_id === a.id);
             return (
               <div key={a.id} className="card og-card og-fascia-card" style={{ ["--c" as string]: colorePerArea(d, a.id), padding: "9px 12px", gap: 6 }}>
