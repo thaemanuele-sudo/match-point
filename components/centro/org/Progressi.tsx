@@ -35,7 +35,7 @@ export default function CentroProgressi() {
   const [comp, setComp] = useState<Comp>("dritto");
 
   useEffect(() => {
-    sb.from("valutazioni").select("*").eq("centro_id", centro.id).then(({ data, error }) => (error ? setErr(error.message) : setVal((data ?? []) as ValutazioneR[])));
+    sb.from("valutazioni").select("*").eq("centro_id", centro.id).then(({ data, error }: { data: unknown; error: { message: string } | null }) => (error ? setErr(error.message) : setVal((data ?? []) as ValutazioneR[])));
   }, [sb, centro.id]);
 
   const schermo = (corpo: React.ReactNode, sopra?: string) => (

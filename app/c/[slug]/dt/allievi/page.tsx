@@ -1,6 +1,13 @@
-import { Segnaposto } from "@/components/centro/Segnaposto";
+"use client";
+// C10 Allievi del centro
+import { Suspense } from "react";
+import CentroAllievi from "@/components/centro/org/Allievi";
 
-// Segnaposto: l'area responsabile sostituisce questo file con la schermata vera.
-export default function Page() {
-  return <Segnaposto codice="C10" ruolo="dt" tab="allievi" />;
+// useSearchParams (filtro ?area=) richiede un confine Suspense.
+export default function Pagina() {
+  return (
+    <Suspense fallback={null}>
+      <CentroAllievi />
+    </Suspense>
+  );
 }

@@ -35,7 +35,7 @@ export default function CentroRuoloPermessi() {
   const [invito, setInvito] = useState<{ codice: string | null } | null>(null);
 
   useEffect(() => {
-    sb.from("registro").select("*").eq("centro_id", centro.id).eq("azione", "permesso").order("created_at", { ascending: false }).limit(1).then(({ data }) => setUltimo(((data ?? [])[0] as RegistroR) ?? null));
+    sb.from("registro").select("*").eq("centro_id", centro.id).eq("azione", "permesso").order("created_at", { ascending: false }).limit(1).then(({ data }: { data: unknown }) => setUltimo((((data ?? []) as RegistroR[])[0]) ?? null));
   }, [sb, centro.id, mod]);
 
   const schermo = (corpo: React.ReactNode) => (

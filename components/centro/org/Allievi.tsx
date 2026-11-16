@@ -8,7 +8,7 @@ import { rotta } from "@/lib/centro/rotte";
 import { fmtData } from "@/lib/centro/date";
 import { aggiungiGiorni, isoGiorno } from "@/lib/centro/date";
 import { useT } from "@/lib/i18n/lingua";
-import { coloreNome, iniziali, meseProgramma, nomeAllievo, nomeCompleto, sostituisci, maestriDi, type DatiOrg, type Org } from "./dati";
+import { coloreNome, iniziali, meseProgramma, nomeAllievo, nomeCompleto, sostituisci, maestriDi, useOrg, type DatiOrg, type Org } from "./dati";
 import { InvitoBox, creaInvito } from "./Invito";
 import type { AllievoR, LezioneR, PresenzaR, ValutazioneR } from "./tipi";
 import "./org.css";

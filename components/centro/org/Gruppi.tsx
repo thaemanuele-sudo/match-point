@@ -9,7 +9,7 @@ import { aggiungiGiorni, fmtData, fmtGiorni, fmtOra, inizioSettimana, isoGiorno 
 import { useT } from "@/lib/i18n/lingua";
 import {
   FASCE, colorePerArea, conflittiPosti, maestriDi, nomeAllievo, nomeBreve, postiDelGiorno, settimanaProgramma, sostituisci, allieviDelGruppo,
-  type DatiOrg, type Org,
+  useOrg, type DatiOrg, type Org,
 } from "./dati";
 import type { GruppoMaestroR, GruppoR } from "./tipi";
 import "./org.css";

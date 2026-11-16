@@ -1,6 +1,13 @@
-import { Segnaposto } from "@/components/centro/Segnaposto";
+"use client";
+// C15 Impostazioni centro
+import { Suspense } from "react";
+import CentroImpostazioni from "@/components/centro/org/Impostazioni";
 
-// Segnaposto: l'area responsabile sostituisce questo file con la schermata vera.
-export default function Page() {
-  return <Segnaposto codice="C15" ruolo="dt" tab="impostazioni" />;
+// useSearchParams (filtro ?area=) richiede un confine Suspense.
+export default function Pagina() {
+  return (
+    <Suspense fallback={null}>
+      <CentroImpostazioni />
+    </Suspense>
+  );
 }

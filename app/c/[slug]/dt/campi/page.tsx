@@ -1,6 +1,13 @@
-import { Segnaposto } from "@/components/centro/Segnaposto";
+"use client";
+// C18 Mappa dei campi
+import { Suspense } from "react";
+import CentroCampi from "@/components/centro/org/Campi";
 
-// Segnaposto: l'area responsabile sostituisce questo file con la schermata vera.
-export default function Page() {
-  return <Segnaposto codice="C18" ruolo="dt" tab="campi" />;
+// useSearchParams (filtro ?area=) richiede un confine Suspense.
+export default function Pagina() {
+  return (
+    <Suspense fallback={null}>
+      <CentroCampi />
+    </Suspense>
+  );
 }

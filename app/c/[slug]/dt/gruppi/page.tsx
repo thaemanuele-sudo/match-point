@@ -1,6 +1,13 @@
-import { Segnaposto } from "@/components/centro/Segnaposto";
+"use client";
+// C9 Gruppi e orari
+import { Suspense } from "react";
+import CentroGruppi from "@/components/centro/org/Gruppi";
 
-// Segnaposto: l'area responsabile sostituisce questo file con la schermata vera.
-export default function Page() {
-  return <Segnaposto codice="C9" ruolo="dt" tab="gruppi" />;
+// useSearchParams (filtro ?area=) richiede un confine Suspense.
+export default function Pagina() {
+  return (
+    <Suspense fallback={null}>
+      <CentroGruppi />
+    </Suspense>
+  );
 }

@@ -1,6 +1,13 @@
-import { Segnaposto } from "@/components/centro/Segnaposto";
+"use client";
+// C11 Progressi per fascia
+import { Suspense } from "react";
+import CentroProgressi from "@/components/centro/org/Progressi";
 
-// Segnaposto: l'area responsabile sostituisce questo file con la schermata vera.
-export default function Page() {
-  return <Segnaposto codice="C11" ruolo="dt" tab="progressi" />;
+// useSearchParams (filtro ?area=) richiede un confine Suspense.
+export default function Pagina() {
+  return (
+    <Suspense fallback={null}>
+      <CentroProgressi />
+    </Suspense>
+  );
 }

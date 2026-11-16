@@ -1,6 +1,13 @@
-import { Segnaposto } from "@/components/centro/Segnaposto";
+"use client";
+// C19 Campi e maestri
+import { Suspense } from "react";
+import CentroCampiOrari from "@/components/centro/org/CampiOrari";
 
-// Segnaposto: l'area responsabile sostituisce questo file con la schermata vera.
-export default function Page() {
-  return <Segnaposto codice="C19" ruolo="dt" tab="campi" />;
+// useSearchParams (filtro ?area=) richiede un confine Suspense.
+export default function Pagina() {
+  return (
+    <Suspense fallback={null}>
+      <CentroCampiOrari />
+    </Suspense>
+  );
 }

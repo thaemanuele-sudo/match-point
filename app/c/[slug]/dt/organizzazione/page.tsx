@@ -1,6 +1,13 @@
-import { Segnaposto } from "@/components/centro/Segnaposto";
+"use client";
+// C20 Organizzazione del centro
+import { Suspense } from "react";
+import CentroOrganigramma from "@/components/centro/org/Organigramma";
 
-// Segnaposto: l'area responsabile sostituisce questo file con la schermata vera.
-export default function Page() {
-  return <Segnaposto codice="C20" ruolo="dt" tab="organizzazione" />;
+// useSearchParams (filtro ?area=) richiede un confine Suspense.
+export default function Pagina() {
+  return (
+    <Suspense fallback={null}>
+      <CentroOrganigramma />
+    </Suspense>
+  );
 }

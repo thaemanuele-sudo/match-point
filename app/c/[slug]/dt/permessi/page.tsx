@@ -1,6 +1,13 @@
-import { Segnaposto } from "@/components/centro/Segnaposto";
+"use client";
+// C21 Ruolo e permessi
+import { Suspense } from "react";
+import CentroRuoloPermessi from "@/components/centro/org/Permessi";
 
-// Segnaposto: l'area responsabile sostituisce questo file con la schermata vera.
-export default function Page() {
-  return <Segnaposto codice="C21" ruolo="dt" tab="permessi" />;
+// useSearchParams (filtro ?area=) richiede un confine Suspense.
+export default function Pagina() {
+  return (
+    <Suspense fallback={null}>
+      <CentroRuoloPermessi />
+    </Suspense>
+  );
 }
