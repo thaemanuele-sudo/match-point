@@ -73,7 +73,7 @@ export default function MaestroAvviso() {
   useEffect(() => {
     if (!sb || !centro || !me) return;
     let vivo = true;
-    const x = setTimeout(() => contaDestinatari(sb, centro.id, dest).then((r) => vivo && setRis(r)), 300);
+    const x = setTimeout(() => contaDestinatari(sb, centro.id, dest).then((r) => vivo && setRis(r), () => vivo && setRis(null)), 300);
     return () => {
       vivo = false;
       clearTimeout(x);
@@ -92,7 +92,7 @@ export default function MaestroAvviso() {
     try {
       const titolo = testo.trim().slice(0, 60);
       // per i minori l'avviso arriva sempre anche ai genitori: lo decide il server, qui non c'è nessuna scelta
-      const r = await inviaAvviso(sb, imp, { titolo, testo: testo.trim(), destinatari: dest, conferma: true, promemoria: true });
+      const r = await inviaAvviso(sb, centro.id, { titolo, testo: testo.trim(), destinatari: dest, conferma: true, promemoria: true });
       setOk(r.consegna_il ? f(t.progOk, { a: oraIt(new Date(r.consegna_il)) }) : f(t.inviato, { n: nAl }));
       setTesto("");
       ultimi.ricarica();

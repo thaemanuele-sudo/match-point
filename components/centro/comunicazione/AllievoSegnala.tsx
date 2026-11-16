@@ -42,7 +42,7 @@ const OPZ = [
 /** A4: pulsanti grandi per il bambino. Arriva al DT, mai al maestro; per le urgenze c'è il 112. */
 export default function AllievoSegnala() {
   const t = useT(T);
-  const { sb, me, base } = useMio();
+  const { sb, me, base, centro } = useMio();
   const { figlio } = useFigli("allievo");
   const dt = useNomeDt();
   const primo = dt.split(" ")[0];
@@ -59,7 +59,7 @@ export default function AllievoSegnala() {
     try {
       const k = OPZ[sel].k;
       // il bambino non scrive un testo: la categoria scelta è il messaggio. Non è anonima (il DT deve poter rispondere) ma il maestro non la vede mai.
-      const { error } = await sb.rpc("segnala", { categoria: k, testo: lab[k], anonima: false, per_allievo: figlio?.id ?? null, riguarda_dt: false });
+      const { error } = await sb.rpc("segnala", { categoria: k, testo: lab[k], anonima: false, per_allievo: figlio?.id ?? null, riguarda_dt: false, centro: centro?.id ?? null });
       if (error) throw error;
       setFatto(true);
     } catch (e) {

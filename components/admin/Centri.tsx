@@ -24,15 +24,12 @@ export function Centri() {
     if (error) return setErrore(errMsg(error));
     setErrore(null);
     const centri = (data ?? []) as Centro[];
-    // i contatori si chiedono al database un centro per volta (solo conteggio, nessun dato di persone): due richieste a centro, in parallelo.
-    // Con molti centri conviene una funzione del database che li restituisce tutti insieme (vedi il rapporto: admin_conteggi_centri).
-    const conteggi = await Promise.all(centri.map(async (c) => {
-      const [m, a] = await Promise.all([
-        sb.from("membri").select("id", { count: "exact", head: true }).eq("centro_id", c.id),
-        sb.from("allievi").select("id", { count: "exact", head: true }).eq("centro_id", c.id),
-      ]);
-      return { ...c, n_membri: m.count ?? 0, n_allievi: a.count ?? 0 };
-    }));
+    // i contatori di tutti i centri li calcola il database in una sola chiamata (solo super admin)
+    const c = await sb.rpc("admin_conteggi_centri");
+    if (c.error) return setErrore(errMsg(c.error));
+    const per = new Map<string, { n_membri: number; n_allievi: number }>(
+      ((c.data ?? []) as { centro_id: string; n_membri: number | string; n_allievi: number | string }[]).map((x) => [x.centro_id, { n_membri: Number(x.n_membri), n_allievi: Number(x.n_allievi) }]));
+    const conteggi = centri.map((x) => ({ ...x, n_membri: per.get(x.id)?.n_membri ?? 0, n_allievi: per.get(x.id)?.n_allievi ?? 0 }));
     setLista(conteggi);
   }, [sb]);
   useEffect(() => { void carica(); }, [carica]);

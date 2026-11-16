@@ -49,8 +49,8 @@ export default function GenitoreReport() {
   const { centro, sb } = useCentro();
   const { figli, figlio, scegli, caricamento, errore, ricarica } = useFigli("famiglia");
   const [mesi, setMesi] = useState<Mese[] | null>(null);
-  const [presenze, setPresenze] = useState<Record<string, boolean>>({});
-  const [vals, setVals] = useState<RValutazione[]>([]);
+  // presenze e valutazioni del mese scelto: le calcola il database (report_mensile_allievo), una chiamata per mese aperto
+  const [datiMese, setDatiMese] = useState<{ chiave: string; presenti: number; vals: Pick<RValutazione, "colpo" | "voto">[] } | null>(null);
   const [compiti, setCompiti] = useState<{ titolo: string; created_at: string }[]>([]);
   const [errDati, setErrDati] = useState<string | null>(null);
   const [mese, setMese] = useState<string | null>(null);
@@ -74,19 +74,13 @@ export default function GenitoreReport() {
       const l = await sb.from("lezioni").select(COL_LEZIONE).eq("centro_id", centro.id).eq("gruppo_id", idGr).eq("stato", "chiusa").gte("data", isoGiorno(dal)).lte("data", isoGiorno(al)).order("data");
       if (l.error) return void (vivo && (setErrDati(l.error.message), setMesi([])));
       const lez = (l.data ?? []) as RLezione[];
-      const [p, v, c] = await Promise.all([
-        lez.length ? sb.from("presenze").select("lezione_id,presente").eq("centro_id", centro.id).eq("allievo_id", idAll).in("lezione_id", lez.map((x) => x.id)) : Promise.resolve({ data: [] }),
-        sb.from("valutazioni").select("colpo,competenza,voto,test,data").eq("centro_id", centro.id).eq("allievo_id", idAll).gte("data", isoGiorno(dal)).lte("data", isoGiorno(al)),
+      const [c] = await Promise.all([
         sb.from("compiti").select("titolo,created_at").eq("centro_id", centro.id).or(`allievo_id.eq.${idAll},and(allievo_id.is.null,gruppo_id.eq.${idGr})`).gte("created_at", isoGiorno(dal)).lt("created_at", isoGiorno(inizioCorrente)).order("created_at"),
       ]);
       if (!vivo) return;
-      const pr: Record<string, boolean> = {};
-      for (const x of (p.data ?? []) as { lezione_id: string; presente: boolean }[]) pr[x.lezione_id] = x.presente;
       const perMese = new Map<string, RLezione[]>();
       for (const x of lez) perMese.set(chiaveMese(x.data), [...(perMese.get(chiaveMese(x.data)) || []), x]);
       const elenco = [...perMese.entries()].map(([chiave, lezioni]) => ({ chiave, lezioni })).sort((a, b) => b.chiave.localeCompare(a.chiave));
-      setPresenze(pr);
-      setVals((v.data ?? []) as RValutazione[]);
       setCompiti(((c.data ?? []) as { titolo: string; created_at: string }[]));
       setMesi(elenco);
       setMese((cur) => (cur && elenco.some((e) => e.chiave === cur) ? cur : elenco.find((e) => e.lezioni.some((z) => z.riassunto_ok))?.chiave ?? elenco[0]?.chiave ?? null));
@@ -94,15 +88,29 @@ export default function GenitoreReport() {
     return () => { vivo = false; };
   }, [idAll, idGr, centro.id, sb]);
 
+  useEffect(() => {
+    if (!idAll || !mese) { setDatiMese(null); return; }
+    let vivo = true;
+    (async () => {
+      const r = await sb.rpc("report_mensile_allievo", { p_centro: centro.id, p_allievo: idAll, p_mese: `${mese}-01` });
+      if (!vivo) return;
+      if (r.error) return void setErrDati(r.error.message);
+      const j = r.data as { presenze?: { presenti?: number }; valutazioni?: { colpo: string; voto: number }[] } | null;
+      setDatiMese({ chiave: mese, presenti: Number(j?.presenze?.presenti ?? 0), vals: j?.valutazioni ?? [] });
+    })().catch((e: unknown) => vivo && setErrDati(e instanceof Error ? e.message : String(e)));
+    return () => { vivo = false; };
+  }, [idAll, mese, centro.id, sb]);
+
   const corrente = mesi?.find((m) => m.chiave === mese) ?? null;
   const rep = useMemo(() => {
     if (!corrente || !figlio) return null;
+    const dm = datiMese?.chiave === corrente.chiave ? datiMese : null;
     const lez = corrente.lezioni;
     const approvate = lez.filter((l) => l.riassunto_ok && l.riassunto?.trim());
-    const presenti = lez.filter((l) => presenze[l.id]).length;
+    const presenti = dm?.presenti ?? 0;
     const durata = figlio.gruppo?.durata_min ?? 60;
     const inMese = (d: string) => chiaveMese(d) === corrente.chiave;
-    const vm = vals.filter((v) => inMese(v.data));
+    const vm = dm?.vals ?? [];
     // colpi con voto medio basso nel mese (sotto 3,5 su 5), dal più debole
     const perColpo = new Map<string, number[]>();
     for (const v of vm) perColpo.set(v.colpo.toLowerCase(), [...(perColpo.get(v.colpo.toLowerCase()) || []), v.voto]);
@@ -125,7 +133,7 @@ export default function GenitoreReport() {
       miglioramenti, consigli,
       approva: maestri.length ? maestri.join(", ") : t.ilMaestro,
     };
-  }, [corrente, figlio, presenze, vals, compiti, t]);
+  }, [corrente, figlio, datiMese, compiti, t]);
 
   const dataMese = corrente ? inizioMese(corrente.chiave) : null;
   const nomeM = dataMese ? nomeMese(dataMese.getMonth()) : "";

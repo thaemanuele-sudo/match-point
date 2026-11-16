@@ -100,7 +100,7 @@ export function AvvisiPagina({ modo }: { modo: "centro" | "area" }) {
   useEffect(() => {
     if (!sb || !centro || !pronto) return setRis(null);
     let vivo = true;
-    contaDestinatari(sb, centro.id, dest).then((r) => vivo && setRis(r));
+    contaDestinatari(sb, centro.id, dest).then((r) => vivo && setRis(r), () => vivo && setRis(null));
     return () => {
       vivo = false;
     };
@@ -125,7 +125,7 @@ export function AvvisiPagina({ modo }: { modo: "centro" | "area" }) {
     setErr(null);
     setOk(null);
     try {
-      const r = await inviaAvviso(sb, imp, { titolo: titolo.trim(), testo: testo.trim(), destinatari: dest, conferma, promemoria: conferma });
+      const r = await inviaAvviso(sb, centro.id, { titolo: titolo.trim(), testo: testo.trim(), destinatari: dest, conferma, promemoria: conferma });
       setOk(r.consegna_il ? f(t.programmato, { ora: ORA(new Date(r.consegna_il)) }) : f(t.inviato, { n: r.destinatari }));
       setTitolo("");
       setTesto("");

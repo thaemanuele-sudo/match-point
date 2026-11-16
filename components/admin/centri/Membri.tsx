@@ -60,8 +60,12 @@ export function Membri({ centro, aree, ricarica }: { centro: CentroConConteggi; 
 
   useEffect(() => {
     let vivo = true;
-    void Promise.all(RUOLI.map((r) => sb.from("membri").select("id", { count: "exact", head: true }).eq("centro_id", centro.id).eq("ruolo", r)))
-      .then((x) => { if (vivo) setPerRuolo(Object.fromEntries(RUOLI.map((r, i) => [r, x[i].count ?? 0]))); });
+    // membri per ruolo: li conta il database (solo super admin), una riga per ruolo presente
+    void sb.rpc("admin_membri_conteggi_ruolo", { p_centro: centro.id }).then((x: { data: unknown; error: unknown }) => {
+      if (!vivo || x.error) return;
+      const per = new Map(((x.data ?? []) as { ruolo: string; n: number | string }[]).map((r) => [r.ruolo, Number(r.n)]));
+      setPerRuolo(Object.fromEntries(RUOLI.map((r) => [r, per.get(r) ?? 0])));
+    });
     return () => { vivo = false; };
   }, [sb, centro.id, versioneConteggi]);
 

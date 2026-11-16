@@ -41,7 +41,7 @@ const CAT = ["adulto", "sicurezza", "bullismo", "chat", "altro"] as const;
 /** G6: segnalazione privata al DT con la RPC `segnala`. Il maestro non la vede mai (RLS). */
 export default function GenitoreSegnala() {
   const t = useT(T);
-  const { sb, me, base } = useMio();
+  const { sb, me, base, centro } = useMio();
   const { figli, figlio, setSel } = useFigli("genitore");
   const dt = useNomeDt();
   const [cat, setCat] = useState<(typeof CAT)[number]>("adulto");
@@ -57,7 +57,7 @@ export default function GenitoreSegnala() {
     setInvio(true);
     setErr(null);
     try {
-      const { error } = await sb.rpc("segnala", { categoria: cat, testo: testo.trim(), anonima: anon, per_allievo: figlio?.id ?? null, riguarda_dt: dtRiguarda });
+      const { error } = await sb.rpc("segnala", { categoria: cat, testo: testo.trim(), anonima: anon, per_allievo: figlio?.id ?? null, riguarda_dt: dtRiguarda, centro: centro?.id ?? null });
       if (error) throw error;
       setFatto(true);
     } catch (e) {

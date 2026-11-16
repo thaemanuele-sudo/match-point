@@ -54,19 +54,18 @@ export default function CentroImpostazioni() {
       .then(({ data }: { data: unknown }) => setInviti((data ?? []) as InvitoR[]));
   }, [sb, centro.id, rev]);
 
-  // consensi e certificati: solo conteggi (head), e solo quando si apre la scheda "Dati". (allievo, tipo) è unico: una riga = un allievo.
+  // consensi e certificati: li conta il database (`consensi_riepilogo`), solo quando si apre la scheda "Dati"
   useEffect(() => {
     if (tab !== "dati") return;
     let vivo = true;
-    const oggi = o.oggi;
-    const consensi = (tipo: string) => sb.from("consensi").select("id", { count: "exact", head: true }).eq("centro_id", centro.id).eq("tipo", tipo).eq("valore", true);
-    void Promise.all([
-      sb.from("allievi").select("id", { count: "exact", head: true }).eq("centro_id", centro.id),
-      consensi("privacy"), consensi("foto_video"), consensi("ai"),
-      sb.from("allievi").select("id", { count: "exact", head: true }).eq("centro_id", centro.id).gte("certificato_scade", oggi),
-    ]).then(([tot, p, f, a, c]) => { if (vivo) setNumeri({ tot: tot.count ?? 0, privacy: p.count ?? 0, foto_video: f.count ?? 0, ai: a.count ?? 0, cert: c.count ?? 0 }); });
+    void sb.rpc("consensi_riepilogo", { p_centro: centro.id }).then((x: { data: unknown; error: { message: string } | null }) => {
+      if (!vivo) return;
+      if (x.error) { setErrore(x.error.message); return; }
+      const c = x.data as { allievi: number; privacy: number; foto_video: number; ai: number; certificati_validi: number };
+      setNumeri({ tot: Number(c.allievi), privacy: Number(c.privacy), foto_video: Number(c.foto_video), ai: Number(c.ai), cert: Number(c.certificati_validi) });
+    });
     return () => { vivo = false; };
-  }, [sb, centro.id, tab, o.oggi]);
+  }, [sb, centro.id, tab]);
 
   const schermo = (corpo: React.ReactNode) => (
     <SchermoCentro ruolo="dt" tab="impostazioni" titolo={t.titolo} sopra={sostituisci(t.sopra, { centro: centro.nome, citta: centro.citta ?? "" }).replace(/ · $/, "")} indietro={r.dt.base}>{corpo}</SchermoCentro>

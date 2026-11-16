@@ -83,7 +83,7 @@ function ultimaSezione(slug: string): string {
 type Carico = { centro: Centro; miei: Membro[]; userId: string; eAdmin: boolean };
 
 // Colonne esplicite: `centri` e `membri` si leggono a ogni apertura dell'app, niente select('*')
-const COLONNE_CENTRO = "id,slug,nome,nome_app,citta,logo_path,colore,colore_ink,stato,prova_fino,piano,impostazioni,creato_da,created_at";
+const COLONNE_CENTRO = "id,slug,nome,nome_app,citta,logo_path,colore,colore_ink,stato,prova_fino,piano,impostazioni,elencato,creato_da,created_at";
 const COLONNE_MEMBRO = "id,centro_id,user_id,ruolo,nome,cognome,email,telefono,area_id,stato,created_at";
 
 // Cache di modulo: centro e membri si leggono una volta sola per centro e utente, non a ogni montaggio del provider.

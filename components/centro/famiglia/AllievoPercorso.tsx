@@ -82,6 +82,8 @@ export default function AllievoPercorso() {
   const [vals, setVals] = useState<RValutazione[]>([]);
   const [linea, setLinea] = useState<{ scala: unknown; competenze: unknown } | null>(null);
   const [errDati, setErrDati] = useState<string | null>(null);
+  // numeri dei badge calcolati dal database (badge_allievo): non si fermano alle ultime 120 lezioni né ai 40 compiti letti qui
+  const [conteggi, setConteggi] = useState<{ serie: number; presenti: number; compitiFatti: number } | null>(null);
   const idAll = figlio?.allievo.id;
   const idGr = figlio?.gruppo?.id;
   const fascia = figlio?.gruppo?.fascia;
@@ -97,12 +99,13 @@ export default function AllievoPercorso() {
       // lezioni chiuse dell'ultimo anno (e comunque al massimo 120): il database non scorre tutto lo storico del gruppo
       const dal = isoGiorno(aggiungiGiorni(new Date(), -400));
       // lezioni, valutazioni (cache condivisa con Home e Progressi) e linea guida non dipendono l'una dall'altra: un solo giro
-      const [l, v, lgR] = await Promise.all([
+      const [l, v, lgR, bd] = await Promise.all([
         sb.from("lezioni").select(COL_LEZIONE).eq("centro_id", centro.id).eq("gruppo_id", g).eq("stato", "chiusa").gte("data", dal).order("data", { ascending: false }).limit(120),
         valutazioniAllievo(sb, centro.id, idAll).then((data) => ({ data, error: undefined as string | undefined }), (e: Error) => ({ data: [] as RValutazione[], error: e.message })),
         fascia && colpoTema
           ? sb.from("linee_guida").select("scala,competenze").eq("centro_id", centro.id).ilike("fascia", fascia).ilike("colpo", colpoTema).limit(1)
           : Promise.resolve({ data: null, error: null }),
+        sb.rpc("badge_allievo", { p_centro: centro.id, p_allievo: idAll }),
       ]);
       const lez = (l.data ?? []) as RLezione[];
       const p = lez.length ? await sb.from("presenze").select("lezione_id,presente").eq("centro_id", centro.id).eq("allievo_id", idAll).in("lezione_id", lez.map((x) => x.id)) : { data: [], error: null };
@@ -116,16 +119,20 @@ export default function AllievoPercorso() {
       setPresenze(pr);
       setVals(v.data);
       setLinea(lg);
+      const b = bd.data as { serie_presenze?: number; lezioni_presenti?: number; compiti_fatti?: number } | null;
+      // se la RPC non risponde restano i conteggi calcolati qui sotto dalle lezioni lette
+      setConteggi(!bd.error && b ? { serie: Number(b.serie_presenze ?? 0), presenti: Number(b.lezioni_presenti ?? 0), compitiFatti: Number(b.compiti_fatti ?? 0) } : null);
     })().catch((e: unknown) => vivo && setErrDati(e instanceof Error ? e.message : String(e)));
     return () => { vivo = false; };
   }, [idAll, idGr, fascia, colpoTema, centro.id, sb]);
 
   // lezioni di fila: dall'ultima lezione chiusa all'indietro, finché era presente
   const serie = useMemo(() => {
+    if (conteggi) return conteggi.serie;
     let n = 0;
     for (const l of lezioni ?? []) { if (presenze[l.id] === true) n++; else break; }
     return n;
-  }, [lezioni, presenze]);
+  }, [lezioni, presenze, conteggi]);
 
   const stat = useMemo(() => {
     const lez = lezioni ?? [];
@@ -134,11 +141,11 @@ export default function AllievoPercorso() {
     const mPrec = chiaveMese(new Date(oggi.getFullYear(), oggi.getMonth() - 1, 1));
     const delMese = (m: string) => lez.filter((l) => chiaveMese(l.data) === m);
     const tutte = (arr: RLezione[]) => arr.length >= 3 && arr.every((l) => presenze[l.id] === true);
-    const presTot = lez.filter((l) => presenze[l.id] === true).length;
+    const presTot = conteggi ? conteggi.presenti : lez.filter((l) => presenze[l.id] === true).length;
     const compitiMese = compiti.filter((c) => chiaveMese(c.created_at) === mCorr);
-    const nFatti = fatti.length;
+    const nFatti = conteggi ? conteggi.compitiFatti : fatti.length;
     return { presTot, mesePrec: tutte(delMese(mPrec)), campione: tutte(delMese(mCorr)) && compitiMese.length > 0 && compitiMese.every((c) => fatti.some((f) => f.compito_id === c.id)), nFatti };
-  }, [lezioni, presenze, compiti, fatti]);
+  }, [lezioni, presenze, compiti, fatti, conteggi]);
 
   const badge = useMemo<{ nome: string; icona: IconaNome; on: boolean; hint: string }[]>(() => [
     { nome: t.badgeFila, icona: "flame", on: serie >= 5, hint: fmt(t.quasi, { a: Math.min(serie, 5), b: 5 }) },
