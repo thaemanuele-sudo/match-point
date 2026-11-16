@@ -15,14 +15,14 @@ const T = {
     carico: "Carico lo schema…", nonTrovato: "Schema non trovato o non ancora pubblicato.", errore: "Non riesco a caricare lo schema. Riprova.",
     demoTit: "Servizio esterno e diritto nello spazio",
     demoObi: "Aprire il campo con il servizio e chiudere il punto con il diritto nella parte libera.",
-    demoDesc: "Schema dimostrativo: lo schema vero lo carica il super admin dal pannello. Guarda come si muovono giocatore, avversario e palla.",
+    demoDesc: "Schema dimostrativo: presto arriveranno gli schemi del tuo maestro. Guarda come si muovono giocatore, avversario e palla.",
   },
   en: {
     kick: "Tactics · animated pattern", obiettivo: "Goal", descrizione: "Description", fasce: "Age bands", difficolta: "Difficulty",
     carico: "Loading the pattern…", nonTrovato: "Pattern not found or not published yet.", errore: "Couldn't load the pattern. Try again.",
     demoTit: "Wide serve and forehand into space",
     demoObi: "Open the court with the serve and finish the point with the forehand into the free area.",
-    demoDesc: "Demo pattern: real patterns are uploaded by the super admin from the panel. Watch how the player, opponent and ball move.",
+    demoDesc: "Demo pattern: your coach's patterns are coming soon. Watch how the player, opponent and ball move.",
   },
 };
 
