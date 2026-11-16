@@ -403,7 +403,7 @@ export function ChatAI() {
           <span className={s.e25}>
             {t.message}
           </span>
-          <input className={s.e26} placeholder={t.ask_coach_ai} value={testo} onChange={(e) => setTesto(e.target.value)} maxLength={2000} />
+          <input className={s.e26} placeholder={t.ask_coach_ai} aria-label={t.ask_coach_ai} value={testo} onChange={(e) => setTesto(e.target.value)} maxLength={2000} />
           <button className={s.e27} aria-label={t.send} type="submit" disabled={invio || !testo.trim()}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true">
               <path d="M12 19V5M5 12l7-7 7 7" />

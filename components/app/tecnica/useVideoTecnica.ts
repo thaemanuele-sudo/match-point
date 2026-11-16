@@ -26,14 +26,20 @@ export function useVideoTecnica(colpo?: Colpo) {
           .select("*")
           .eq("pubblicato", true)
           .order("ordine", { ascending: true });
-        const { data, error } = await Promise.race([
-          lettura,
-          new Promise<never>((_, no) => setTimeout(() => no(new Error("timeout")), 10000)),
-        ]);
-        if (!vivo) return;
-        if (error) throw error;
-        setTutti((data as VideoTecnica[]) ?? []);
-        setStato("pronto");
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        const scaduto = new Promise<never>((_, no) => {
+          timer = setTimeout(() => no(new Error("timeout")), 10000);
+        });
+        try {
+          const { data, error } = await Promise.race([lettura, scaduto]);
+          if (!vivo) return;
+          if (error) throw error;
+          setTutti((data as VideoTecnica[]) ?? []);
+          setStato("pronto");
+        } finally {
+          // la richiesta è arrivata (o è fallita): il timer di 10 s non serve più
+          clearTimeout(timer);
+        }
       } catch {
         if (vivo) setStato("errore");
       }

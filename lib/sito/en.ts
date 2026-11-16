@@ -69,9 +69,9 @@ export const en: Dizionario = {
     tecnica: {
       occhiello: "Technique by stroke",
       titolo: "Every stroke, explained in detail.",
-      cosa: "From serve to overhead: six strokes with videos, errors and drills.",
+      cosa: "From serve to smash: six strokes with videos, errors and drills.",
       testo:
-        "Serve, forehand, backhand, slice, volley and overhead, each with its variants: straight, crosscourt, down the line. For every stroke you get the error and the reason behind it, what it does to the ball and to your opponent, the correct movement and how to change it. The serve is broken down into five phases, shown as a 120 fps sequence.",
+        "Serve, forehand, backhand, slice, volley and smash, each with its variants: straight, crosscourt, down the line. For every stroke you get the error and the reason behind it, what it does to the ball and to your opponent, the correct movement and how to change it. The serve is broken down into five phases, shown as a 120 fps sequence.",
     },
     errori: {
       occhiello: "Error library and corrections",
@@ -82,10 +82,10 @@ export const en: Dizionario = {
     },
     tattica: {
       occhiello: "Tactics by age band",
-      titolo: "Matches are won before they start.",
+      titolo: "The match starts before you step on court.",
       cosa: "Animated game patterns, explained out loud and in writing.",
       testo:
-        "Each age band has its own patterns, showing the student, the opponent and each player’s shot on court. The catalog of 10 strategies, S1 to S10, lists age band, surface and opponent type, with complete cards. Combinations adapt to the score and to your opponent.",
+        "Each age band has its own patterns, showing the student, the opponent and each player’s shot on court. The catalog of 10 strategies, S1 to S10, lists age band, surface and opponent type, with complete cards. Combinations adapt to the score and to the type of opponent.",
     },
     partita: {
       occhiello: "Match and stats",
@@ -197,7 +197,7 @@ export const en: Dizionario = {
     Rovescio: "Backhand · detected type",
     Back: "Slice · stroke",
     Volee: "Volley · stroke",
-    Smash: "Overhead · stroke",
+    Smash: "Smash · stroke",
     LibreriaVideo: "Correction video library",
     ColpiFuturi: "Specific strokes coming soon",
     Tattica: "Tactics · Age bands",
@@ -209,7 +209,7 @@ export const en: Dizionario = {
     MatriceRischio: "Score × risk matrix",
     RegoleMaestro: "Coach rules",
     ProfiliAvversario: "Opponent profiles",
-    TieBreak: "Tiebreak plan",
+    TieBreak: "Tie-break plan",
     Atletica: "Fitness · Programs",
     ProfiloAtletico: "Athletic profile",
     SegnaliAtletici: "Athletic signals from video",

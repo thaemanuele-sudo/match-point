@@ -20,9 +20,14 @@ export async function supabaseServer() {
   });
 }
 
-/** Client senza sessione: per le funzioni server_* protette dal token MP_SERVER_TOKEN. */
+/**
+ * Client senza sessione utente per le funzioni server_* (impostazioni, registro dei costi).
+ * Se su Vercel c'è la chiave service_role (la aggiunge l'integrazione Supabase) il database riconosce il server
+ * da quella; altrimenti le funzioni chiedono il token MP_SERVER_TOKEN.
+ */
 export function supabaseAnon() {
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+  const chiave = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, chiave, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 }
