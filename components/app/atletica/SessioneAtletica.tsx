@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Schermo } from "../Schermo";
-import { useLang, useT } from "@/lib/i18n/lingua";
+import { useLang, useT, type Lingua } from "@/lib/i18n/lingua";
 import { ROTTE } from "@/lib/rotte";
 import { formatta } from "./useVideoAtletica";
 import { FIGURA_SESSIONE } from "./figure";
@@ -21,12 +21,35 @@ const T = {
     sospeso: "Drill stopped. If the pain continues, stop and talk to your coach or a health professional.", esci: "Leave", fine: "Session complete", fineSub: "Well done! You finished every drill.", torna: "Back to fitness",
     timer: "Time left in the set",
   },
+  fr: {
+    chiudi: "Fermer", esercizio: "Exercice", di: "sur", voce: "Voix", guida: "Vidéo guide", serie: "série", pausa: "Pause", riprendi: "Reprendre", fatta: "Série terminée",
+    dolore: "J'ai mal", nota: "En cas de douleur, l'IA suspend l'exercice et conseille un professionnel.",
+    sospeso: "Exercice suspendu. Si la douleur continue, arrête-toi et parles-en à ton entraîneur ou à un professionnel de santé.", esci: "Quitter", fine: "Séance terminée", fineSub: "Bravo ! Tu as fini tous les exercices.", torna: "Retour au physique",
+    timer: "Temps restant de la série",
+  },
+  de: {
+    chiudi: "Schließen", esercizio: "Übung", di: "von", voce: "Stimme", guida: "Anleitungsvideo", serie: "Satz", pausa: "Pause", riprendi: "Weiter", fatta: "Satz fertig",
+    dolore: "Ich habe Schmerzen", nota: "Bei Schmerzen unterbricht die KI die Übung und empfiehlt einen Fachmann.",
+    sospeso: "Übung unterbrochen. Wenn der Schmerz anhält, hör auf und sprich mit deinem Trainer oder einem Gesundheitsfachmann.", esci: "Verlassen", fine: "Einheit abgeschlossen", fineSub: "Super! Du hast alle Übungen geschafft.", torna: "Zurück zur Athletik",
+    timer: "Verbleibende Zeit des Satzes",
+  },
+  es: {
+    chiudi: "Cerrar", esercizio: "Ejercicio", di: "de", voce: "Voz", guida: "Vídeo guía", serie: "serie", pausa: "Pausa", riprendi: "Reanudar", fatta: "Serie hecha",
+    dolore: "Siento dolor", nota: "En caso de dolor la IA suspende el ejercicio y recomienda a un profesional.",
+    sospeso: "Ejercicio suspendido. Si el dolor continúa, para y habla con tu entrenador o con un profesional de la salud.", esci: "Salir", fine: "Sesión completada", fineSub: "¡Bien hecho! Has terminado todos los ejercicios.", torna: "Volver a Físico",
+    timer: "Tiempo restante de la serie",
+  },
 };
 // Esercizi dimostrativi della sessione di oggi: [nome, area, ripetizioni, unità]
 const ESERCIZI = {
   it: [["Skip e calciata", "RISCALDAMENTO", 20, "passi"], ["Salti su mini ostacoli", "SPINTA GAMBE", 8, "salti"], ["Split step al segnale", "REATTIVITÀ", 10, "ripetizioni"], ["Balzi laterali", "SPINTA GAMBE", 8, "balzi"], ["Partenze in 5 metri", "VELOCITÀ", 6, "scatti"], ["Rotazioni con palla medica", "BUSTO E CORE", 12, "rotazioni"]],
   en: [["Skips and butt kicks", "WARM-UP", 20, "steps"], ["Mini-hurdle jumps", "LEG DRIVE", 8, "jumps"], ["Split step on signal", "REACTIVITY", 10, "reps"], ["Lateral bounds", "LEG DRIVE", 8, "bounds"], ["5-meter starts", "SPEED", 6, "sprints"], ["Medicine ball rotations", "TORSO AND CORE", 12, "rotations"]],
+  fr: [["Skip et talons-fesses", "ÉCHAUFFEMENT", 20, "pas"], ["Sauts sur mini-haies", "POUSSÉE DES JAMBES", 8, "sauts"], ["Split step au signal", "RÉACTIVITÉ", 10, "répétitions"], ["Bonds latéraux", "POUSSÉE DES JAMBES", 8, "bonds"], ["Départs sur 5 mètres", "VITESSE", 6, "sprints"], ["Rotations au médecine-ball", "TRONC ET GAINAGE", 12, "rotations"]],
+  de: [["Skips und Anfersen", "AUFWÄRMEN", 20, "Schritte"], ["Sprünge über Mini-Hürden", "BEINSCHUB", 8, "Sprünge"], ["Split Step auf Signal", "REAKTIVITÄT", 10, "Wiederholungen"], ["Seitliche Hüpfer", "BEINSCHUB", 8, "Hüpfer"], ["Starts über 5 Meter", "SCHNELLIGKEIT", 6, "Sprints"], ["Rotationen mit dem Medizinball", "RUMPF UND CORE", 12, "Rotationen"]],
+  es: [["Skipping y talones a glúteos", "CALENTAMIENTO", 20, "pasos"], ["Saltos sobre minivallas", "IMPULSO DE PIERNAS", 8, "saltos"], ["Split step a la señal", "REACTIVIDAD", 10, "repeticiones"], ["Saltos laterales", "IMPULSO DE PIERNAS", 8, "saltos"], ["Salidas en 5 metros", "VELOCIDAD", 6, "sprints"], ["Rotaciones con balón medicinal", "TRONCO Y CORE", 12, "rotaciones"]],
 } as const;
+// Lingua di lettura vocale per ogni lingua dell'app
+const LOCALE_VOCE: Record<Lingua, string> = { it: "it-IT", en: "en-US", fr: "fr-FR", de: "de-DE", es: "es-ES" };
 const SERIE = 3;
 const DURATA = 60; // secondi a disposizione per ogni serie
 const CIRC = 465; // circonferenza dell'anello (2π·74)
@@ -54,7 +77,7 @@ export function SessioneAtletica() {
   useEffect(() => {
     if (!voce || finito || typeof window === "undefined" || !("speechSynthesis" in window)) return;
     const u = new SpeechSynthesisUtterance(lista[ex][0]);
-    u.lang = lang === "it" ? "it-IT" : "en-US";
+    u.lang = LOCALE_VOCE[lang];
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(u);
     return () => window.speechSynthesis.cancel();

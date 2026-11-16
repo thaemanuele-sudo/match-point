@@ -4,7 +4,13 @@ import { useT } from "@/lib/i18n/lingua";
 import { LinguaChip } from "../LinguaChip";
 import s from "./atletica.module.css";
 
-const T = { it: { indietro: "Indietro" }, en: { indietro: "Back" } };
+const T = {
+  it: { indietro: "Indietro" },
+  en: { indietro: "Back" },
+  fr: { indietro: "Retour" },
+  de: { indietro: "Zurück" },
+  es: { indietro: "Atrás" },
+};
 
 /** Intestazione dei disegni: freccia indietro, riga piccola sopra e titolo; a destra il cambio lingua. */
 export function Testata({ kick, titolo, indietro }: { kick: string; titolo: string; indietro: string }) {

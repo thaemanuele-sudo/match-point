@@ -30,14 +30,43 @@ const T = {
     salva: "Save profile", salvo: "Saving…", errore: "We couldn't save the profile. Please try again.",
     adulti: "Adults", under: "Under", nomeDemo: "Luca", nomeDemoCompleto: "Luca B.", iniz: "LU",
   },
+  fr: {
+    kick: "Étape 3 sur 3 · le moteur IA part d'ici", titolo: "Profil de", fasciaDi: "tranche {f}", eta: "Âge", anni: "Années de jeu", anniV: "3",
+    fascia: "TRANCHE D'ÂGE", livello: "NIVEAU", mano: "MAIN DOMINANTE", rov: "REVERS", obiettivi: "OBJECTIFS", disp: "DISPONIBILITÉ HEBDOMADAIRE",
+    destra: "Droite", sinistra: "Gauche", dueMani: "Deux mains", unaMano: "Une main",
+    o1: "Service sûr", o2: "Coup droit profond", o3: "Premier tournoi", o4: "Jeu au filet",
+    l1: "Débutant", l2: "Intermédiaire", l3: "Avancé", l4: "Compétiteur",
+    salva: "Enregistrer le profil", salvo: "Enregistrement…", errore: "Impossible d'enregistrer le profil. Réessayez.",
+    adulti: "Adultes", under: "Moins de", nomeDemo: "Luca", nomeDemoCompleto: "Luca B.", iniz: "LU",
+  },
+  de: {
+    kick: "Schritt 3 von 3 · Die KI-Engine startet hier", titolo: "Profil von", fasciaDi: "Altersklasse {f}", eta: "Alter", anni: "Spieljahre", anniV: "3",
+    fascia: "ALTERSKLASSE", livello: "STUFE", mano: "DOMINANTE HAND", rov: "RÜCKHAND", obiettivi: "ZIELE", disp: "WÖCHENTLICHE VERFÜGBARKEIT",
+    destra: "Rechts", sinistra: "Links", dueMani: "Beidhändig", unaMano: "Einhändig",
+    o1: "Sicherer Aufschlag", o2: "Tiefe Vorhand", o3: "Erstes Turnier", o4: "Netzspiel",
+    l1: "Anfänger", l2: "Mittelstufe", l3: "Fortgeschritten", l4: "Wettkampf",
+    salva: "Profil speichern", salvo: "Wird gespeichert…", errore: "Das Profil konnte nicht gespeichert werden. Versuch es erneut.",
+    adulti: "Erwachsene", under: "Unter", nomeDemo: "Luca", nomeDemoCompleto: "Luca B.", iniz: "LU",
+  },
+  es: {
+    kick: "Paso 3 de 3 · el motor IA parte de aquí", titolo: "Perfil de", fasciaDi: "franja {f}", eta: "Edad", anni: "Años de juego", anniV: "3",
+    fascia: "FRANJA DE EDAD", livello: "NIVEL", mano: "MANO DOMINANTE", rov: "REVÉS", obiettivi: "OBJETIVOS", disp: "DISPONIBILIDAD SEMANAL",
+    destra: "Diestra", sinistra: "Zurda", dueMani: "Dos manos", unaMano: "Una mano",
+    o1: "Saque seguro", o2: "Derecha profunda", o3: "Primer torneo", o4: "Juego en la red",
+    l1: "Principiante", l2: "Intermedio", l3: "Avanzado", l4: "Competidor",
+    salva: "Guardar perfil", salvo: "Guardando…", errore: "No hemos podido guardar el perfil. Inténtalo de nuevo.",
+    adulti: "Adultos", under: "Sub-", nomeDemo: "Luca", nomeDemoCompleto: "Luca B.", iniz: "LU",
+  },
 };
 
 const LIVELLI = ["principiante", "intermedio", "avanzato", "agonista"] as const;
 const ETA: Record<Fascia, string> = { U10: "≤ 10", U12: "≤ 12", U14: "≤ 14", U16: "≤ 16", U18: "≤ 18", ADULTI: "18+" };
 // Chiavi dei giorni (la seconda M è mercoledì) e lettere mostrate in ogni lingua.
 const GIORNI = [
-  { k: "L", it: "L", en: "M" }, { k: "M", it: "M", en: "T" }, { k: "M2", it: "M", en: "W" },
-  { k: "G", it: "G", en: "T" }, { k: "V", it: "V", en: "F" }, { k: "S", it: "S", en: "S" }, { k: "D", it: "D", en: "S" },
+  { k: "L", it: "L", en: "M", fr: "L", de: "M", es: "L" }, { k: "M", it: "M", en: "T", fr: "M", de: "D", es: "M" },
+  { k: "M2", it: "M", en: "W", fr: "M", de: "M", es: "X" },
+  { k: "G", it: "G", en: "T", fr: "J", de: "D", es: "J" }, { k: "V", it: "V", en: "F", fr: "V", de: "F", es: "V" },
+  { k: "S", it: "S", en: "S", fr: "S", de: "S", es: "S" }, { k: "D", it: "D", en: "S", fr: "D", de: "S", es: "D" },
 ] as const;
 
 /** 15 · Profilo allievo. Fascia e livello vanno in profiles; il resto è ancora dimostrativo. */
@@ -63,7 +92,7 @@ export default function ProfiloAllievo() {
   }, [profilo]);
 
   const etichette: Record<(typeof LIVELLI)[number], string> = { principiante: t.l1, intermedio: t.l2, avanzato: t.l3, agonista: t.l4 };
-  const nomeFascia = (f: Fascia) => (f === "ADULTI" ? t.adulti : `${t.under} ${f.slice(1)}`);
+  const nomeFascia = (f: Fascia) => (f === "ADULTI" ? t.adulti : `${t.under}${t.under.endsWith("-") ? "" : " "}${f.slice(1)}`);
 
   async function salva() {
     setInvio(true); setErrore(false);

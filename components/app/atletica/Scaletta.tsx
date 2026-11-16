@@ -8,6 +8,9 @@ import s from "./atletica.module.css";
 const T = {
   it: { kick: "Coordinazione · U10-U12", titolo: "Scaletta", due: "Due dentro", fuori: "Dentro-fuori", sx: "piede sinistro", dx: "piede destro", pass: "passaggi per schema", tempo: "tempo", schema: "Schema dei passi sulla scaletta" },
   en: { kick: "Coordination · U10-U12", titolo: "Ladder", due: "Two in", fuori: "In-out", sx: "left foot", dx: "right foot", pass: "passes per pattern", tempo: "time", schema: "Footstep pattern on the ladder" },
+  fr: { kick: "Coordination · U10-U12", titolo: "Échelle", due: "Deux dedans", fuori: "Dedans-dehors", sx: "pied gauche", dx: "pied droit", pass: "passages par schéma", tempo: "temps", schema: "Schéma des pas sur l'échelle" },
+  de: { kick: "Koordination · U10-U12", titolo: "Leiter", due: "Zwei rein", fuori: "Rein-raus", sx: "linker Fuß", dx: "rechter Fuß", pass: "Durchgänge je Muster", tempo: "Zeit", schema: "Schrittmuster auf der Leiter" },
+  es: { kick: "Coordinación · U10-U12", titolo: "Escalera", due: "Dos dentro", fuori: "Dentro-fuera", sx: "pie izquierdo", dx: "pie derecho", pass: "pasadas por patrón", tempo: "tiempo", schema: "Patrón de pasos en la escalera" },
 };
 // Posizione dei piedi sulla scaletta: [x del piede sinistro, x del destro], dal basso verso l'alto (7 riquadri).
 const DUE_DENTRO: [number, number][] = [[62, 88], [62, 88], [62, 88], [62, 88], [62, 88], [62, 88]];

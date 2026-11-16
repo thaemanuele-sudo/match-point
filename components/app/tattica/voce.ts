@@ -1,6 +1,9 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useLang } from "@/lib/i18n/lingua";
+import { useLang, type Lingua } from "@/lib/i18n/lingua";
+
+// Lingua della voce del dispositivo (ripiego) per ciascuna delle cinque lingue dell'app.
+const LOCALE_VOCE: Record<Lingua, string> = { it: "it-IT", en: "en-US", fr: "fr-FR", de: "de-DE", es: "es-ES" };
 
 /**
  * "Spiegazione a voce": legge un testo con la voce dell'app (POST /api/ai/voce, OpenAI TTS lato server).
@@ -50,7 +53,7 @@ export function useVoce() {
         const sy = window.speechSynthesis;
         if (!sy) { setInLettura(false); return; }
         const m = new SpeechSynthesisUtterance(testo);
-        m.lang = lang === "en" ? "en-US" : "it-IT";
+        m.lang = LOCALE_VOCE[lang];
         m.onend = () => setInLettura(false);
         m.onerror = () => setInLettura(false);
         sy.speak(m);

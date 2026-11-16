@@ -11,6 +11,9 @@ import s from "./VideoErroriCorrezioni.module.css";
 const T = {
   it: { titolo: "Video di errori e correzioni", libreria: "Libreria" },
   en: { titolo: "Error and correction videos", libreria: "Library" },
+  fr: { titolo: "Vidéos d'erreurs et de corrections", libreria: "Bibliothèque" },
+  de: { titolo: "Fehler- und Korrekturvideos", libreria: "Bibliothek" },
+  es: { titolo: "Vídeos de errores y correcciones", libreria: "Biblioteca" },
 };
 
 /**

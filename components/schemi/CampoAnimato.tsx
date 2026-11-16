@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import type { AnimazioneSchema, ElementoSchema, Keyframe } from "@/lib/types";
+import type { Lingua } from "@/lib/i18n/lingua";
 
 /** Posizione di un elemento al tempo t: interpolazione morbida tra i fotogrammi chiave. */
 export function posizione(kf: Keyframe[], t: number): { x: number; y: number } {
@@ -30,7 +31,7 @@ export type CampoAnimatoProps = {
   auto?: boolean;
   /** tempo controllato dall'esterno (editor admin): se presente l'animazione non scorre da sola */
   tempo?: number;
-  lingua?: "it" | "en";
+  lingua?: Lingua;
   /** id elemento evidenziato (editor) */
   selezionato?: string | null;
   /** clic sul campo con coordinate normalizzate (editor) */
@@ -65,7 +66,8 @@ export function CampoAnimato({ animazione, auto = true, tempo, lingua = "it", se
 
   const ora = controllato ? tempo! : t;
   const nota = [...(animazione.note ?? [])].sort((a, b) => a.t - b.t).filter((n) => n.t <= ora).pop();
-  const testoNota = nota ? (lingua === "en" && nota.testo_en ? nota.testo_en : nota.testo_it) : "";
+  // le note hanno italiano e inglese: le altre lingue usano l'inglese, se c'è
+  const testoNota = nota ? (lingua !== "it" && nota.testo_en ? nota.testo_en : nota.testo_it) : "";
 
   const clic = (e: React.MouseEvent<SVGSVGElement>) => {
     if (!onPunto || !ref.current) return;
@@ -83,7 +85,7 @@ export function CampoAnimato({ animazione, auto = true, tempo, lingua = "it", se
 
   return (
     <div className={className} style={{ position: "relative" }}>
-      <svg ref={ref} viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", display: "block", borderRadius: 18, cursor: onPunto ? "crosshair" : "default" }} onClick={clic} role="img" aria-label={lingua === "en" ? "Animated game pattern" : "Schema di gioco animato"}>
+      <svg ref={ref} viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", display: "block", borderRadius: 18, cursor: onPunto ? "crosshair" : "default" }} onClick={clic} role="img" aria-label={lingua === "it" ? "Schema di gioco animato" : "Animated game pattern"}>
         <defs>
           <pattern id="erba" width="12" height="200" patternUnits="userSpaceOnUse"><rect width="6" height="200" fill="#1E6A44" /><rect x="6" width="6" height="200" fill="#24764C" /></pattern>
         </defs>
@@ -121,7 +123,7 @@ export function CampoAnimato({ animazione, auto = true, tempo, lingua = "it", se
         <div style={{ position: "absolute", left: 10, right: 10, bottom: 10, padding: "8px 12px", borderRadius: 12, background: "rgba(0,0,0,.66)", backdropFilter: "blur(12px)", color: "#F3F6F1", fontSize: 13, fontWeight: 600, lineHeight: 1.35 }}>{testoNota}</div>
       )}
       {!controllato && (
-        <button type="button" onClick={() => setPlay((v) => !v)} aria-label={play ? (lingua === "en" ? "Pause" : "Pausa") : (lingua === "en" ? "Play" : "Riproduci")}
+        <button type="button" onClick={() => setPlay((v) => !v)} aria-label={play ? (lingua === "it" ? "Pausa" : "Pause") : (lingua === "it" ? "Riproduci" : "Play")}
           style={{ position: "absolute", top: 10, right: 10, width: 36, height: 36, borderRadius: "50%", border: 0, background: "rgba(0,0,0,.6)", color: "#fff", display: "grid", placeItems: "center", cursor: "pointer" }}>
           {play ? <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 5h4v14H6zM14 5h4v14h-4z" /></svg> : <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>}
         </button>

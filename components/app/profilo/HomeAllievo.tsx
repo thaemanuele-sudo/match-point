@@ -13,13 +13,31 @@ const T = {
     kick: "Modalità Bambino", ciao: "Ciao", giorni: "5 giorni", missione: "LA TUA MISSIONE", obiettivo: "Lancia la palla sempre nello stesso punto", esito: "7 lanci perfetti su 10!",
     badge: "I tuoi badge", badgeN: "6 di 20", casa: "Gioca a casa", minuti: "10 minuti",
     e1: "Fenicottero con palleggio", e1s: "15 secondi per gamba · 3 volte", e2: "Prese con palline colorate", e2s: "3 giri da 10 prese", stella: "+1 stella",
-    lucchetto: "Badge ancora bloccato", nomeDemo: "Matteo",
+    lucchetto: "Badge ancora bloccato", nomeDemo: "Matteo", fine: "!",
   },
   en: {
     kick: "Kid Mode", ciao: "Hi", giorni: "5 days", missione: "YOUR MISSION", obiettivo: "Toss the ball to the same spot every time", esito: "7 perfect tosses out of 10!",
     badge: "Your badges", badgeN: "6 of 20", casa: "Play at home", minuti: "10 minutes",
     e1: "Flamingo with bouncing", e1s: "15 seconds per leg · 3 times", e2: "Catches with colored balls", e2s: "3 rounds of 10 catches", stella: "+1 star",
-    lucchetto: "Badge still locked", nomeDemo: "Matteo",
+    lucchetto: "Badge still locked", nomeDemo: "Matteo", fine: "!",
+  },
+  fr: {
+    kick: "Mode Enfant", ciao: "Salut", giorni: "5 jours", missione: "TA MISSION", obiettivo: "Lance la balle toujours au même endroit", esito: "7 lancers parfaits sur 10 !",
+    badge: "Tes badges", badgeN: "6 sur 20", casa: "Joue à la maison", minuti: "10 minutes",
+    e1: "Flamant rose avec jonglage", e1s: "15 secondes par jambe · 3 fois", e2: "Attrapes de balles colorées", e2s: "3 tours de 10 attrapes", stella: "+1 étoile",
+    lucchetto: "Badge encore verrouillé", nomeDemo: "Matteo", fine: " !",
+  },
+  de: {
+    kick: "Kids-Modus", ciao: "Hallo", giorni: "5 Tage", missione: "DEINE MISSION", obiettivo: "Wirf den Ball immer an dieselbe Stelle", esito: "7 perfekte Würfe von 10!",
+    badge: "Deine Abzeichen", badgeN: "6 von 20", casa: "Zu Hause spielen", minuti: "10 Minuten",
+    e1: "Flamingo mit Dribbeln", e1s: "15 Sekunden pro Bein · 3-mal", e2: "Fangen mit bunten Bällen", e2s: "3 Runden à 10 Fänge", stella: "+1 Stern",
+    lucchetto: "Abzeichen noch gesperrt", nomeDemo: "Matteo", fine: "!",
+  },
+  es: {
+    kick: "Modo Niño", ciao: "¡Hola,", giorni: "5 días", missione: "TU MISIÓN", obiettivo: "Lanza la bola siempre al mismo punto", esito: "¡7 lanzamientos perfectos de 10!",
+    badge: "Tus insignias", badgeN: "6 de 20", casa: "Juega en casa", minuti: "10 minutos",
+    e1: "Flamenco con bote", e1s: "15 segundos por pierna · 3 veces", e2: "Atrapar bolas de colores", e2s: "3 rondas de 10 atrapadas", stella: "+1 estrella",
+    lucchetto: "Insignia aún bloqueada", nomeDemo: "Matteo", fine: "!",
   },
 };
 
@@ -32,7 +50,7 @@ export default function HomeAllievo() {
     <Schermo tab="coach">
       <div className={c.col}>
         <div className={s.top}>
-          <div><div className={c.kick}>{t.kick}</div><h1 className={c.big} style={{ fontSize: 40 }}>{t.ciao} {nome}!</h1></div>
+          <div><div className={c.kick}>{t.kick}</div><h1 className={c.big} style={{ fontSize: 40 }}>{t.ciao} {nome}{t.fine}</h1></div>
           <div className={s.striscia}><Fiamma />{t.giorni}</div>
         </div>
         <div className={`lawn ${s.missione}`}>

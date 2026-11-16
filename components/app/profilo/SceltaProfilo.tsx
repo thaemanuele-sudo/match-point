@@ -22,6 +22,21 @@ const T = {
     nota: "Under 14s access the app through a parent's or coach's account.",
     continua: "Continue", salvo: "Saving…", errore: "We couldn't save your choice. Please try again.",
   },
+  fr: {
+    kick: "Étape 1 sur 3", titolo: "Qui utilise Match Point ?", intro: "Chaque profil a son langage. Tu pourras en ajouter d'autres plus tard.",
+    nota: "Pour les moins de 14 ans, l'accès se fait via le compte du parent ou de l'entraîneur.",
+    continua: "Continuer", salvo: "Enregistrement…", errore: "Nous n'avons pas pu enregistrer ton choix. Réessaie.",
+  },
+  de: {
+    kick: "Schritt 1 von 3", titolo: "Wer nutzt Match Point?", intro: "Jedes Profil hat seine eigene Sprache. Weitere kannst du später hinzufügen.",
+    nota: "Für Kinder unter 14 Jahren erfolgt der Zugang über das Konto eines Elternteils oder Trainers.",
+    continua: "Weiter", salvo: "Wird gespeichert…", errore: "Wir konnten deine Auswahl nicht speichern. Versuch es noch einmal.",
+  },
+  es: {
+    kick: "Paso 1 de 3", titolo: "¿Quién usa Match Point?", intro: "Cada perfil tiene su lenguaje. Puedes añadir otros más adelante.",
+    nota: "Para menores de 14 años el acceso se realiza mediante la cuenta del padre/madre o del entrenador.",
+    continua: "Continuar", salvo: "Guardando…", errore: "No hemos podido guardar tu elección. Inténtalo de nuevo.",
+  },
 };
 
 type Tipo = Profilo["tipo_utente"];
@@ -33,6 +48,9 @@ const RUOLI: { k: string; tipo: Tipo; dopo: string }[] = [
 ];
 const DATI = {
   it: { M: ["Maestro", "Linguaggio tecnico, metriche complete, piani e report per le famiglie."], A: ["Allievo", "Modalità Bambino: un obiettivo alla volta, video brevi, giochi e badge."], G: ["Genitore", "Segui i progressi di tuo figlio e gestisci consenso e privacy."] },
+  fr: { M: ["Entraîneur", "Langage technique, métriques complètes, plans et rapports pour les familles."], A: ["Élève", "Mode Enfant : un objectif à la fois, vidéos courtes, jeux et badges."], G: ["Parent", "Suis les progrès de ton enfant et gère consentement et confidentialité."] },
+  de: { M: ["Trainer", "Technische Sprache, vollständige Metriken, Pläne und Berichte für Familien."], A: ["Schüler", "Kindermodus: ein Ziel nach dem anderen, kurze Videos, Spiele und Badges."], G: ["Elternteil", "Verfolge die Fortschritte deines Kindes und verwalte Einwilligung und Datenschutz."] },
+  es: { M: ["Entrenador", "Lenguaje técnico, métricas completas, planes e informes para las familias."], A: ["Alumno", "Modo Niño: un objetivo cada vez, vídeos cortos, juegos e insignias."], G: ["Padre/madre", "Sigue los progresos de tu hijo y gestiona consentimiento y privacidad."] },
   en: { M: ["Coach", "Technical language, full metrics, plans and family reports."], A: ["Student", "Kid Mode: one goal at a time, short videos, games and badges."], G: ["Parent", "Follow your child's progress and manage consent and privacy."] },
 } as const;
 

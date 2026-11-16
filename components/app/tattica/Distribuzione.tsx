@@ -40,6 +40,21 @@ const T = {
     serve: "Serve",
     volley: "Volley",
   },
+  fr: {
+    back: "Retour", strokesCount: "6.700", lastMonthSensorAnd: "Dernier mois · capteur et vidéo", yourStrokes: "Tes coups", strokes: "coups",
+    t13Km: "1,3 km", covered: "parcourus", great: "Excellente", feeling: "sensation", forehand: "Coup droit", backhand: "Revers",
+    bhVolley: "Volée de rev.", fhVolley: "Volée de c.d.", serve: "Service", volley: "Volée",
+  },
+  de: {
+    back: "Zurück", strokesCount: "6.700", lastMonthSensorAnd: "Letzter Monat · Sensor und Video", yourStrokes: "Deine Schläge", strokes: "Schläge",
+    t13Km: "1,3 km", covered: "gelaufen", great: "Super", feeling: "Gefühl", forehand: "Vorhand", backhand: "Rückhand",
+    bhVolley: "Rückh.-Volley", fhVolley: "Vorh.-Volley", serve: "Aufschlag", volley: "Volley",
+  },
+  es: {
+    back: "Atrás", strokesCount: "6.700", lastMonthSensorAnd: "Último mes · sensor y vídeo", yourStrokes: "Tus golpes", strokes: "golpes",
+    t13Km: "1,3 km", covered: "recorridos", great: "Excelente", feeling: "sensación", forehand: "Derecha", backhand: "Revés",
+    bhVolley: "Volea de rev.", fhVolley: "Volea de der.", serve: "Saque", volley: "Volea",
+  },
 };
 
 export function Distribuzione() {

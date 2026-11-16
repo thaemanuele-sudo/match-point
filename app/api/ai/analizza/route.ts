@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { guardia, errore } from "@/lib/ai/guardia";
 import { costoToken, registraUso } from "@/lib/ai/costi";
 import type { RisultatoAnalisi } from "@/lib/types";
+import { linguaAI, NOME_LINGUA, type LinguaAI } from "@/lib/ai/lingue";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -9,9 +10,9 @@ export const maxDuration = 60;
 const MAX_FOTOGRAMMI = 8;
 const MAX_BYTE = 6 * 1024 * 1024;
 
-const ISTRUZIONI = (lingua: "it" | "en", colpo: string) => `${
-  lingua === "en"
-    ? "You are a tennis biomechanics expert. You receive sequential video frames (numbered from 1) of a player performing: " + colpo + ". Analyse the technique, aimed at players aged 10-18 and adults; be concrete and safe. Write every text field in English."
+const ISTRUZIONI = (lingua: LinguaAI, colpo: string) => `${
+  lingua !== "it"
+    ? "You are a tennis biomechanics expert. You receive sequential video frames (numbered from 1) of a player performing: " + colpo + ". Analyse the technique, aimed at players aged 10-18 and adults; be concrete and safe. Write every text field in " + NOME_LINGUA[lingua] + "."
     : "Sei un biomeccanico del tennis esperto. Ricevi fotogrammi in sequenza (numerati da 1) di un giocatore che esegue: " + colpo + ". Analizza la tecnica, per allievi dai 10 ai 18 anni e adulti; sii concreto e prudente. Scrivi ogni testo in italiano."
 }
 
@@ -60,7 +61,7 @@ export async function POST(req: Request) {
 
   let body: { colpo?: unknown; fotogrammi?: unknown; nota?: unknown; lingua?: unknown };
   try { body = await req.json(); } catch { return errore(400, "richiesta_non_valida", "Corpo della richiesta non valido."); }
-  const lingua: "it" | "en" = body.lingua === "en" ? "en" : "it";
+  const lingua = linguaAI(body.lingua);
   const colpo = str(body.colpo, "tennis").slice(0, 40);
   const frames = Array.isArray(body.fotogrammi) ? body.fotogrammi.filter((f): f is string => typeof f === "string") : [];
 

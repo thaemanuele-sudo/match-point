@@ -8,6 +8,9 @@ import s from "./atletica.module.css";
 const T = {
   it: { kick: "S5 · Uno-due · Sofia", titolo: "Progressione", nota: "L'AI propone il livello successivo in base ai risultati registrati.", fatto: "Livello completato", corso: "Livello in corso" },
   en: { kick: "S5 · One-two · Sofia", titolo: "Progression", nota: "The AI suggests the next level based on recorded results.", fatto: "Level completed", corso: "Current level" },
+  fr: { kick: "S5 · Un-deux · Sofia", titolo: "Progression", nota: "L'IA propose le niveau suivant selon les résultats enregistrés.", fatto: "Niveau terminé", corso: "Niveau en cours" },
+  de: { kick: "S5 · Eins-zwei · Sofia", titolo: "Fortschritt", nota: "Die KI schlägt die nächste Stufe anhand der gespeicherten Ergebnisse vor.", fatto: "Stufe abgeschlossen", corso: "Aktuelle Stufe" },
+  es: { kick: "S5 · Uno-dos · Sofia", titolo: "Progresión", nota: "La IA propone el nivel siguiente según los resultados registrados.", fatto: "Nivel completado", corso: "Nivel en curso" },
 };
 // Dati dimostrativi: [nome, descrizione, condizione per salire]. Stato: 2 livelli fatti, il 3° in corso al 62%, il 4° ancora chiuso.
 const LIVELLI = {
@@ -22,6 +25,24 @@ const LIVELLI = {
     ["Cooperative", "Rally with a cooperative partner", "To level up: Pattern completed 7 of 10 times"],
     ["Situational", "Point played starting from the pattern", "To level up: Over 50% of points won"],
     ["Match", "Scored set, free use", "To level up: Use consistent with the matrix"],
+  ],
+  fr: [
+    ["Alimenté", "L'entraîneur alimente au panier", "Pour monter : 8 séquences sur 10 correctes"],
+    ["Coopératif", "Échange avec un partenaire qui coopère", "Pour monter : schéma réussi 7 fois sur 10"],
+    ["Situationnel", "Point joué à partir du schéma", "Pour monter : plus de 50% de points gagnés"],
+    ["Match", "Set avec score, jeu libre", "Pour monter : usage cohérent avec la matrice"],
+  ],
+  de: [
+    ["Zugespielt", "Der Trainer spielt aus dem Ballkorb zu.", "Zum Aufsteigen: 8 von 10 Sequenzen korrekt"],
+    ["Kooperativ", "Ballwechsel mit kooperativem Partner", "Zum Aufsteigen: Schema 7 von 10 Mal vollständig"],
+    ["Situativ", "Punkt, der aus dem Schema heraus gespielt wird", "Zum Aufsteigen: Mehr als 50% der Punkte gewonnen"],
+    ["Spiel", "Satz mit Zählung, freie Nutzung", "Zum Aufsteigen: Einsatz passend zur Matrix"],
+  ],
+  es: [
+    ["Alimentado", "El entrenador alimenta con el cesto", "Para subir: 8 secuencias de 10 correctas"],
+    ["Cooperativo", "Peloteo con compañero que colabora", "Para subir: Patrón completado 7 de 10 veces"],
+    ["Situacional", "Punto jugado a partir del patrón", "Para subir: Puntos ganados por encima del 50%"],
+    ["Partido", "Set con marcador, uso libre", "Para subir: Uso coherente con la matriz"],
   ],
 };
 const ATTUALE = 2; // indice del livello in corso

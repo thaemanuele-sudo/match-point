@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ROTTE } from "@/lib/rotte";
 import { Schermo } from "@/components/app/Schermo";
-import { useT } from "@/lib/i18n/lingua";
+import { useLang, useT, type Lingua } from "@/lib/i18n/lingua";
 import { LinguaChip } from "@/components/app/LinguaChip";
 import { useProfilo } from "@/lib/useProfilo";
 import { FASCE, type Fascia } from "@/lib/types";
@@ -50,18 +50,85 @@ const T = {
     grass: "Grass",
     vsBigServer: "vs Big server",
   },
+  fr: {
+    animatedGamePatternsSpoken: "Schémas de jeu animés, à l'oral et à l'écrit",
+    tactics: "Tactique",
+    ageBand: "Tranches d'âge",
+    aiAndSetCombinations: "Combinaisons IA et fixes",
+    strategyBasedOnScore: "Stratégie selon le score et l'adversaire",
+    strategie: "Stratégies {fascia}",
+    adulti: "Adultes",
+    allS1S10: "Toutes S1-S10",
+    wideServeAndInside: "Service extérieur et coup droit décalé",
+    hard: "Dur",
+    vsWeakBackhand: "vs Revers faible",
+    wrongFootAttack: "Attaque à contre-pied",
+    clay: "Terre",
+    adSide: "Avantage",
+    vsPusher: "vs Défenseur",
+    dropShotAndPass: "Amortie et passing",
+    grass: "Gazon",
+    vsBigServer: "vs Serveur",
+  },
+  de: {
+    animatedGamePatternsSpoken: "Animierte Spielmuster, gesprochen und geschrieben",
+    tactics: "Taktik",
+    ageBand: "Altersgruppen",
+    aiAndSetCombinations: "KI- und feste Kombinationen",
+    strategyBasedOnScore: "Strategie nach Spielstand und Gegner",
+    strategie: "Strategien {fascia}",
+    adulti: "Erwachsene",
+    allS1S10: "Alle S1-S10",
+    wideServeAndInside: "Außenaufschlag und Vorhand-Inside-out",
+    hard: "Hartplatz",
+    vsWeakBackhand: "vs. schwache Rückhand",
+    wrongFootAttack: "Angriff im Gegenrhythmus",
+    clay: "Sand",
+    adSide: "Vorteilseite",
+    vsPusher: "vs. Ballschieber",
+    dropShotAndPass: "Stopp und Passierball",
+    grass: "Rasen",
+    vsBigServer: "vs. Aufschläger",
+  },
+  es: {
+    animatedGamePatternsSpoken: "Patrones de juego animados, por voz y escritos",
+    tactics: "Táctica",
+    ageBand: "Franjas de edad",
+    aiAndSetCombinations: "Combinaciones IA y fijas",
+    strategyBasedOnScore: "Estrategia según marcador y rival",
+    strategie: "Estrategias {fascia}",
+    adulti: "Adultos",
+    allS1S10: "Todas S1-S10",
+    wideServeAndInside: "Saque abierto y derecha invertida",
+    hard: "Pista dura",
+    vsWeakBackhand: "vs Revés débil",
+    wrongFootAttack: "Ataque a contrapié",
+    clay: "Tierra",
+    adSide: "Ventaja",
+    vsPusher: "vs Pasabolas",
+    dropShotAndPass: "Dejada y passing",
+    grass: "Hierba",
+    vsBigServer: "vs Sacador",
+  },
 };
 
-// Nome esteso della fascia per il titolo "Strategie Under 12" (Adulti usa il testo del dizionario).
-const NOME_FASCIA: Record<Exclude<Fascia, "ADULTI">, string> = { U10: "Under 10", U12: "Under 12", U14: "Under 14", U16: "Under 16", U18: "Under 18" };
+// Nome della fascia per il titolo "Strategie Under 12" (Adulti usa il testo del dizionario), nelle cinque lingue.
+const NOME_FASCIA: Record<Lingua, Record<Exclude<Fascia, "ADULTI">, string>> = {
+  it: { U10: "Under 10", U12: "Under 12", U14: "Under 14", U16: "Under 16", U18: "Under 18" },
+  en: { U10: "Under 10", U12: "Under 12", U14: "Under 14", U16: "Under 16", U18: "Under 18" },
+  fr: { U10: "Moins de 10 ans", U12: "Moins de 12 ans", U14: "Moins de 14 ans", U16: "Moins de 16 ans", U18: "Moins de 18 ans" },
+  de: { U10: "U10", U12: "U12", U14: "U14", U16: "U16", U18: "U18" },
+  es: { U10: "Sub-10", U12: "Sub-12", U14: "Sub-14", U16: "Sub-16", U18: "Sub-18" },
+};
 
 export function Tattica() {
   const t = useT(T);
+  const { lang } = useLang();
   const { profilo } = useProfilo();
   const [fascia, setFascia] = useState<Fascia>("U12");
   // la fascia del profilo, appena disponibile, è quella preselezionata
   useEffect(() => { if (profilo?.fascia) setFascia(profilo.fascia); }, [profilo?.fascia]);
-  const nomeFascia = fascia === "ADULTI" ? t.adulti : NOME_FASCIA[fascia];
+  const nomeFascia = fascia === "ADULTI" ? t.adulti : NOME_FASCIA[lang][fascia];
   return (
     <Schermo tab="tattica">
       <div className={S.scr}>

@@ -9,6 +9,9 @@ import s from "./atletica.module.css";
 const T = {
   it: { kick: "Movimento gambe · U12", titolo: "Spider drill", nota: "5 coni, partenza dal centro e ritorno al centro dopo ogni cono.", giri: "giri", tempo: "tempo", record: "record personale", recordValore: "17,4 s", video: "Video", crono: "Cronometra", schema: "Schema dello spider drill: cinque coni intorno al giocatore al centro" },
   en: { kick: "Leg movement · U12", titolo: "Spider drill", nota: "5 cones, start from the middle and return to the middle after each cone.", giri: "rounds", tempo: "time", record: "personal best", recordValore: "17.4 s", video: "Video", crono: "Time it", schema: "Spider drill layout: five cones around the player in the middle" },
+  fr: { kick: "Jeu de jambes · U12", titolo: "Spider drill", nota: "5 plots, départ du centre et retour au centre après chaque plot.", giri: "tours", tempo: "temps", record: "record personnel", recordValore: "17,4 s", video: "Vidéo", crono: "Chronométrer", schema: "Schéma du spider drill : cinq plots autour du joueur au centre" },
+  de: { kick: "Beinarbeit · U12", titolo: "Spider Drill", nota: "5 Hütchen, Start in der Mitte und nach jedem Hütchen zurück zur Mitte.", giri: "Runden", tempo: "Zeit", record: "persönlicher Rekord", recordValore: "17,4 s", video: "Video", crono: "Zeit messen", schema: "Spider-Drill-Schema: fünf Hütchen um den Spieler in der Mitte" },
+  es: { kick: "Movimiento de piernas · U12", titolo: "Spider drill", nota: "5 conos, salida desde el centro y vuelta al centro tras cada cono.", giri: "vueltas", tempo: "tiempo", record: "récord personal", recordValore: "17,4 s", video: "Vídeo", crono: "Cronometrar", schema: "Esquema del spider drill: cinco conos alrededor del jugador en el centro" },
 };
 // Coni: [x della punta, y della punta, etichetta]; le linee partono dal centro (178,200).
 const CONI: [number, number, number][] = [[70, 236, 1], [70, 76, 2], [178, 46, 3], [286, 76, 4], [286, 236, 5]];

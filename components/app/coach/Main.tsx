@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { Schermo } from "../Schermo";
 import { useEffect, useState } from "react";
-import { useLang, useT } from "@/lib/i18n/lingua";
+import { useLang, useT, type Lingua } from "@/lib/i18n/lingua";
 import { LinguaChip } from "../LinguaChip";
 import { iniziali, useProfilo } from "@/lib/useProfilo";
 import { supabaseBrowser } from "@/lib/supabase/client";
@@ -61,12 +61,87 @@ const T = {
     k5_of_8_sessions: "5 of 8 sessions completed",
     open_program: "Open program",
   },
+  fr: {
+    match_point: "Match Point",
+    hi: "Salut",
+    coach: "Coach",
+    good_session: "bonne séance",
+    upload_a_stroke_the: "Charge un coup. L'IA le corrige.",
+    record_a_stroke: "Filmer un coup",
+    open_video_lab: "Ouvrir Video Lab",
+    students: "Élèves",
+    all: "Tous",
+    tr: "TR",
+    tommaso: "Tommaso",
+    gl: "GL",
+    giulia: "Giulia",
+    mb: "MB",
+    matteo: "Matteo",
+    add: "Ajouter",
+    latest_analyses: "Dernières analyses",
+    see: "Voir",
+    close_to_the_error: "proche de l'erreur",
+    stroke_quality: "qualité du geste",
+    this_week_s_program: "Parcours de la semaine",
+    k5_of_8_sessions: "5 séances sur 8 terminées",
+    open_program: "Ouvrir le parcours",
+  },
+  de: {
+    match_point: "Match Point",
+    hi: "Hallo",
+    coach: "Coach",
+    good_session: "schöne Einheit!",
+    upload_a_stroke_the: "Lade einen Schlag hoch. Die KI korrigiert ihn.",
+    record_a_stroke: "Schlag aufnehmen",
+    open_video_lab: "Video Lab öffnen",
+    students: "Schüler",
+    all: "Alle",
+    tr: "TR",
+    tommaso: "Tommaso",
+    gl: "GL",
+    giulia: "Giulia",
+    mb: "MB",
+    matteo: "Matteo",
+    add: "Hinzufügen",
+    latest_analyses: "Neueste Analysen",
+    see: "Ansehen",
+    close_to_the_error: "nah am Fehler",
+    stroke_quality: "Bewegungsqualität",
+    this_week_s_program: "Programm der Woche",
+    k5_of_8_sessions: "5 von 8 Einheiten abgeschlossen",
+    open_program: "Programm öffnen",
+  },
+  es: {
+    match_point: "Match Point",
+    hi: "Hola",
+    coach: "Coach",
+    good_session: "buena sesión",
+    upload_a_stroke_the: "Sube un golpe. La IA lo corrige.",
+    record_a_stroke: "Graba un golpe",
+    open_video_lab: "Abrir Video Lab",
+    students: "Alumnos",
+    all: "Todos",
+    tr: "TR",
+    tommaso: "Tommaso",
+    gl: "GL",
+    giulia: "Giulia",
+    mb: "MB",
+    matteo: "Matteo",
+    add: "Añadir",
+    latest_analyses: "Últimos análisis",
+    see: "Ver",
+    close_to_the_error: "cerca del error",
+    stroke_quality: "calidad del gesto",
+    this_week_s_program: "Ruta de la semana",
+    k5_of_8_sessions: "5 de 8 sesiones completadas",
+    open_program: "Abrir ruta",
+  },
 };
 
 type Riga = { id: string | null; titolo: string; sotto: string; valore: number; etichetta: "close" | "quality" };
 
 /** Dati dimostrativi del disegno: si vedono solo se l'utente non ha ancora nessuna analisi. */
-const DEMO: Record<"it" | "en", Riga[]> = {
+const DEMO: Record<Lingua, Riga[]> = {
   it: [
     { id: null, titolo: "Diritto incrociato", sotto: "Tommaso · impatto in ritardo", valore: 72, etichetta: "close" },
     { id: null, titolo: "Servizio kick", sotto: "Giulia · movimento corretto", valore: 91, etichetta: "quality" },
@@ -74,6 +149,18 @@ const DEMO: Record<"it" | "en", Riga[]> = {
   en: [
     { id: null, titolo: "Crosscourt forehand", sotto: "Tommaso · late contact", valore: 72, etichetta: "close" },
     { id: null, titolo: "Kick serve", sotto: "Giulia · correct movement", valore: 91, etichetta: "quality" },
+  ],
+  fr: [
+    { id: null, titolo: "Coup droit croisé", sotto: "Tommaso · impact en retard", valore: 72, etichetta: "close" },
+    { id: null, titolo: "Service kick", sotto: "Giulia · mouvement correct", valore: 91, etichetta: "quality" },
+  ],
+  de: [
+    { id: null, titolo: "Cross-Vorhand", sotto: "Tommaso · später Treffpunkt", valore: 72, etichetta: "close" },
+    { id: null, titolo: "Kick-Aufschlag", sotto: "Giulia · korrekte Bewegung", valore: 91, etichetta: "quality" },
+  ],
+  es: [
+    { id: null, titolo: "Derecha cruzada", sotto: "Tommaso · impacto tardío", valore: 72, etichetta: "close" },
+    { id: null, titolo: "Saque kick", sotto: "Giulia · movimiento correcto", valore: 91, etichetta: "quality" },
   ],
 };
 

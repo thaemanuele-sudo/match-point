@@ -17,10 +17,28 @@ const T = {
     video: "videos per month", accordo: "AI-coach agreement", voto: "family rating", errori: "Errors by type · simulated data", accordoV: "0.78", votoV: "4.6",
     nota: 'Preparation is the most common issue: suggest the "Prep on the bounce" program to all U12 groups.',
   },
+  fr: {
+    kick: "École de tennis · 3 entraîneurs · 58 élèves", titolo: "Tableau de bord du club", g1: "Tous", g2: "U10", g3: "U12", g4: "U14+",
+    video: "vidéos par mois", accordo: "accord IA et entraîneurs", voto: "note des familles", errori: "Erreurs par type · données simulées", accordoV: "0,78", votoV: "4,6",
+    nota: 'La préparation est le problème le plus fréquent : propose à tous les groupes U12 le parcours "Préparation au rebond".',
+  },
+  de: {
+    kick: "Tennisschule · 3 Trainer · 58 Schüler", titolo: "Club-Dashboard", g1: "Alle", g2: "U10", g3: "U12", g4: "U14+",
+    video: "Videos pro Monat", accordo: "Übereinstimmung KI und Trainer", voto: "Bewertung durch Familien", errori: "Fehler nach Art · simulierte Daten", accordoV: "0,78", votoV: "4,6",
+    nota: 'Die Vorbereitung ist das häufigste Problem: Schlag allen U12-Gruppen den Plan „Öffnung nach dem Aufspringen“ vor.',
+  },
+  es: {
+    kick: "Escuela de tenis · 3 entrenadores · 58 alumnos", titolo: "Panel del club", g1: "Todos", g2: "U10", g3: "U12", g4: "U14+",
+    video: "vídeos al mes", accordo: "acuerdo IA y entrenadores", voto: "nota de las familias", errori: "Errores por tipo · datos simulados", accordoV: "0,78", votoV: "4,6",
+    nota: 'La preparación es el problema más común: propón a todos los grupos U12 la ruta "Preparación al bote".',
+  },
 };
 const ERRORI = {
   it: [["Preparazione", 34, "#FF9F43"], ["Impatto", 24, "#FF5A5F"], ["Piedi / equilibrio", 18, "#FFD54A"], ["Timing", 12, "#3D8BFF"], ["Presa", 7, "#A1A1A6"], ["Chiusura", 5, "#4CD07D"]],
   en: [["Preparation", 34, "#FF9F43"], ["Contact", 24, "#FF5A5F"], ["Feet / balance", 18, "#FFD54A"], ["Timing", 12, "#3D8BFF"], ["Grip", 7, "#A1A1A6"], ["Finish", 5, "#4CD07D"]],
+  fr: [["Préparation", 34, "#FF9F43"], ["Impact", 24, "#FF5A5F"], ["Pieds / équilibre", 18, "#FFD54A"], ["Timing", 12, "#3D8BFF"], ["Prise", 7, "#A1A1A6"], ["Finition", 5, "#4CD07D"]],
+  de: [["Vorbereitung", 34, "#FF9F43"], ["Kontakt", 24, "#FF5A5F"], ["Füße / Gleichgewicht", 18, "#FFD54A"], ["Timing", 12, "#3D8BFF"], ["Griff", 7, "#A1A1A6"], ["Ausschwung", 5, "#4CD07D"]],
+  es: [["Preparación", 34, "#FF9F43"], ["Impacto", 24, "#FF5A5F"], ["Pies / equilibrio", 18, "#FFD54A"], ["Timing", 12, "#3D8BFF"], ["Empuñadura", 7, "#A1A1A6"], ["Terminación", 5, "#4CD07D"]],
 } as const;
 
 /** 64 · Dashboard club e gruppi. Dati dimostrativi. */

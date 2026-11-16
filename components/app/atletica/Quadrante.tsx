@@ -4,7 +4,13 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useT } from "@/lib/i18n/lingua";
 import s from "./atletica.module.css";
 
-const T = { it: { indietro: "Indietro", nota: "Vista dello smartwatch" }, en: { indietro: "Back", nota: "Smartwatch view" } };
+const T = {
+  it: { indietro: "Indietro", nota: "Vista dello smartwatch" },
+  en: { indietro: "Back", nota: "Smartwatch view" },
+  fr: { indietro: "Retour", nota: "Vue de la montre connectée" },
+  de: { indietro: "Zurück", nota: "Smartwatch-Ansicht" },
+  es: { indietro: "Atrás", nota: "Vista del smartwatch" },
+};
 
 /** Le schermate Watch: il quadrante (198×246 nei disegni) ingrandito e centrato su nero, senza barra delle schede. */
 export function Quadrante({ children, etichetta }: { children: ReactNode; etichetta: string }) {

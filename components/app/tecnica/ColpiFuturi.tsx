@@ -40,6 +40,57 @@ const T = {
     "net_play": "Net play",
     "drop_volley_half_volley_an": "Drop volley, half volley and counter-overhead, singles and doubles.",
     "notify_me_when_they_re_out": "Notify me when they're out"
+  },
+  "fr": {
+    "back": "Retour",
+    "avviso_attivo": "Nous te préviendrons",
+    "same_a_b_c_structure_and_m": "Même structure A/B/C et métriques",
+    "strokes_coming_soon": "Coups à venir",
+    "swinging_volley": "Volée frappée",
+    "topspin_forehand_on_the_fl": "Coup droit lifté de volée depuis la mi-court sur balle haute et lente.",
+    "inside_out": "Inside-out",
+    "forehand_from_the_backhand": "Coup droit depuis le côté revers vers le revers adverse.",
+    "inside_in": "Inside-in",
+    "forehand_running_around_th": "Coup droit en tournant autour du revers, le long de la ligne : coup de rupture.",
+    "drop_shot": "Amortie",
+    "backspin_that_bounces_near": "Backspin qui rebondit près du filet, idéal sur terre battue.",
+    "net_play": "Jeu au filet",
+    "drop_volley_half_volley_an": "Volée amortie, demi-volée et contre-smash, simple et double.",
+    "notify_me_when_they_re_out": "Préviens-moi à la sortie"
+  },
+  "de": {
+    "back": "Zurück",
+    "avviso_attivo": "Wir sagen dir Bescheid",
+    "same_a_b_c_structure_and_m": "Gleiche A/B/C-Struktur und Kennzahlen",
+    "strokes_coming_soon": "Schläge folgen bald",
+    "swinging_volley": "Schwungvolley",
+    "topspin_forehand_on_the_fl": "Topspin-Vorhand im Flug aus der Feldmitte auf einen hohen, langsamen Ball.",
+    "inside_out": "Inside-out",
+    "forehand_from_the_backhand": "Vorhand von der Rückhandseite auf die gegnerische Rückhand.",
+    "inside_in": "Inside-in",
+    "forehand_running_around_th": "Vorhand um die Rückhand herum, longline: ein Durchbruchschlag.",
+    "drop_shot": "Stopp",
+    "backspin_that_bounces_near": "Rückwärtsdrall, der nahe am Netz aufspringt, ideal auf Sand.",
+    "net_play": "Netzspiel",
+    "drop_volley_half_volley_an": "Stopp-Volley, Halbvolley und Schmetterball, Einzel und Doppel.",
+    "notify_me_when_they_re_out": "Sag mir Bescheid, wenn sie im Aus sind"
+  },
+  "es": {
+    "back": "Atrás",
+    "avviso_attivo": "Te avisaremos",
+    "same_a_b_c_structure_and_m": "Misma estructura A/B/C y métricas",
+    "strokes_coming_soon": "Próximos golpes",
+    "swinging_volley": "Swing volley",
+    "topspin_forehand_on_the_fl": "Derecha liftada de volea desde media pista con bola alta y lenta.",
+    "inside_out": "Inside-out",
+    "forehand_from_the_backhand": "Derecha desde el lado del revés hacia el revés rival.",
+    "inside_in": "Inside-in",
+    "forehand_running_around_th": "Derecha rodeando el revés, en paralelo: golpe de ruptura.",
+    "drop_shot": "Dejada",
+    "backspin_that_bounces_near": "Backspin que bota cerca de la red, ideal en tierra batida.",
+    "net_play": "Juego en la red",
+    "drop_volley_half_volley_an": "Volea dejada, media volea y contrarremate, individual y dobles.",
+    "notify_me_when_they_re_out": "Avísame cuando salgan"
   }
 };
 

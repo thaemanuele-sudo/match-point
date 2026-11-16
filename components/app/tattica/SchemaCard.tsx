@@ -8,6 +8,9 @@ import S from "./Schemi.module.css";
 const T = {
   it: { adulti: "Adulti", difficolta: "Difficoltà", su5: "su 5", demo: "Esempio" },
   en: { adulti: "Adults", difficolta: "Difficulty", su5: "out of 5", demo: "Example" },
+  fr: { adulti: "Adultes", difficolta: "Difficulté", su5: "sur 5", demo: "Exemple" },
+  de: { adulti: "Erwachsene", difficolta: "Schwierigkeit", su5: "von 5", demo: "Beispiel" },
+  es: { adulti: "Adultos", difficolta: "Dificultad", su5: "de 5", demo: "Ejemplo" },
 };
 
 /** Pallini della difficoltà (1-5), con testo per i lettori di schermo. */

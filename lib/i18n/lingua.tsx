@@ -1,7 +1,15 @@
 "use client";
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 
-export type Lingua = "it" | "en";
+export type Lingua = "it" | "en" | "fr" | "de" | "es";
+export const LINGUE: { codice: Lingua; nome: string }[] = [
+  { codice: "it", nome: "Italiano" },
+  { codice: "en", nome: "English" },
+  { codice: "fr", nome: "Français" },
+  { codice: "de", nome: "Deutsch" },
+  { codice: "es", nome: "Español" },
+];
+const valida = (s: unknown): s is Lingua => s === "it" || s === "en" || s === "fr" || s === "de" || s === "es";
 const CHIAVE = "mp-lingua";
 
 type Ctx = { lang: Lingua; setLang: (l: Lingua) => void };
@@ -13,8 +21,11 @@ export function LinguaProvider({ children, iniziale = "it" }: { children: ReactN
   useEffect(() => {
     try {
       const s = localStorage.getItem(CHIAVE);
-      if (s === "it" || s === "en") setL(s);
-      else if (navigator.language?.toLowerCase().startsWith("en")) setL("en");
+      if (valida(s)) setL(s);
+      else {
+        const nav = navigator.language?.toLowerCase().slice(0, 2);
+        if (valida(nav)) setL(nav);
+      }
     } catch {
       /* storage non disponibile: resta l'italiano */
     }
@@ -34,12 +45,13 @@ export function LinguaProvider({ children, iniziale = "it" }: { children: ReactN
 export const useLang = () => useContext(LinguaCtx);
 
 /**
- * Testi di una schermata: ogni schermata dichiara il suo dizionario
- *   const T = { it: { titolo: "Tecnica" }, en: { titolo: "Technique" } } satisfies Dizionario;
+ * Testi di una schermata: ogni schermata dichiara il suo dizionario nelle cinque lingue
+ *   const T = { it: { titolo: "Tecnica" }, en: { titolo: "Technique" }, fr: {...}, de: {...}, es: {...} };
  * e lo usa con  const t = useT(T);  →  t.titolo
  */
-export type Dizionario<K extends string = string> = { it: Record<K, string>; en: Record<K, string> };
-export function useT<D extends { it: Record<string, string>; en: Record<string, string> }>(d: D): D["it"] {
+export type Dizionario<K extends string = string> = Record<Lingua, Record<K, string>>;
+export function useT<D extends { it: Record<string, string>; en: Record<string, string> } & Partial<Record<Lingua, Record<string, string>>>>(d: D): D["it"] {
   const { lang } = useLang();
-  return (d[lang] ?? d.it) as D["it"];
+  // se a una schermata manca una lingua si ripiega sull'inglese, poi sull'italiano
+  return (d[lang] ?? d.en ?? d.it) as D["it"];
 }

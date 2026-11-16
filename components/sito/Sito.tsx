@@ -1,4 +1,4 @@
-// Sito di presentazione di Match Point (server component): una sola struttura per italiano ("/") e inglese ("/en").
+// Sito di presentazione di Match Point (server component): una sola struttura per 5 lingue ("/", "/en", "/fr", "/de", "/es").
 // I testi vengono dal dizionario; i piccoli componenti client sono solo video, galleria e animazione "appare".
 import Link from "next/link";
 import "./sito.css";
@@ -10,7 +10,7 @@ import { VideoPresentazione } from "./VideoPresentazione";
 import { Galleria } from "./Galleria";
 import { FUNZIONI } from "@/lib/sito/funzioni";
 import { SCHERMATE } from "@/lib/sito/schermate";
-import type { Dizionario, LinguaSito } from "@/lib/sito/tipi";
+import { LINGUE_SITO, linguaVideo, type Dizionario, type LinguaSito } from "@/lib/sito/tipi";
 
 export function Sito({ lang, d }: { lang: LinguaSito; d: Dizionario }) {
   const anno = new Date().getFullYear();
@@ -41,12 +41,11 @@ export function Sito({ lang, d }: { lang: LinguaSito; d: Dizionario }) {
           </nav>
           <div className="s-barra-az">
             <div className="s-lingua" role="group" aria-label={d.barra.linguaAria}>
-              <Link href="/" hrefLang="it" lang="it" aria-current={lang === "it" ? "true" : undefined}>
-                IT
-              </Link>
-              <Link href="/en" hrefLang="en" lang="en" aria-current={lang === "en" ? "true" : undefined}>
-                EN
-              </Link>
+              {LINGUE_SITO.map((l) => (
+                <Link key={l.lang} href={l.percorso} hrefLang={l.lang} lang={l.lang} aria-current={lang === l.lang ? "true" : undefined}>
+                  {l.sigla}
+                </Link>
+              ))}
             </div>
             <Link className="s-pillola" href="/app">
               {d.barra.apriApp}
@@ -76,8 +75,8 @@ export function Sito({ lang, d }: { lang: LinguaSito; d: Dizionario }) {
             </div>
             <div className="s-apertura-video">
               <VideoPresentazione
-                src={`/sito/video/presentazione-${lang}.mp4`}
-                poster={`/sito/video/poster-${lang}.jpg`}
+                src={`/sito/video/presentazione-${linguaVideo(lang)}.mp4`}
+                poster={`/sito/video/poster-${linguaVideo(lang)}.jpg`}
                 titolo={d.apertura.videoTitolo}
                 durata={d.apertura.videoDurata}
                 play={d.apertura.play}
@@ -164,9 +163,13 @@ export function Sito({ lang, d }: { lang: LinguaSito; d: Dizionario }) {
       <footer className="s-piede">
         <div className="s-wrap s-piede-in">
           <span>{d.piede.diritti.replace("{anno}", String(anno))}</span>
-          <Link href={d.percorsoAltro} hrefLang={lang === "it" ? "en" : "it"} lang={lang === "it" ? "en" : "it"}>
-            {d.piede.lingua}
-          </Link>
+          <nav className="s-piede-lingue" aria-label={d.barra.linguaAria}>
+            {LINGUE_SITO.map((l) => (
+              <Link key={l.lang} href={l.percorso} hrefLang={l.lang} lang={l.lang} aria-current={lang === l.lang ? "true" : undefined}>
+                {l.nome}
+              </Link>
+            ))}
+          </nav>
         </div>
       </footer>
     </div>

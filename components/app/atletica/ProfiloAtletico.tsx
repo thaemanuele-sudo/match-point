@@ -2,18 +2,24 @@
 import Link from "next/link";
 import { Schermo } from "../Schermo";
 import { Testata } from "./Testata";
-import { useLang, useT } from "@/lib/i18n/lingua";
+import { useLang, useT, type Lingua } from "@/lib/i18n/lingua";
 import { ROTTE } from "@/lib/rotte";
 import s from "./atletica.module.css";
 
 const T = {
   it: { kick: "Tommaso · U12 · scala 1-10", titolo: "Profilo atletico", oggi: "Oggi", obiettivo: "Obiettivo a 12 settimane", nota1: "L'AI costruisce la scheda partendo dalle due capacità con il divario maggiore:", forza: "forza", e: "ed", equilibrio: "equilibrio", genera: "Genera la scheda", grafico: "Grafico radar delle otto capacità: oggi e obiettivo a 12 settimane" },
   en: { kick: "Tommaso · U12 · 1-10 scale", titolo: "Athletic profile", oggi: "Today", obiettivo: "12-week goal", nota1: "The AI builds the plan starting from the two skills with the largest gap:", forza: "strength", e: "and", equilibrio: "balance", genera: "Generate plan", grafico: "Radar chart of the eight skills: today and 12-week goal" },
+  fr: { kick: "Tommaso · U12 · échelle 1-10", titolo: "Profil physique", oggi: "Aujourd'hui", obiettivo: "Objectif à 12 semaines", nota1: "L'IA construit le programme à partir des deux capacités avec le plus grand écart :", forza: "force", e: "et", equilibrio: "équilibre", genera: "Générer le programme", grafico: "Graphique radar des huit capacités : aujourd'hui et objectif à 12 semaines" },
+  de: { kick: "Tommaso · U12 · Skala 1-10", titolo: "Athletikprofil", oggi: "Heute", obiettivo: "Ziel in 12 Wochen", nota1: "Die KI erstellt den Plan anhand der zwei Fähigkeiten mit dem größten Abstand:", forza: "Kraft", e: "und", equilibrio: "Gleichgewicht", genera: "Plan erstellen", grafico: "Radardiagramm der acht Fähigkeiten: heute und Ziel in 12 Wochen" },
+  es: { kick: "Tommaso · U12 · escala 1-10", titolo: "Perfil físico", oggi: "Hoy", obiettivo: "Objetivo a 12 semanas", nota1: "La IA crea la ficha a partir de las dos capacidades con mayor diferencia:", forza: "fuerza", e: "y", equilibrio: "equilibrio", genera: "Generar la ficha", grafico: "Gráfico radar de las ocho capacidades: hoy y objetivo a 12 semanas" },
 };
 // Etichette degli otto assi (in ordine orario dall'alto) e posizione del testo; i due assi con il divario maggiore sono arancioni.
-const ASSI = {
+const ASSI: Record<Lingua, string[]> = {
   it: ["Coordinaz.", "Footwork", "Forza", "Spinta", "Velocità", "Agilità", "Equilibrio", "Mobilità"],
   en: ["Coordin.", "Footwork", "Strength", "Drive", "Speed", "Agility", "Balance", "Mobility"],
+  fr: ["Coordin.", "Jeu de jambes", "Force", "Poussée", "Vitesse", "Agilité", "Équilibre", "Mobilité"],
+  de: ["Koordin.", "Footwork", "Kraft", "Antrieb", "Schnelligkeit", "Agilität", "Gleichgewicht", "Beweglichkeit"],
+  es: ["Coordinac.", "Footwork", "Fuerza", "Impulso", "Velocidad", "Agilidad", "Equilibrio", "Movilidad"],
 };
 const POS: [number, number][] = [[178, 32], [267, 68], [304, 154], [267, 240], [178, 276], [89, 240], [52, 154], [89, 68]];
 const FINE: [number, number][] = [[178, 46], [252, 76], [282, 150], [252, 224], [178, 254], [104, 224], [74, 150], [104, 76]];

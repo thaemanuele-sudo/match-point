@@ -27,6 +27,30 @@ const T = {
     credenziali: "Wrong email or password.", nonConfermata: "Please confirm your email first: check your inbox.",
     generico: "Sign-in failed. Please try again shortly.",
   },
+  fr: {
+    titolo: "Connexion", intro: "Content de te revoir. Connecte-toi avec ton email et ton mot de passe.",
+    email: "Email", password: "Mot de passe", dimenticata: "Mot de passe oublié ?", entra: "Se connecter", invio: "Connexion en cours…",
+    nuovo: "Pas encore de compte ? Créer un compte",
+    emailNon: "Saisis une adresse email valide.", passVuota: "Saisis ton mot de passe.",
+    credenziali: "Email ou mot de passe incorrect.", nonConfermata: "Confirme d'abord ton email : vérifie ta boîte de réception.",
+    generico: "Connexion impossible. Réessaie dans un instant.",
+  },
+  de: {
+    titolo: "Anmelden", intro: "Schön, dich wiederzusehen. Melde dich mit deiner E-Mail-Adresse und deinem Passwort an.",
+    email: "E-Mail", password: "Passwort", dimenticata: "Passwort vergessen?", entra: "Anmelden", invio: "Anmeldung läuft…",
+    nuovo: "Noch kein Konto? Konto erstellen",
+    emailNon: "Gib eine gültige E-Mail-Adresse ein.", passVuota: "Gib dein Passwort ein.",
+    credenziali: "E-Mail oder Passwort falsch.", nonConfermata: "Bitte bestätige zuerst deine E-Mail: Prüfe dein Postfach.",
+    generico: "Anmeldung fehlgeschlagen. Bitte versuche es gleich noch einmal.",
+  },
+  es: {
+    titolo: "Acceder", intro: "Qué bueno verte de nuevo. Entra con tu email y tu contraseña.",
+    email: "Email", password: "Contraseña", dimenticata: "¿Olvidaste tu contraseña?", entra: "Acceder", invio: "Accediendo…",
+    nuovo: "¿No tienes cuenta? Crear cuenta",
+    emailNon: "Introduce un email válido.", passVuota: "Introduce tu contraseña.",
+    credenziali: "Email o contraseña incorrectos.", nonConfermata: "Confirma primero tu email: revisa tu bandeja de entrada.",
+    generico: "No se pudo acceder. Inténtalo de nuevo en un momento.",
+  },
 };
 
 /** Accesso con email e password (Supabase Auth). */

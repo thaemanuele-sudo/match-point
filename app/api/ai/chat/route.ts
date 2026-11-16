@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { guardia, errore } from "@/lib/ai/guardia";
 import { costoToken, registraUso } from "@/lib/ai/costi";
+import { linguaAI, NOME_LINGUA } from "@/lib/ai/lingue";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -20,7 +21,7 @@ export async function POST(req: Request) {
 
   let body: { messaggi?: unknown; contesto?: unknown; lingua?: unknown };
   try { body = await req.json(); } catch { return errore(400, "richiesta_non_valida", "Corpo della richiesta non valido."); }
-  const lingua: "it" | "en" = body.lingua === "en" ? "en" : "it";
+  const lingua = linguaAI(body.lingua);
 
   const grezzi = Array.isArray(body.messaggi) ? body.messaggi : [];
   let messaggi: Msg[] = grezzi
@@ -34,17 +35,18 @@ export async function POST(req: Request) {
   }
 
   // Profilo per personalizzare le risposte (RLS: l'utente legge il proprio).
-  let sistema = SISTEMA[lingua];
+  // il prompt base è in italiano o inglese; per francese, tedesco e spagnolo si chiede di rispondere in quella lingua
+  let sistema = lingua === "it" ? SISTEMA.it : SISTEMA.en.replace("Answer in English.", `Answer in ${NOME_LINGUA[lingua]}.`);
   try {
     const { data: p } = await sb.from("profiles").select("nome,fascia,tipo_utente").eq("id", userId).maybeSingle();
     if (p) {
-      sistema += lingua === "en"
+      sistema += lingua !== "it"
         ? `\n\nUser profile: name ${p.nome || "n/a"}, age group ${p.fascia || "n/a"}, type ${p.tipo_utente}.`
         : `\n\nProfilo utente: nome ${p.nome || "n.d."}, fascia ${p.fascia || "n.d."}, tipo ${p.tipo_utente}.`;
     }
   } catch { /* profilo opzionale */ }
   if (typeof body.contesto === "string" && body.contesto.trim()) {
-    sistema += (lingua === "en" ? "\n\nContext: " : "\n\nContesto: ") + body.contesto.slice(0, 2000);
+    sistema += (lingua !== "it" ? "\n\nContext: " : "\n\nContesto: ") + body.contesto.slice(0, 2000);
   }
 
   const client = new Anthropic({ apiKey: imp.anthropicKey });

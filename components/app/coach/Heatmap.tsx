@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { Schermo } from "../Schermo";
 import { useState } from "react";
-import { useLang, useT } from "@/lib/i18n/lingua";
+import { useLang, useT, type Lingua } from "@/lib/i18n/lingua";
 import { ROTTE } from "@/lib/rotte";
 import s from "./Heatmap.module.css";
 
@@ -31,11 +31,50 @@ const T = {
     plays_the_forehand_diagonal: " · plays the forehand diagonal well but stays far from the line: the opponent can use the drop shot (S7).",
     open_the_linked_strategy: "Open the linked strategy",
   },
+  fr: {
+    back: "Retour",
+    media_fondo: "1,8 m",
+    tommaso_tuesday_practice: "Tommaso · entraînement de mardi",
+    heatmap: "Heatmap",
+    balls_past_the_service: "balles au-delà de la ligne de service",
+    short_balls_in_the: "balles courtes au centre",
+    average_behind_the_baseline: "moyenne derrière la ligne de fond",
+    ai_reading: "Lecture IA",
+    plays_the_forehand_diagonal: " · joue bien la diagonale de coup droit mais reste loin de la ligne : l'adversaire peut utiliser l'amortie (S7).",
+    open_the_linked_strategy: "Ouvrir la stratégie liée",
+  },
+  de: {
+    back: "Zurück",
+    media_fondo: "1,8 m",
+    tommaso_tuesday_practice: "Tommaso · Training am Dienstag",
+    heatmap: "Heatmap",
+    balls_past_the_service: "Bälle über die Aufschlaglinie",
+    short_balls_in_the: "kurze Bälle in der Mitte",
+    average_behind_the_baseline: "Schnitt hinter der Grundlinie",
+    ai_reading: "KI-Analyse",
+    plays_the_forehand_diagonal: " · spielt die Vorhand-Diagonale gut, bleibt aber weit von der Linie weg: Der Gegner kann den Stopp (S7) nutzen.",
+    open_the_linked_strategy: "Verknüpfte Strategie öffnen",
+  },
+  es: {
+    back: "Atrás",
+    media_fondo: "1,8 m",
+    tommaso_tuesday_practice: "Tommaso · entrenamiento del martes",
+    heatmap: "Heatmap",
+    balls_past_the_service: "bolas más allá de la línea de saque",
+    short_balls_in_the: "bolas cortas al centro",
+    average_behind_the_baseline: "media detrás de la línea de fondo",
+    ai_reading: "Lectura IA",
+    plays_the_forehand_diagonal: " · juega bien la diagonal de derecha pero se queda lejos de la línea: el rival puede usar la dejada (S7).",
+    open_the_linked_strategy: "Abre la estrategia vinculada",
+  },
 };
 
-const VOCI = {
+const VOCI: Record<Lingua, string[]> = {
   it: ["Rimbalzi", "Posizioni", "Entrambi"],
   en: ["Bounces", "Positions", "Both"],
+  fr: ["Rebonds", "Positions", "Les deux"],
+  de: ["Aufsprünge", "Positionen", "Beide"],
+  es: ["Botes", "Posiciones", "Ambos"],
 };
 
 export function Heatmap() {

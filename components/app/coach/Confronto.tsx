@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { Schermo } from "../Schermo";
 import { useState } from "react";
-import { useLang, useT } from "@/lib/i18n/lingua";
+import { useLang, useT, type Lingua } from "@/lib/i18n/lingua";
 import { ROTTE } from "@/lib/rotte";
 import s from "./Confronto.module.css";
 
@@ -35,11 +35,56 @@ const T = {
     model: "model",
     difference: "difference",
   },
+  fr: {
+    back: "Retour",
+    moviola: "0,25×",
+    serve_synced_frames: "Service · images synchronisées",
+    comparison: "Comparaison",
+    giulia_today: "Giulia · aujourd'hui",
+    model_b: "Modèle B",
+    correct_model_ghost: "Fantôme du modèle correct",
+    previous_frame: "Image précédente",
+    next_frame: "Image suivante",
+    shoulder_elbow_today: "épaule-coude aujourd'hui",
+    model: "modèle",
+    difference: "différence",
+  },
+  de: {
+    back: "Zurück",
+    moviola: "0,25×",
+    serve_synced_frames: "Aufschlag · synchronisierte Frames",
+    comparison: "Vergleich",
+    giulia_today: "Giulia · heute",
+    model_b: "Modell B",
+    correct_model_ghost: "Geisterbild des korrekten Modells",
+    previous_frame: "Vorheriges Frame",
+    next_frame: "Nächstes Frame",
+    shoulder_elbow_today: "Schulter-Ellbogen heute",
+    model: "Modell",
+    difference: "Unterschied",
+  },
+  es: {
+    back: "Atrás",
+    moviola: "0,25×",
+    serve_synced_frames: "Saque · frames sincronizados",
+    comparison: "Comparación",
+    giulia_today: "Giulia · hoy",
+    model_b: "Modelo B",
+    correct_model_ghost: "Fantasma del modelo correcto",
+    previous_frame: "Frame anterior",
+    next_frame: "Frame siguiente",
+    shoulder_elbow_today: "hombro-codo hoy",
+    model: "modelo",
+    difference: "diferencia",
+  },
 };
 
-const VOCI = {
+const VOCI: Record<Lingua, string[]> = {
   it: ["Affiancato", "Sovrapposto", "Prima e dopo"],
   en: ["Side by side", "Overlay", "Before and after"],
+  fr: ["Côte à côte", "Superposé", "Avant et après"],
+  de: ["Nebeneinander", "Überlagert", "Vorher und nachher"],
+  es: ["Lado a lado", "Superpuesto", "Antes y después"],
 };
 
 export function Confronto() {

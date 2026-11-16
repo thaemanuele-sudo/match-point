@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { Schermo } from "../Schermo";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useLang, useT } from "@/lib/i18n/lingua";
+import { useLang, useT, type Lingua } from "@/lib/i18n/lingua";
 import { LinguaChip } from "../LinguaChip";
 import { chiaveErrore, ErroreHttp, PERCORSO_ACCESSO, type ChiaveErrore } from "./erroriAI";
 import { ROTTE } from "@/lib/rotte";
@@ -57,7 +57,82 @@ const T = {
     err_generico: "I couldn't answer. Try again.",
     login: "Go to sign in",
   },
+  fr: {
+    english: "Français",
+    close: "Fermer",
+    listening: "J'écoute",
+    add_some_split_step: "\"Ajoute un travail de split-step, Luca arrive toujours arrêté sur la balle\"",
+    coach_ai: "Coach IA",
+    added_reactive_split_step: " · \"Split-step réactif\" ajouté en début de cours : 2 séries de 8, 6 minutes.",
+    pause: "Pause",
+    end: "Terminer",
+    idle: "Touche le micro et parle",
+    thinking: "Je réfléchis",
+    speaking: "Je te réponds",
+    speak: "Parle",
+    send: "Envoyer",
+    placeholder: "Écris ta question ici…",
+    no_voice: "La reconnaissance vocale n'est pas disponible sur ce navigateur : écris ta question.",
+    err_mic: "Impossible d'utiliser le micro : vérifie les autorisations du navigateur.",
+    err_accesso: "Connecte-toi pour parler au Coach IA.",
+    err_budget: "Tu as atteint la limite d'utilisation de l'IA de ce mois-ci.",
+    err_chiave: "Le Coach IA n'est pas encore configuré. Réessaie plus tard.",
+    err_limite: "Trop de requêtes à la suite : attends quelques secondes.",
+    err_generico: "Je n'ai pas pu répondre. Réessaie.",
+    login: "Aller à la connexion",
+  },
+  de: {
+    english: "Deutsch",
+    close: "Schließen",
+    listening: "Ich höre zu",
+    add_some_split_step: "\"Füg Split-Step-Training hinzu, Luca steht beim Ball immer still\"",
+    coach_ai: "Coach AI",
+    added_reactive_split_step: " · \"Reaktiver Split-Step\" am Anfang der Stunde hinzugefügt: 2 Sätze à 8, 6 Minuten.",
+    pause: "Pause",
+    end: "Beenden",
+    idle: "Tipp aufs Mikrofon und sprich",
+    thinking: "Ich denke nach",
+    speaking: "Ich antworte dir",
+    speak: "Sprechen",
+    send: "Senden",
+    placeholder: "Schreib hier deine Frage…",
+    no_voice: "Spracherkennung ist in diesem Browser nicht verfügbar: schreib deine Frage.",
+    err_mic: "Ich kann das Mikrofon nicht verwenden: prüfe die Browser-Berechtigungen.",
+    err_accesso: "Melde dich an, um mit dem Coach AI zu sprechen.",
+    err_budget: "Du hast das KI-Nutzungslimit für diesen Monat erreicht.",
+    err_chiave: "Der Coach AI ist noch nicht eingerichtet. Versuch es später noch einmal.",
+    err_limite: "Zu viele Anfragen hintereinander: warte ein paar Sekunden.",
+    err_generico: "Ich konnte nicht antworten. Versuch es noch einmal.",
+    login: "Zur Anmeldung",
+  },
+  es: {
+    english: "Español",
+    close: "Cerrar",
+    listening: "Te escucho",
+    add_some_split_step: "\"Añade un trabajo de split step, Luca siempre llega parado a la bola\"",
+    coach_ai: "Coach AI",
+    added_reactive_split_step: " · Añadido \"Split step reactivo\" al inicio de la clase: 2 series de 8, 6 minutos.",
+    pause: "Pausa",
+    end: "Terminar",
+    idle: "Toca el micrófono y habla",
+    thinking: "Estoy pensando",
+    speaking: "Te respondo",
+    speak: "Habla",
+    send: "Enviar",
+    placeholder: "Escribe aquí tu pregunta…",
+    no_voice: "El reconocimiento de voz no está disponible en este navegador: escribe la pregunta.",
+    err_mic: "No puedo usar el micrófono: revisa los permisos del navegador.",
+    err_accesso: "Inicia sesión para hablar con el Coach AI.",
+    err_budget: "Has alcanzado el límite de uso de IA de este mes.",
+    err_chiave: "El Coach AI todavía no está configurado. Inténtalo más tarde.",
+    err_limite: "Demasiadas solicitudes seguidas: espera unos segundos.",
+    err_generico: "No he podido responder. Inténtalo de nuevo.",
+    login: "Ir a iniciar sesión",
+  },
 };
+
+// Lingua del riconoscimento vocale del browser.
+const LOCALE_VOCE: Record<Lingua, string> = { it: "it-IT", en: "en-US", fr: "fr-FR", de: "de-DE", es: "es-ES" };
 
 // Tipi minimi del riconoscimento vocale del browser (non sono in lib.dom).
 type Riconoscitore = {
@@ -165,7 +240,7 @@ export function Vocale() {
     annulla.current = true;
     const r = new C();
     rec.current = r;
-    r.lang = lang === "it" ? "it-IT" : "en-US";
+    r.lang = LOCALE_VOCE[lang];
     r.interimResults = true;
     r.continuous = false;
     let finale = "";

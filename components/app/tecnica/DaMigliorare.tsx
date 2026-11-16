@@ -29,6 +29,42 @@ const T = {
     "forehand_unforced_errors": "Forehand unforced errors",
     "less_variable_forehand_dr_": "Less variable forehand · DR-03",
     "coach_ai_added_both_videos": " Coach AI added both videos to next week's plan."
+  },
+  "fr": {
+    "back": "Retour",
+    "today_vs_your_average": "Aujourd'hui par rapport à ta moyenne",
+    "what_to_improve": "À améliorer",
+    "first_serve_points_won": "Premières balles gagnées",
+    "today": "AUJ.",
+    "average": "MOYENNE",
+    "more_serve_speed_sv_04": "Plus de vitesse au service · SV-04",
+    "forehand_unforced_errors": "Fautes directes en coup droit",
+    "less_variable_forehand_dr_": "Moins de variables en coup droit · DR-03",
+    "coach_ai_added_both_videos": " Le Coach IA a ajouté les deux vidéos au plan de la semaine prochaine."
+  },
+  "de": {
+    "back": "Zurück",
+    "today_vs_your_average": "Heute im Vergleich zu deinem Schnitt",
+    "what_to_improve": "Was verbessern",
+    "first_serve_points_won": "Gewonnene Punkte bei 1. Aufschlag",
+    "today": "HEUTE",
+    "average": "SCHNITT",
+    "more_serve_speed_sv_04": "Mehr Tempo beim Aufschlag · SV-04",
+    "forehand_unforced_errors": "Unerzwungene Vorhandfehler",
+    "less_variable_forehand_dr_": "Vorhand konstanter · DR-03",
+    "coach_ai_added_both_videos": " Coach AI hat beide Videos in den Plan für nächste Woche aufgenommen."
+  },
+  "es": {
+    "back": "Atrás",
+    "today_vs_your_average": "Hoy frente a tu media",
+    "what_to_improve": "Qué mejorar",
+    "first_serve_points_won": "Primeros saques ganados",
+    "today": "HOY",
+    "average": "MEDIA",
+    "more_serve_speed_sv_04": "Más velocidad en el saque · SV-04",
+    "forehand_unforced_errors": "Errores no forzados de derecha",
+    "less_variable_forehand_dr_": "Menos variables en la derecha · DR-03",
+    "coach_ai_added_both_videos": " El Coach AI ha añadido ambos vídeos al plan de la próxima semana."
   }
 };
 

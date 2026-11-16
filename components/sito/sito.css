@@ -169,6 +169,15 @@
 .s-lingua a:not([aria-current]):hover {
   color: var(--s-tx);
 }
+.s-piede-lingue {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 18px;
+}
+.s-piede-in .s-piede-lingue a[aria-current="true"] {
+  color: var(--s-tx);
+  font-weight: 650;
+}
 .s-pillola {
   background: var(--s-acc);
   color: var(--s-su-acc) !important;
@@ -1035,13 +1044,26 @@
     justify-content: center;
     text-align: center;
   }
+  .s-piede-lingue {
+    justify-content: center;
+  }
 }
 @media (max-width: 440px) {
   .s-marchio span {
     display: none;
   }
   .s-barra-az {
-    gap: 8px;
+    gap: 6px;
+  }
+  .s-lingua a {
+    min-width: 30px;
+    min-height: 30px;
+    padding: 0 5px;
+    font-size: 11px;
+    letter-spacing: 0.02em;
+  }
+  .s-pillola {
+    padding: 0 12px;
   }
 }
 @media (max-width: 360px) {
@@ -1050,8 +1072,9 @@
     font-size: 12px;
   }
   .s-lingua a {
-    min-width: 32px;
-    padding: 0 7px;
+    min-width: 26px;
+    padding: 0 3px;
+    font-size: 10.5px;
   }
   .s-btn {
     padding: 0 22px;

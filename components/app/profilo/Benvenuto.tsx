@@ -16,12 +16,27 @@ const T = {
     lingua: "Language", presto: "more languages coming", fase2: "phase 2",
     crea: "Create account", accedi: "Sign in",
   },
+  fr: {
+    slogan: "Technique, tactique et physique guidées par l'IA pour entraîneurs, élèves et familles.",
+    lingua: "Langue", presto: "d'autres langues arrivent", fase2: "phase 2",
+    crea: "Commencer", accedi: "J'ai déjà un compte",
+  },
+  de: {
+    slogan: "KI-gestützte Technik, Taktik und Athletik für Trainer, Schüler und Familien.",
+    lingua: "Sprache", presto: "weitere Sprachen folgen", fase2: "Phase 2",
+    crea: "Starten", accedi: "Ich habe bereits ein Konto",
+  },
+  es: {
+    slogan: "Técnica, táctica y físico guiados por IA para entrenadores, alumnos y familias.",
+    lingua: "Idioma", presto: "más idiomas próximamente", fase2: "fase 2",
+    crea: "Empezar", accedi: "Ya tengo una cuenta",
+  },
 };
 
-// Le lingue del disegno: solo italiano e inglese sono attive, le altre arrivano più avanti.
-const LINGUE: { nome: string; codice: Lingua | null }[] = [
+// Le cinque lingue dell'app (tipo Lingua), tutte attive. PT e NL restano in arrivo (fase 2).
+const LINGUE: { nome: string; codice: Lingua }[] = [
   { nome: "English", codice: "en" }, { nome: "Italiano", codice: "it" },
-  { nome: "Español", codice: null }, { nome: "Français", codice: null }, { nome: "Deutsch", codice: null },
+  { nome: "Español", codice: "es" }, { nome: "Français", codice: "fr" }, { nome: "Deutsch", codice: "de" },
 ];
 
 /** 12 · Benvenuto e lingua. Aperta a tutti: porta con sé ?dopo verso accesso e registrazione. */
@@ -48,13 +63,9 @@ export default function Benvenuto() {
         <div className={`card ${s.boxLingua}`}>
           <div className={s.riga}><h2>{t.lingua}</h2><span>{t.presto}</span></div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {LINGUE.map((l) =>
-              l.codice ? (
-                <button key={l.nome} type="button" className={l.codice === lang ? "chip on" : "chip"} aria-pressed={l.codice === lang} onClick={() => setLang(l.codice!)}>{l.nome}</button>
-              ) : (
-                <button key={l.nome} type="button" className={`chip ${s.chipOff}`} disabled>{l.nome}</button>
-              ),
-            )}
+            {LINGUE.map((l) => (
+              <button key={l.nome} type="button" className={l.codice === lang ? "chip on" : "chip"} aria-pressed={l.codice === lang} onClick={() => setLang(l.codice)}>{l.nome}</button>
+            ))}
           </div>
           <div className={s.fase}><span className={s.tag}>PT · {t.fase2}</span><span className={s.tag}>NL · {t.fase2}</span></div>
         </div>

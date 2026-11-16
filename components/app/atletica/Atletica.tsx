@@ -27,6 +27,27 @@ const T = {
     video: "Exercise videos", filtri: "Video category", tutti: "All", carico: "Loading videos…", vuoto: "There are no fitness videos yet.", vuotoCat: "No videos in this category.",
     errore: "I can't load the videos.", riprova: "Try again", livello: "Lv.", altra: "Other age group", guarda: "Watch the video",
   },
+  fr: {
+    sotto: "Parcours par âge avec vidéos et exercices", titolo: "Physique", fascia: "Tranche d'âge",
+    oggi: "Séance du jour · 35'", sess: "Poussée des jambes et réactivité", inizia: "Commencer", dettaglio: "6 exercices · 3 séries",
+    aree: "Axes de travail", coord: "Coordination œil-main", gambe: "Jeu de jambes", forza: "Force", spinta: "Poussée des jambes", rapidita: "Vitesse", equilibrio: "Équilibre",
+    video: "Vidéos d'exercices", filtri: "Catégorie des vidéos", tutti: "Tous", carico: "Chargement des vidéos…", vuoto: "Il n'y a pas encore de vidéos de physique.", vuotoCat: "Aucune vidéo dans cette catégorie.",
+    errore: "Impossible de charger les vidéos.", riprova: "Réessayer", livello: "Niv.", altra: "Autre tranche d'âge", guarda: "Regarder la vidéo",
+  },
+  de: {
+    sotto: "Programme nach Alter mit Videos und Übungen", titolo: "Athletik", fascia: "Altersgruppe",
+    oggi: "Heutige Einheit · 35'", sess: "Beindrücken und Reaktivität", inizia: "Starten", dettaglio: "6 Übungen · 3 Serien",
+    aree: "Trainingsbereiche", coord: "Auge-Hand-Koordination", gambe: "Beinbewegung", forza: "Kraft", spinta: "Beindrücken", rapidita: "Schnelligkeit", equilibrio: "Gleichgewicht",
+    video: "Übungsvideos", filtri: "Videokategorie", tutti: "Alle", carico: "Videos werden geladen…", vuoto: "Es gibt noch keine Athletik-Videos.", vuotoCat: "Keine Videos in dieser Kategorie.",
+    errore: "Videos können nicht geladen werden.", riprova: "Erneut versuchen", livello: "Stufe", altra: "Andere Altersgruppe", guarda: "Video ansehen",
+  },
+  es: {
+    sotto: "Rutas por edad con vídeos y ejercicios", titolo: "Físico", fascia: "Franja de edad",
+    oggi: "Sesión de hoy · 35'", sess: "Impulso de piernas y reactividad", inizia: "Empezar", dettaglio: "6 ejercicios · 3 series",
+    aree: "Áreas de trabajo", coord: "Coordinación ojo-mano", gambe: "Movimiento de piernas", forza: "Fuerza", spinta: "Impulso de piernas", rapidita: "Rapidez", equilibrio: "Equilibrio",
+    video: "Vídeos de ejercicios", filtri: "Categoría de los vídeos", tutti: "Todos", carico: "Cargando vídeos…", vuoto: "Todavía no hay vídeos de físico.", vuotoCat: "No hay vídeos en esta categoría.",
+    errore: "No se pueden cargar los vídeos.", riprova: "Reintentar", livello: "Nivel", altra: "Otra franja de edad", guarda: "Ver el vídeo",
+  },
 };
 
 const ico = { width: 18, height: 18, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, "aria-hidden": true } as const;

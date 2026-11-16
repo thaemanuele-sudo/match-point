@@ -29,6 +29,33 @@ const T = {
     contact_in_front_of_the_hi: "Contact in front of the hip", unstable_toss: "Unstable toss", correct_racket_drop: "Correct racket drop",
     lefty_forehand: "Lefty forehand", back_to_the_backdrop: "Back to the backdrop", guide_arm: "Guide arm",
   },
+  fr: {
+    back: "Retour", struttura: "Structure A/B/C", n_video: "vidéos", video_library: "Bibliothèque vidéo",
+    tutti: "Tous", a_errore: "A · Erreur", b_corretto: "B · Correct", c_esercizio: "C · Exercice", tutti_colpi: "Tous les coups",
+    filtro_tipo: "Type de vidéo", filtro_colpo: "Coup", upload_your_own_correction: "Charge ta vidéo de correction",
+    caricamento: "Chargement des vidéos", vuoto_filtro: "Aucune vidéo ne correspond à ces filtres.", azzera: "Tout afficher",
+    erroreTitolo: "Impossible de lire la bibliothèque", erroreTesto: "Vérifie la connexion et réessaie.", riprova: "Réessayer",
+    contact_in_front_of_the_hi: "Impact devant la hanche", unstable_toss: "Lancer instable", correct_racket_drop: "Racket drop correct",
+    lefty_forehand: "Coup droit gaucher", back_to_the_backdrop: "Dos à la bâche", guide_arm: "Bras guide",
+  },
+  de: {
+    back: "Zurück", struttura: "Struktur A/B/C", n_video: "Videos", video_library: "Videobibliothek",
+    tutti: "Alle", a_errore: "A · Fehler", b_corretto: "B · Korrekt", c_esercizio: "C · Übung", tutti_colpi: "Alle Schläge",
+    filtro_tipo: "Videotyp", filtro_colpo: "Schlag", upload_your_own_correction: "Lade dein eigenes Korrekturvideo hoch",
+    caricamento: "Videos werden geladen", vuoto_filtro: "Keine Videos passen zu diesen Filtern.", azzera: "Alle anzeigen",
+    erroreTitolo: "Die Bibliothek kann nicht gelesen werden", erroreTesto: "Prüfe deine Verbindung und versuch es erneut.", riprova: "Erneut versuchen",
+    contact_in_front_of_the_hi: "Treffpunkt vor der Hüfte", unstable_toss: "Unsicherer Wurf", correct_racket_drop: "Korrekter Schlägerfall",
+    lefty_forehand: "Linkshänder-Vorhand", back_to_the_backdrop: "Rücken zum Hintergrund", guide_arm: "Führungsarm",
+  },
+  es: {
+    back: "Atrás", struttura: "Estructura A/B/C", n_video: "vídeos", video_library: "Biblioteca de vídeos",
+    tutti: "Todos", a_errore: "A · Error", b_corretto: "B · Correcto", c_esercizio: "C · Ejercicio", tutti_colpi: "Todos los golpes",
+    filtro_tipo: "Tipo de vídeo", filtro_colpo: "Golpe", upload_your_own_correction: "Sube tu propio vídeo de corrección",
+    caricamento: "Cargando vídeos", vuoto_filtro: "Ningún vídeo coincide con estos filtros.", azzera: "Mostrar todos",
+    erroreTitolo: "No se puede leer la biblioteca", erroreTesto: "Revisa la conexión e inténtalo de nuevo.", riprova: "Reintentar",
+    contact_in_front_of_the_hi: "Impacto delante de la cadera", unstable_toss: "Lanzamiento inestable", correct_racket_drop: "Racket drop correcto",
+    lefty_forehand: "Derecha zurda", back_to_the_backdrop: "Espalda a la lona", guide_arm: "Brazo guía",
+  },
 };
 
 type Lettera = "A" | "B" | "C";

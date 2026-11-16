@@ -19,6 +19,21 @@ const T = {
     oggi: "YOUR GOAL FOR TODAY", obiettivo: "Drop the ball inside the circle without moving your feet", lanci: "7 tosses out of 10 in the circle",
     campione: "Watch how the champion does it · 20 s", sfida: "Accept the challenge", nomeDemo: "Matteo", stelle: "2 stars out of 3",
   },
+  fr: {
+    kick: "Coach IA pour", titolo: "Ton lancer", bravo: "Bravo !", msg: "Ton lancer monte de plus en plus droit. Encore un petit effort et il sera parfait.",
+    oggi: "TON OBJECTIF DU JOUR", obiettivo: "Fais tomber la balle dans le cercle, sans bouger les pieds", lanci: "7 lancers sur 10 dans le cercle",
+    campione: "Regarde le champion · 20 s", sfida: "Relever le défi", nomeDemo: "Matteo", stelle: "2 étoiles sur 3",
+  },
+  de: {
+    kick: "Coach AI für", titolo: "Dein Wurf", bravo: "Super gemacht!", msg: "Dein Wurf geht immer gerader nach oben. Noch ein bisschen, und er ist perfekt.",
+    oggi: "DEIN ZIEL FÜR HEUTE", obiettivo: "Lass den Ball im Kreis landen, ohne die Füße zu bewegen", lanci: "7 von 10 Würfen im Kreis",
+    campione: "Schau, wie der Profi es macht · 20 s", sfida: "Nimm die Herausforderung an", nomeDemo: "Matteo", stelle: "2 von 3 Sternen",
+  },
+  es: {
+    kick: "Coach AI para", titolo: "Tu lanzamiento", bravo: "¡Muy bien!", msg: "Tu lanzamiento sube cada vez más recto. Un poquito más y será perfecto.",
+    oggi: "TU OBJETIVO DE HOY", obiettivo: "Haz caer la bola dentro del círculo, sin mover los pies", lanci: "7 lanzamientos de 10 dentro del círculo",
+    campione: "Mira cómo lo hace el campeón · 20 s", sfida: "Acepta el reto", nomeDemo: "Matteo", stelle: "2 estrellas de 3",
+  },
 };
 
 /** 22 · Feedback Modalità Bambino. Dati dimostrativi. */

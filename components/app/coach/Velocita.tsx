@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { Schermo } from "../Schermo";
 import { useState } from "react";
-import { useLang, useT } from "@/lib/i18n/lingua";
+import { useLang, useT, type Lingua } from "@/lib/i18n/lingua";
 import { ROTTE } from "@/lib/rotte";
 import s from "./Velocita.module.css";
 
@@ -31,11 +31,50 @@ const T = {
     in_4_weeks: "in 4 weeks",
     estimated_from_the_ball: "Estimated from the ball trajectory in 60 fps video; 120 fps recommended for the serve.",
   },
+  fr: {
+    back: "Retour",
+    giri_valore: "2.180",
+    giulia_s_serve_last: "Service de Giulia · 7 dernières premières",
+    speed: "Vitesse",
+    km_h: "km/h",
+    top_speed: "pointe max",
+    avg_km_h: "moyenne km/h",
+    kick_rpm: "tours/min kick",
+    in_4_weeks: "en 4 semaines",
+    estimated_from_the_ball: "Estimation à partir de la trajectoire de la balle sur une vidéo à 60 ips ; 120 ips recommandés pour le service.",
+  },
+  de: {
+    back: "Zurück",
+    giri_valore: "2.180",
+    giulia_s_serve_last: "Aufschlag von Giulia · letzte 7 erste Aufschläge",
+    speed: "Schnelligkeit",
+    km_h: "km/h",
+    top_speed: "Höchstwert",
+    avg_km_h: "Ø km/h",
+    kick_rpm: "U/min Kick",
+    in_4_weeks: "in 4 Wochen",
+    estimated_from_the_ball: "Schätzung aus der Flugbahn des Balls in einem Video mit 60 fps; für den Aufschlag werden 120 fps empfohlen.",
+  },
+  es: {
+    back: "Atrás",
+    giri_valore: "2.180",
+    giulia_s_serve_last: "Saque de Giulia · últimos 7 primeros",
+    speed: "Velocidad",
+    km_h: "km/h",
+    top_speed: "pico máximo",
+    avg_km_h: "media km/h",
+    kick_rpm: "rpm kick",
+    in_4_weeks: "en 4 semanas",
+    estimated_from_the_ball: "Estimado a partir de la trayectoria de la bola en vídeo a 60 fps; para el saque se recomiendan 120 fps.",
+  },
 };
 
-const VOCI = {
+const VOCI: Record<Lingua, string[]> = {
   it: ["Palla", "Racchetta", "Rotazione"],
   en: ["Ball", "Racket", "Spin"],
+  fr: ["Balle", "Raquette", "Rotation"],
+  de: ["Ball", "Schläger", "Spin"],
+  es: ["Bola", "Raqueta", "Efecto"],
 };
 
 export function Velocita() {

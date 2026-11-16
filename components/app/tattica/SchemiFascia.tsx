@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ROTTE } from "@/lib/rotte";
 import { Schermo } from "@/components/app/Schermo";
-import { useT, useLang } from "@/lib/i18n/lingua";
+import { useT, useLang, type Lingua } from "@/lib/i18n/lingua";
 import { SCHEMA_ESEMPIO } from "@/components/schemi/CampoAnimato";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { useProfilo } from "@/lib/useProfilo";
@@ -48,6 +48,57 @@ const T = {
     demoTit: "Wide serve and forehand into space",
     demoObi: "Open the court with the serve and finish the point with the forehand into the free area.",
   },
+  fr: {
+    back: "Retour",
+    tacticsAnimatedPattern: "Tactique · schéma animé",
+    deep: "profond",
+    aStudent: "A élève",
+    bOpponent: "B adversaire",
+    aSShot: "coup de A",
+    bSShot: "coup de B",
+    voiceExplanation: "Explication vocale",
+    strategies: "Stratégies",
+    animati: "Schémas animés",
+    carico: "Chargement des schémas…",
+    errore: "Impossible de charger les schémas. Affichage d'un exemple.",
+    vuoto: "Les schémas animés arrivent bientôt : en attendant, voici un exemple.",
+    demoTit: "Service extérieur et coup droit dans l'espace",
+    demoObi: "Ouvrir le terrain avec le service et conclure le point avec le coup droit dans la zone libre.",
+  },
+  de: {
+    back: "Zurück",
+    tacticsAnimatedPattern: "Taktik · animiertes Muster",
+    deep: "tief",
+    aStudent: "A Schüler",
+    bOpponent: "B Gegner",
+    aSShot: "Schlag von A",
+    bSShot: "Schlag von B",
+    voiceExplanation: "Sprachliche Erklärung",
+    strategies: "Strategien",
+    animati: "Animierte Muster",
+    carico: "Muster werden geladen…",
+    errore: "Die Muster können nicht geladen werden. Ein Beispiel wird angezeigt.",
+    vuoto: "Animierte Muster folgen in Kürze. Bis dahin hier ein Beispiel.",
+    demoTit: "Außen-Aufschlag und Vorhand in den Raum",
+    demoObi: "Den Platz mit dem Aufschlag öffnen und den Punkt mit der Vorhand in den freien Raum abschließen.",
+  },
+  es: {
+    back: "Atrás",
+    tacticsAnimatedPattern: "Táctica · patrón animado",
+    deep: "profundo",
+    aStudent: "A alumno",
+    bOpponent: "B rival",
+    aSShot: "golpe de A",
+    bSShot: "golpe de B",
+    voiceExplanation: "Explicación por voz",
+    strategies: "Estrategias",
+    animati: "Patrones animados",
+    carico: "Cargando patrones…",
+    errore: "No se pueden cargar los patrones. Mostramos un ejemplo.",
+    vuoto: "Los patrones animados llegarán pronto: mientras tanto, aquí tienes un ejemplo.",
+    demoTit: "Saque abierto y derecha al espacio",
+    demoObi: "Abrir la pista con el saque y cerrar el punto con la derecha en la zona libre.",
+  },
 };
 
 // Punti chiave per fascia (dai disegni IT/EN): titolo, quattro punti, nota. ADULTI = "PRO" dei disegni.
@@ -68,7 +119,31 @@ const FASCE_DATI = {
     U18: ["Risk, variation, drop shot", ["Strategy based on score and risk", "Drop shot after deep shots", "Chip and charge on second serve", "Tiebreak with set combinations"], "AI combinations for sets and tiebreaks"],
     ADULTI: ["Tour models", ["Serve and volley on fast courts", "Wide serve and forehand into space", "Deep return and down-the-line backhand", "Defense and counterattacking lob"], "Known tour patterns, no made-up stats"],
   },
-} satisfies Record<"it" | "en", Record<Fascia, [string, string[], string]>>;
+  fr: {
+    U10: ["Régularité et tout le court", ["Passer le filet avec 1-2 m de marge", "Jouer profond au-delà de la ligne de service", "Déplacer l'adversaire à droite et à gauche", "Reconnaître la balle courte et avancer"], "Terrain rouge/orange et balles à faible pression"],
+    U12: ["Diagonale et premier changement", ["Construire avec la diagonale de coup droit", "Long de ligne seulement sur balle courte et centrale", "Servir sur le revers", "Revenir au centre après chaque coup"], "L'IA propose des séquences simples de 2-3 coups"],
+    U14: ["Inside-out et attaque", ["Tourner autour du revers, inside-out", "Attaquer la balle courte et conclure au filet", "Slice défensif pour gagner du temps", "Retour profond au centre sur la première"], "Premières combinaisons selon le score"],
+    U16: ["Service + 1 et approche", ["Service extérieur et premier coup dans l'espace", "Approche le long de la ligne et volée croisée", "Kick sur le revers en seconde", "Alterner lifté lourd et slice"], "Score et risque entrent dans les suggestions"],
+    U18: ["Risque, variation, amortie", ["Stratégie selon le score et le risque", "Amortie après des coups profonds", "Chip and charge sur la seconde", "Tie-break avec combinaisons fixes"], "Combinaisons IA pour set et tie-break"],
+    ADULTI: ["Modèles du circuit", ["Service-volée sur surfaces rapides", "Service extérieur et coup droit dans l'espace", "Retour profond et revers le long de la ligne", "Défense et lob en contre-attaque"], "Schémas connus du circuit, sans statistiques inventées"],
+  },
+  de: {
+    U10: ["Konstanz und ganzer Platz", ["Mit 1-2 m Abstand über das Netz", "Tief spielen, über die Aufschlaglinie hinaus", "Den Gegner nach links und rechts bewegen", "Den Stopp erkennen und nach vorne gehen"], "Rot/Orange-Platz und Bälle mit niedriger Kompression"],
+    U12: ["Diagonale und erster Wechsel", ["Mit der Vorhand-Diagonale aufbauen", "Longline nur bei kurzen, zentralen Bällen", "Auf die Rückhand servieren", "Nach jedem Schlag zur Mitte zurückkehren"], "Die KI schlägt einfache 2-3-Schlag-Sequenzen vor"],
+    U14: ["Inside-out und Angriff", ["Um die Rückhand laufen, Inside-out", "Kurzen Ball angreifen und am Netz abschließen", "Defensiver Slice, um Zeit zu gewinnen", "Tiefer Return in die Mitte beim ersten Aufschlag"], "Erste punktabhängige Kombinationen"],
+    U16: ["Aufschlag + 1 und Annäherung", ["Außen-Aufschlag und erster Schlag in die Lücke", "Longline-Annahme und Cross-Volley", "Kick auf die Rückhand beim zweiten Aufschlag", "Schweren Topspin und Slice abwechseln"], "Spielstand und Risiko fließen in die Vorschläge ein"],
+    U18: ["Risiko, Variation, Stopp", ["Strategie nach Spielstand und Risiko", "Stopp nach tiefen Schlägen", "Chip and Charge auf den zweiten Aufschlag", "Tiebreak mit festen Kombinationen"], "KI-Kombinationen für Sätze und Tiebreaks"],
+    ADULTI: ["Vorbilder von der Tour", ["Aufschlag und Volley auf schnellen Plätzen", "Außen-Aufschlag und Vorhand in den Raum", "Tiefer Return und Rückhand-Longline", "Verteidigung und Lob im Konter"], "Bekannte Tour-Muster, ohne erfundene Statistiken"],
+  },
+  es: {
+    U10: ["Constancia y pista entera", ["Pasar la red con 1-2 m de margen", "Jugar profundo más allá de la línea de saque", "Mover al rival a derecha e izquierda", "Reconocer la bola corta y entrar"], "Pista roja/naranja y bolas de baja presión"],
+    U12: ["Diagonal y primer cambio", ["Construir con la diagonal de derecha", "Paralelo solo con bola corta y centrada", "Sacar hacia el revés", "Recuperar el centro tras cada golpe"], "La IA propone secuencias sencillas de 2-3 golpes"],
+    U14: ["Inside-out y ataque", ["Rodear el revés, inside-out", "Atacar la bola corta y cerrar en la red", "Cortado defensivo para ganar tiempo", "Resto profundo al centro ante el primero"], "Primeras combinaciones según el marcador"],
+    U16: ["Saque + 1 y aproximación", ["Saque abierto y primer golpe al espacio", "Aproximación paralela y volea cruzada", "Kick al revés en el segundo", "Alternar liftado cargado y cortado"], "Marcador y riesgo entran en las sugerencias"],
+    U18: ["Riesgo, variación, dejada", ["Estrategia según marcador y riesgo", "Dejada tras golpes profundos", "Chip and charge en el segundo", "Tie-break con combinaciones fijas"], "Combinaciones IA para set y tie-break"],
+    ADULTI: ["Modelos del circuito", ["Saque y volea en pistas rápidas", "Saque abierto y derecha al espacio", "Resto profundo y revés paralelo", "Defensa y globo en contraataque"], "Patrones conocidos del circuito, sin estadísticas inventadas"],
+  },
+} satisfies Record<Lingua, Record<Fascia, [string, string[], string]>>;
 
 export function SchemiFascia() {
   const t = useT(T);

@@ -24,6 +24,24 @@ const T = {
     inizia: "Start", serie: "set", di: "of", lavoro: "SET IN PROGRESS", recupero: "REST", pausa: "Pause", riprendi: "Resume", fatta: "Set done", salta: "Skip rest",
     ferma: "Stop", fine: "Session complete", fineSub: "Total time", ripeti: "Repeat", sessione: "Session", timer: "Time",
   },
+  fr: {
+    kick: "Vidéo d'exercice", carico: "Chargement de la vidéo…", errore: "Impossible de charger la vidéo.", nonTrovato: "Cette vidéo n'existe pas ou n'est plus disponible.", riprova: "Réessayer", tutti: "Toutes les vidéos",
+    nessunFile: "Le fichier vidéo n'est pas encore disponible.", livello: "Niveau", dosaggio: "Dosage", fasce: "Par tranches d'âge", tutteFasce: "Tous âges",
+    inizia: "Commencer", serie: "série", di: "sur", lavoro: "SÉRIE EN COURS", recupero: "RÉCUPÉRATION", pausa: "Pause", riprendi: "Reprendre", fatta: "Série faite", salta: "Passer la récupération",
+    ferma: "Arrêter", fine: "Séance terminée", fineSub: "Temps total", ripeti: "Répéter", sessione: "Séance", timer: "Temps",
+  },
+  de: {
+    kick: "Übungsvideo", carico: "Video wird geladen…", errore: "Das Video kann nicht geladen werden.", nonTrovato: "Dieses Video existiert nicht oder ist nicht mehr verfügbar.", riprova: "Erneut versuchen", tutti: "Alle Videos",
+    nessunFile: "Die Videodatei ist noch nicht verfügbar.", livello: "Level", dosaggio: "Dosierung", fasce: "Nach Altersklassen", tutteFasce: "Alle Altersklassen",
+    inizia: "Starten", serie: "Serie", di: "von", lavoro: "SATZ LÄUFT", recupero: "PAUSE", pausa: "Pause", riprendi: "Weiter", fatta: "Satz fertig", salta: "Pause überspringen",
+    ferma: "Abbrechen", fine: "Einheit abgeschlossen", fineSub: "Gesamtzeit", ripeti: "Wiederholen", sessione: "Einheit", timer: "Zeit",
+  },
+  es: {
+    kick: "Vídeo del ejercicio", carico: "Cargando el vídeo…", errore: "No puedo cargar el vídeo.", nonTrovato: "Este vídeo no existe o ya no está disponible.", riprova: "Reintentar", tutti: "Todos los vídeos",
+    nessunFile: "El archivo del vídeo todavía no está disponible.", livello: "Nivel", dosaggio: "Dosificación", fasce: "Por categorías", tutteFasce: "Todas las edades",
+    inizia: "Empezar", serie: "serie", di: "de", lavoro: "SERIE EN CURSO", recupero: "DESCANSO", pausa: "Pausa", riprendi: "Reanudar", fatta: "Serie hecha", salta: "Saltar descanso",
+    ferma: "Detener", fine: "Sesión completada", fineSub: "Tiempo total", ripeti: "Repetir", sessione: "Sesión", timer: "Tiempo",
+  },
 };
 
 type Carica = { stato: "caricamento" } | { stato: "errore" } | { stato: "nonTrovato" } | { stato: "ok"; v: VideoAtletica };

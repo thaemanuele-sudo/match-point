@@ -24,6 +24,27 @@ const T = {
     demoObi: "Open the court with the serve and finish the point with the forehand into the free area.",
     demoDesc: "Demo pattern: your coach's patterns are coming soon. Watch how the player, opponent and ball move.",
   },
+  fr: {
+    kick: "Tactique · schéma animé", obiettivo: "Objectif", descrizione: "Description", fasce: "Tranches d'âge", difficolta: "Difficulté",
+    carico: "Chargement du schéma…", nonTrovato: "Schéma introuvable ou pas encore publié.", errore: "Impossible de charger le schéma. Réessayez.",
+    demoTit: "Service extérieur et coup droit dans l'espace",
+    demoObi: "Ouvrir le court avec le service et finir le point avec le coup droit dans la zone libre.",
+    demoDesc: "Schéma de démonstration : bientôt les schémas de ton entraîneur arriveront. Regarde comment bougent le joueur, l'adversaire et la balle.",
+  },
+  de: {
+    kick: "Taktik · animiertes Muster", obiettivo: "Ziel", descrizione: "Beschreibung", fasce: "Altersgruppen", difficolta: "Schwierigkeit",
+    carico: "Muster wird geladen…", nonTrovato: "Muster nicht gefunden oder noch nicht veröffentlicht.", errore: "Das Muster kann nicht geladen werden. Versuche es erneut.",
+    demoTit: "Außen-Aufschlag und Vorhand in den Raum",
+    demoObi: "Das Feld mit dem Aufschlag öffnen und den Punkt mit der Vorhand in den freien Bereich abschließen.",
+    demoDesc: "Demomuster: Die Muster deines Trainers kommen bald. Schau dir an, wie sich Spieler, Gegner und Ball bewegen.",
+  },
+  es: {
+    kick: "Táctica · patrón animado", obiettivo: "Objetivo", descrizione: "Descripción", fasce: "Franjas de edad", difficolta: "Dificultad",
+    carico: "Cargando el patrón…", nonTrovato: "Patrón no encontrado o todavía no publicado.", errore: "No se puede cargar el patrón. Inténtalo de nuevo.",
+    demoTit: "Saque abierto y derecha al espacio",
+    demoObi: "Abrir la pista con el saque y cerrar el punto con la derecha en la zona libre.",
+    demoDesc: "Patrón de demostración: pronto llegarán los patrones de tu entrenador. Mira cómo se mueven el jugador, el rival y la bola.",
+  },
 };
 
 /** Schema di gioco a tutto schermo: campo animato grande (con le note che scorrono), obiettivo, descrizione, fasce, difficoltà. */

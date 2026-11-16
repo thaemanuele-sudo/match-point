@@ -1,6 +1,7 @@
 import { guardia, errore } from "@/lib/ai/guardia";
 import { costoTts, registraUso } from "@/lib/ai/costi";
 
+import { linguaAI } from "@/lib/ai/lingue";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
@@ -13,7 +14,7 @@ export async function POST(req: Request) {
   let body: { testo?: unknown; lingua?: unknown };
   try { body = await req.json(); } catch { return errore(400, "richiesta_non_valida", "Corpo della richiesta non valido."); }
   const testo = typeof body.testo === "string" ? body.testo.trim() : "";
-  const lingua: "it" | "en" = body.lingua === "en" ? "en" : "it";
+  const lingua = linguaAI(body.lingua);
   if (!testo) return errore(400, "richiesta_non_valida", "Testo mancante.");
   if (testo.length > 1500) return errore(413, "testo_troppo_lungo", "Massimo 1500 caratteri.");
 
@@ -21,7 +22,7 @@ export async function POST(req: Request) {
   const payload: Record<string, unknown> = { model: modello, voice: imp.voceTts, input: testo, response_format: "mp3" };
   // Solo gpt-4o-mini-tts accetta le istruzioni sul tono.
   if (modello === "gpt-4o-mini-tts") {
-    payload.instructions = `Voce di un allenatore di tennis, calda e chiara, in ${lingua === "en" ? "inglese" : "italiano"}`;
+    payload.instructions = `Voce di un allenatore di tennis, calda e chiara, in ${({ it: "italiano", en: "inglese", fr: "francese", de: "tedesco", es: "spagnolo" } as const)[lingua]}`;
   }
 
   let r: Response;

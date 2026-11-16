@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { Schermo } from "../Schermo";
 import { useState } from "react";
-import { useLang, useT } from "@/lib/i18n/lingua";
+import { useLang, useT, type Lingua } from "@/lib/i18n/lingua";
 import { ROTTE } from "@/lib/rotte";
 import s from "./TimelineColpi.module.css";
 
@@ -33,11 +33,53 @@ const T = {
     volley: "Volley",
     overhead: "Overhead",
   },
+  fr: {
+    back: "Retour",
+    practice_22_s_6: "Entraînement · 22 s · 6 coups",
+    recognized_strokes: "Coups reconnus",
+    forehand: "Coup droit",
+    crosscourt: "croisé",
+    backhand: "Revers",
+    straight: "droit",
+    slice: "Slice",
+    down_the_line: "long de ligne",
+    volley: "Volée",
+    overhead: "Smash",
+  },
+  de: {
+    back: "Zurück",
+    practice_22_s_6: "Training · 22 s · 6 Schläge",
+    recognized_strokes: "Erkannte Schläge",
+    forehand: "Vorhand",
+    crosscourt: "cross",
+    backhand: "Rückhand",
+    straight: "gerade",
+    slice: "Slice",
+    down_the_line: "longline",
+    volley: "Volley",
+    overhead: "Schmetterball",
+  },
+  es: {
+    back: "Atrás",
+    practice_22_s_6: "Entrenamiento · 22 s · 6 golpes",
+    recognized_strokes: "Golpes reconocidos",
+    forehand: "Derecha",
+    crosscourt: "cruzado",
+    backhand: "Revés",
+    straight: "recto",
+    slice: "Cortado",
+    down_the_line: "paralelo",
+    volley: "Volea",
+    overhead: "Remate",
+  },
 };
 
-const VOCI = {
+const VOCI: Record<Lingua, string[]> = {
   it: ["Tutti", "Diritto", "Rovescio", "Rete"],
   en: ["All", "Forehand", "Backhand", "Net"],
+  fr: ["Tous", "Coup droit", "Revers", "Filet"],
+  de: ["Alle", "Vorhand", "Rückhand", "Netz"],
+  es: ["Todos", "Derecha", "Revés", "Red"],
 };
 
 export function TimelineColpi() {

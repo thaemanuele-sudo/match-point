@@ -27,6 +27,36 @@ const T = {
     "voice_tutorial": "Voice tutorial",
     "stats": "Stats",
     "next_serve": "Next serve"
+  },
+  "fr": {
+    "back": "Retour",
+    "serve_no_15_giulia": "Service n° 15 · Giulia",
+    "great_serve": "Excellent service",
+    "angle": "angle",
+    "cm_over_the_net": "cm au-dessus du filet",
+    "voice_tutorial": "Tutoriel vocal",
+    "stats": "Statistiques",
+    "next_serve": "Service suivant"
+  },
+  "de": {
+    "back": "Zurück",
+    "serve_no_15_giulia": "Aufschlag Nr. 15 · Giulia",
+    "great_serve": "Super Aufschlag",
+    "angle": "Winkel",
+    "cm_over_the_net": "cm über dem Netz",
+    "voice_tutorial": "Sprach-Tutorial",
+    "stats": "Statistiken",
+    "next_serve": "Nächster Aufschlag"
+  },
+  "es": {
+    "back": "Atrás",
+    "serve_no_15_giulia": "Saque n.º 15 · Giulia",
+    "great_serve": "Excelente saque",
+    "angle": "ángulo",
+    "cm_over_the_net": "cm sobre la red",
+    "voice_tutorial": "Tutorial de voz",
+    "stats": "Estadísticas",
+    "next_serve": "Saque siguiente"
   }
 };
 

@@ -20,6 +20,24 @@ const T = {
     a1: "Late contact", a2: "Static footing",
     grafico: "Trend of the Late preparation error over six sessions: from 58% to 22%",
   },
+  fr: {
+    kick: "Luca · exemple simulé", titolo: "Progrès", p1: "Erreurs", p2: "Physique", p3: "Matchs",
+    errore: "Préparation tardive", delta: "−36 points", indice: "indice actuel · correct", sessioni: "séances terminées", altri: "Autres erreurs",
+    a1: "Impact en retard", a2: "Appuis statiques",
+    grafico: "Évolution de l'erreur Préparation tardive sur six séances : de 58% à 22%",
+  },
+  de: {
+    kick: "Luca · simuliertes Beispiel", titolo: "Fortschritte", p1: "Fehler", p2: "Athletik", p3: "Partien",
+    errore: "Späte Vorbereitung", delta: "−36 Punkte", indice: "aktueller Wert · korrigiert", sessioni: "abgeschlossene Einheiten", altri: "Weitere Fehler",
+    a1: "Verspäteter Kontakt", a2: "Statischer Stand",
+    grafico: "Verlauf des Fehlers Späte Vorbereitung in sechs Einheiten: von 58% auf 22%",
+  },
+  es: {
+    kick: "Luca · ejemplo simulado", titolo: "Progresos", p1: "Errores", p2: "Físico", p3: "Partidos",
+    errore: "Preparación tardía", delta: "−36 puntos", indice: "índice actual · corregido", sessioni: "sesiones completadas", altri: "Otros errores",
+    a1: "Impacto tardío", a2: "Apoyos estáticos",
+    grafico: "Evolución del error Preparación tardía en seis sesiones: del 58% al 22%",
+  },
 };
 
 const PUNTI: [number, number][] = [[30, 87], [85, 97], [140, 105], [195, 118], [250, 132], [305, 145]];

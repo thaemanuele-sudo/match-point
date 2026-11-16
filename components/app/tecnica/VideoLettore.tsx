@@ -28,6 +28,30 @@ const T = {
     confrontaAiuto: "Plays the error and the correction together", descrizione: "DESCRIPTION", fasce: "AGE GROUPS",
     nonDisp: "Video not available yet",
   },
+  fr: {
+    indietro: "Retour", tecnica: "Technique", caricamento: "Chargement de la vidéo", nonTrovato: "Vidéo introuvable",
+    nonTrovatoTesto: "La vidéo n'existe plus ou n'est pas encore publiée.", errore: "Impossible de lire les vidéos",
+    erroreTesto: "Vérifie ta connexion et réessaie.", riprova: "Réessayer", libreria: "Bibliothèque vidéo",
+    errore1: "Erreur", correzione1: "Correction", confronta: "Comparer", ferma: "Arrêter la comparaison",
+    confrontaAiuto: "Lance ensemble l'erreur et la correction", descrizione: "DESCRIPTION", fasce: "TRANCHES D'ÂGE",
+    nonDisp: "Vidéo pas encore disponible",
+  },
+  de: {
+    indietro: "Zurück", tecnica: "Technik", caricamento: "Video wird geladen", nonTrovato: "Video nicht gefunden",
+    nonTrovatoTesto: "Das Video existiert nicht mehr oder ist noch nicht veröffentlicht.", errore: "Videos können nicht gelesen werden",
+    erroreTesto: "Prüfe deine Verbindung und versuche es erneut.", riprova: "Erneut versuchen", libreria: "Videobibliothek",
+    errore1: "Fehler", correzione1: "Korrektur", confronta: "Vergleichen", ferma: "Vergleich beenden",
+    confrontaAiuto: "Spielt Fehler und Korrektur gleichzeitig ab", descrizione: "BESCHREIBUNG", fasce: "ALTERSGRUPPEN",
+    nonDisp: "Video noch nicht verfügbar",
+  },
+  es: {
+    indietro: "Atrás", tecnica: "Técnica", caricamento: "Cargando el vídeo", nonTrovato: "Vídeo no encontrado",
+    nonTrovatoTesto: "El vídeo ya no existe o todavía no está publicado.", errore: "No puedo leer los vídeos",
+    erroreTesto: "Revisa la conexión e inténtalo de nuevo.", riprova: "Reintentar", libreria: "Biblioteca de vídeos",
+    errore1: "Error", correzione1: "Corrección", confronta: "Comparar", ferma: "Detener la comparación",
+    confrontaAiuto: "Reproduce a la vez el error y la corrección", descrizione: "DESCRIPCIÓN", fasce: "GRUPOS DE EDAD",
+    nonDisp: "Vídeo aún no disponible",
+  },
 };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

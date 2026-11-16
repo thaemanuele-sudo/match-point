@@ -21,6 +21,27 @@ const T = {
     e3: "Reactive split step", e3s: "Added by the coach · ladder + signal, 6'", nota: "New video check recommended after session 3.",
     assegna: "Assign to Luca", scarta: "Discard",
   },
+  fr: {
+    kick: "Proposition du Coach IA pour Luca", titolo: "Préparation au rebond", sessioni: "séances", aSessione: "par séance", palle: "balles",
+    video: "Vidéo de correction DR-02", modello: "Modèle correct au ralenti", esercizi: "Exercices", libreria: "de la bibliothèque Technique",
+    e1: "Préparation au rebond", e1s: 'Dire "prêt !" quand la balle touche le sol', e2: "Impact devant (plot)", e2s: "Plot 30 cm devant la hanche",
+    e3: "Split-step réactif", e3s: "Ajouté par l'entraîneur · échelle + signal, 6'", nota: "Nouveau contrôle vidéo conseillé après la séance 3.",
+    assegna: "Assigner à Luca", scarta: "Écarter",
+  },
+  de: {
+    kick: "Vorschlag des Coach AI für Luca", titolo: "Ausholen nach dem Aufprall", sessioni: "Einheiten", aSessione: "pro Einheit", palle: "Bälle",
+    video: "Korrekturvideo DR-02", modello: "Korrektes Vorbild in Zeitlupe", esercizi: "Übungen", libreria: "aus der Bibliothek Technik",
+    e1: "Ausholen nach dem Aufprall", e1s: 'Ruf „Bereit!“, wenn der Ball den Boden berührt', e2: "Treffpunkt vorne (Hütchen)", e2s: "Hütchen 30 cm vor der Hüfte",
+    e3: "Reaktiver Split-Step", e3s: "Vom Trainer hinzugefügt · Leiter + Signal, 6'", nota: "Nach Einheit 3 wird eine neue Videokontrolle empfohlen.",
+    assegna: "Luca zuweisen", scarta: "Verwerfen",
+  },
+  es: {
+    kick: "Propuesta del Coach AI para Luca", titolo: "Preparación al bote", sessioni: "sesiones", aSessione: "por sesión", palle: "bolas",
+    video: "Vídeo de corrección DR-02", modello: "Modelo correcto a cámara lenta", esercizi: "Ejercicios", libreria: "de la biblioteca Técnica",
+    e1: "Preparación al bote", e1s: 'Di "¡listo!" cuando la bola toque el suelo', e2: "Impacto delante (cono)", e2s: "Cono 30 cm delante de la cadera",
+    e3: "Split step reactivo", e3s: "Añadido por el entrenador · escalera + señal, 6'", nota: "Nueva revisión en vídeo recomendada tras la sesión 3.",
+    assegna: "Asignar a Luca", scarta: "Descartar",
+  },
 };
 
 /** 21 · Piano proposto dal Coach AI. Dati dimostrativi. */

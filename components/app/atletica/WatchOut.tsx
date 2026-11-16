@@ -6,6 +6,9 @@ import s from "./atletica.module.css";
 const T = {
   it: { chiamata: "CHIAMATA", out: "OUT!", fuori: "fuori di 4 cm", nome: "Chiamata OUT sul quadrante dello smartwatch" },
   en: { chiamata: "CALL", out: "OUT!", fuori: "out by 4 cm", nome: "OUT call on the smartwatch face" },
+  fr: { chiamata: "ANNONCE", out: "OUT!", fuori: "dehors de 4 cm", nome: "Annonce OUT sur le cadran de la montre" },
+  de: { chiamata: "ENTSCHEIDUNG", out: "OUT!", fuori: "4 cm im Aus", nome: "OUT-Entscheidung auf dem Smartwatch-Display" },
+  es: { chiamata: "CANTO", out: "¡OUT!", fuori: "fuera por 4 cm", nome: "Canto OUT en la esfera del smartwatch" },
 };
 
 export function WatchOut() {

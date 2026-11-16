@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { TabBar, type Scheda } from "./TabBar";
 import { useT } from "@/lib/i18n/lingua";
 
-const T = { it: { indietro: "Indietro" }, en: { indietro: "Back" } };
+const T = { it: { indietro: "Indietro" }, en: { indietro: "Back" }, fr: { indietro: "Retour" }, de: { indietro: "Zurück" }, es: { indietro: "Atrás" } };
 
 /**
  * Contenitore di ogni schermata dell'app.

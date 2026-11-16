@@ -7,6 +7,9 @@ import s from "./atletica.module.css";
 const T = {
   it: { nome: "Punteggio live sul quadrante dello smartwatch", set: "Set", tu: "Tu", avv: "Avv.", piuTu: "+ Tu", piuAvv: "+ Avv.", puntoTu: "Punto per te", puntoAvv: "Punto per l'avversario" },
   en: { nome: "Live score on the smartwatch face", set: "Set", tu: "You", avv: "Opp.", piuTu: "+ You", piuAvv: "+ Opp.", puntoTu: "Point for you", puntoAvv: "Point for the opponent" },
+  fr: { nome: "Score en direct sur le cadran de la montre", set: "Set", tu: "Toi", avv: "Adv.", piuTu: "+ Toi", piuAvv: "+ Adv.", puntoTu: "Point pour toi", puntoAvv: "Point pour l'adversaire" },
+  de: { nome: "Live-Stand auf dem Smartwatch-Display", set: "Satz", tu: "Du", avv: "Geg.", piuTu: "+ Du", piuAvv: "+ Geg.", puntoTu: "Punkt für dich", puntoAvv: "Punkt für den Gegner" },
+  es: { nome: "Marcador en directo en la esfera del smartwatch", set: "Set", tu: "Tú", avv: "Riv.", piuTu: "+ Tú", piuAvv: "+ Riv.", puntoTu: "Punto para ti", puntoAvv: "Punto para el rival" },
 };
 const PUNTI = ["0", "15", "30", "40", "AD"];
 

@@ -19,6 +19,24 @@ const T = {
     t1: "videos this week", t2: "errors in progress", t3: "goals reached",
     principale: "Main error", gruppo: "Compare group",
   },
+  fr: {
+    kick: "Mode Entraîneur · 14 élèves", titolo: "Mes élèves", nuovo: "Nouvel élève",
+    v1: "Élèves", v2: "Groupes", v3: "Tournois",
+    t1: "vidéos cette semaine", t2: "erreurs en cours", t3: "objectifs atteints",
+    principale: "Erreur principale", gruppo: "Comparer le groupe",
+  },
+  de: {
+    kick: "Trainermodus · 14 Schüler", titolo: "Meine Schüler", nuovo: "Neuer Schüler",
+    v1: "Schüler", v2: "Gruppen", v3: "Turniere",
+    t1: "Videos diese Woche", t2: "Fehler in Arbeit", t3: "Ziele erreicht",
+    principale: "Hauptfehler", gruppo: "Gruppe vergleichen",
+  },
+  es: {
+    kick: "Modo Entrenador · 14 alumnos", titolo: "Mis alumnos", nuovo: "Nuevo alumno",
+    v1: "Alumnos", v2: "Grupos", v3: "Torneos",
+    t1: "vídeos esta semana", t2: "errores en desarrollo", t3: "objetivos logrados",
+    principale: "Error principal", gruppo: "Comparar grupo",
+  },
 };
 
 // Dati dimostrativi (nome, fascia, iniziali, colore avatar, errore, codice, percentuale, colore percentuale)
@@ -36,6 +54,27 @@ const ALLIEVI = {
     ["Giulia M.", "U14", "GL", "#8A3E6C", "Stiff legs on serve", "SV-04", "38%", "#FFD54A"],
     ["Matteo B.", "U10", "MB", "#8A4E3E", "Unstable ball toss", "SV-01", "49%", "#FF9F43"],
     ["Sofia L.", "U16", "SF", "#5A4E8A", "Passive non-dominant hand", "RV-01", "21%", "#4CD07D"],
+  ],
+  fr: [
+    ["Luca B.", "U12", "LU", "#3E5D8A", "Préparation tardive", "DR-01", "58%", "#FF9F43"],
+    ["Tommaso R.", "U12", "TR", "#2A6C4C", "Impact derrière le corps", "DR-02", "72%", "#FF5A5F"],
+    ["Giulia M.", "U14", "GL", "#8A3E6C", "Jambes raides au service", "SV-04", "38%", "#FFD54A"],
+    ["Matteo B.", "U10", "MB", "#8A4E3E", "Lancer de balle instable", "SV-01", "49%", "#FF9F43"],
+    ["Sofia L.", "U16", "SF", "#5A4E8A", "Main non dominante passive", "RV-01", "21%", "#4CD07D"],
+  ],
+  de: [
+    ["Luca B.", "U12", "LU", "#3E5D8A", "Späte Vorbereitung", "DR-01", "58%", "#FF9F43"],
+    ["Tommaso R.", "U12", "TR", "#2A6C4C", "Kontakt hinter dem Körper", "DR-02", "72%", "#FF5A5F"],
+    ["Giulia M.", "U14", "GL", "#8A3E6C", "Steife Beine beim Aufschlag", "SV-04", "38%", "#FFD54A"],
+    ["Matteo B.", "U10", "MB", "#8A4E3E", "Unruhiger Ballwurf", "SV-01", "49%", "#FF9F43"],
+    ["Sofia L.", "U16", "SF", "#5A4E8A", "Nicht-Schlaghand passiv", "RV-01", "21%", "#4CD07D"],
+  ],
+  es: [
+    ["Luca B.", "U12", "LU", "#3E5D8A", "Preparación tardía", "DR-01", "58%", "#FF9F43"],
+    ["Tommaso R.", "U12", "TR", "#2A6C4C", "Impacto detrás del cuerpo", "DR-02", "72%", "#FF5A5F"],
+    ["Giulia M.", "U14", "GL", "#8A3E6C", "Piernas rígidas en el saque", "SV-04", "38%", "#FFD54A"],
+    ["Matteo B.", "U10", "MB", "#8A4E3E", "Lanzamiento de bola inestable", "SV-01", "49%", "#FF9F43"],
+    ["Sofia L.", "U16", "SF", "#5A4E8A", "Mano no dominante pasiva", "RV-01", "21%", "#4CD07D"],
   ],
 };
 

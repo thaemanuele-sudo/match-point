@@ -18,6 +18,24 @@ const T = {
     o1: "Forehand preparation", o1s: "Goal reached", o2: "Split step", o2s: "Improving, practice at home",
     nota: "Coach's note", notaT: "Luca is more confident in matches. Next month we'll work on the serve.", condividi: "Share", pdf: "Export PDF",
   },
+  fr: {
+    kick: "Octobre · Luca B.", titolo: "Rapport pour la famille", mese: "CE MOIS-CI", sintesi: "Le coup droit a beaucoup progressé", dettaglio: "La préparation arrive maintenant avant le rebond.",
+    lezioni: "cours", video: "vidéos analysées", punti: "points d'erreur",
+    o1: "Préparation du coup droit", o1s: "Objectif atteint", o2: "Split-step", o2s: "En progrès, à travailler à la maison",
+    nota: "Note de l'entraîneur", notaT: "Luca est plus sûr en match. Le mois prochain, on travaille le service.", condividi: "Partager", pdf: "Exporter en PDF",
+  },
+  de: {
+    kick: "Oktober · Luca B.", titolo: "Bericht für die Familie", mese: "DIESER MONAT", sintesi: "Die Vorhand hat sich stark verbessert", dettaglio: "Die Vorbereitung kommt jetzt vor dem Aufprall.",
+    lezioni: "Stunden", video: "analysierte Videos", punti: "Fehlerpunkte",
+    o1: "Vorbereitung der Vorhand", o1s: "Ziel erreicht", o2: "Split-Step", o2s: "Verbessert sich, zu Hause weiter üben",
+    nota: "Notiz des Trainers", notaT: "Luca ist im Match sicherer. Im nächsten Monat arbeiten wir am Aufschlag.", condividi: "Teilen", pdf: "PDF exportieren",
+  },
+  es: {
+    kick: "Octubre · Luca B.", titolo: "Informe para la familia", mese: "ESTE MES", sintesi: "La derecha ha mejorado mucho", dettaglio: "La preparación ahora llega antes del bote.",
+    lezioni: "clases", video: "vídeos analizados", punti: "puntos de error",
+    o1: "Preparación de la derecha", o1s: "Objetivo logrado", o2: "Split step", o2s: "Mejorando, a entrenar en casa",
+    nota: "Nota del entrenador", notaT: "Luca está más seguro en partido. El próximo mes trabajamos el saque.", condividi: "Compartir", pdf: "Exportar PDF",
+  },
 };
 
 /** 61 · Report per la famiglia. Dati dimostrativi: condividi ed esporta arrivano più avanti. */

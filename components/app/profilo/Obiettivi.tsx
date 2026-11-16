@@ -16,10 +16,25 @@ const T = {
     sotto: "Under 14 · ranking 4.3", impostazioni: "Settings", anni: "years", sessioni: "sessions", video: "videos", badge: "badges",
     settimana: "This week's goals", storico: "History", mesi: "LAST 6 MONTHS", nomeDemo: "Giulia M.", iniz: "GL",
   },
+  fr: {
+    sotto: "Moins de 14 ans · classement 4.3", impostazioni: "Paramètres", anni: "ans", sessioni: "séances", video: "vidéos", badge: "badges",
+    settimana: "Objectifs de la semaine", storico: "Historique", mesi: "6 DERNIERS MOIS", nomeDemo: "Giulia M.", iniz: "GL",
+  },
+  de: {
+    sotto: "Unter 14 · Rangliste 4.3", impostazioni: "Einstellungen", anni: "Jahre", sessioni: "Einheiten", video: "Videos", badge: "Badges",
+    settimana: "Ziele der Woche", storico: "Verlauf", mesi: "LETZTE 6 MONATE", nomeDemo: "Giulia M.", iniz: "GL",
+  },
+  es: {
+    sotto: "Sub-14 · ranking 4.3", impostazioni: "Ajustes", anni: "años", sessioni: "sesiones", video: "vídeos", badge: "insignias",
+    settimana: "Objetivos de la semana", storico: "Historial", mesi: "ÚLTIMOS 6 MESES",nomeDemo: "Giulia M.", iniz: "GL",
+  },
 };
 const ANELLI = {
   it: [["+17%", "126/200", "servizi sopra 90 km/h", "#4CD07D", 79], ["+2%", "345/500", "diritti oltre la linea", "#FF9F43", 66], ["+8%", "140/300", "rovesci in topspin", "#FF5A5F", 113]],
   en: [["+17%", "126/200", "serves over 90 km/h", "#4CD07D", 79], ["+2%", "345/500", "forehands past the line", "#FF9F43", 66], ["+8%", "140/300", "topspin backhands", "#FF5A5F", 113]],
+  fr: [["+17%", "126/200", "services au-dessus de 90 km/h", "#4CD07D", 79], ["+2%", "345/500", "coups droits au-delà de la ligne", "#FF9F43", 66], ["+8%", "140/300", "revers liftés", "#FF5A5F", 113]],
+  de: [["+17%", "126/200", "Aufschläge über 90 km/h", "#4CD07D", 79], ["+2%", "345/500", "Vorhand-Winner über die Linie", "#FF9F43", 66], ["+8%", "140/300", "Rückhände mit Topspin", "#FF5A5F", 113]],
+  es: [["+17%", "126/200", "saques de más de 90 km/h", "#4CD07D", 79], ["+2%", "345/500", "derechas más allá de la línea", "#FF9F43", 66], ["+8%", "140/300", "reveses liftados", "#FF5A5F", 113]],
 } as const;
 // Altezze (px) delle barre degli ultimi 6 mesi, una riga per obiettivo; ogni quinta barra è evidenziata.
 const BARRE: [string, number[]][] = [

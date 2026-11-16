@@ -3,7 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ROTTE } from "@/lib/rotte";
 import { Schermo } from "@/components/app/Schermo";
-import { useT } from "@/lib/i18n/lingua";
+import { useLang, useT } from "@/lib/i18n/lingua";
 import { useProfilo } from "@/lib/useProfilo";
 import { useVoce } from "./voce";
 import S from "./TatticaStrategia.module.css";
@@ -63,18 +63,106 @@ const T = {
     reps: "reps",
     sets: "sets",
   },
+  fr: {
+    back: "Retour",
+    kicker: "{fascia} · Stratégie",
+    adulti: "Adultes",
+    wideServeAndInside: "Service extérieur et coup droit décalé",
+    animation: "Animation",
+    voiceExplanation: "Explication vocale",
+    aBExplanationAnd: "A · B · EXPLICATION ET OBJECTIF",
+    wideSliceServeTo: "Service slicé extérieur pour ouvrir le court, puis coup droit décalé dans l'angle opposé : objectif, conclure en trois coups.",
+    cWhen: "C · QUAND",
+    t3040AndAd: "30/40 et avantage",
+    dAgainstWhom: "D · CONTRE QUI",
+    weakBackhand: "Revers faible",
+    eWhyItWorks: "E · POURQUOI ÇA MARCHE",
+    youPullThemWide: "Tu le sors du court et le terrain reste vide",
+    fSurface: "F · SURFACE",
+    hardGrass: "Dur · Gazon",
+    gHowOften: "G · FRÉQUENCE",
+    t1ServeIn3: "1 service sur 3",
+    hProsWhoUse: "H · PROS QUI L'UTILISENT",
+    proNames: "[Noms PRO]",
+    trainTheStrategy: "Travailler la stratégie",
+    drillVideo: "Vidéo de l'exercice",
+    perSession: "par séance",
+    reps: "répétitions",
+    sets: "séries",
+  },
+  de: {
+    back: "Zurück",
+    kicker: "{fascia} · Strategie",
+    adulti: "Erwachsene",
+    wideServeAndInside: "Außenaufschlag und Vorhand-Inside-out",
+    animation: "Animation",
+    voiceExplanation: "Sprachliche Erklärung",
+    aBExplanationAnd: "A · B · ERKLÄRUNG UND ZIEL",
+    wideSliceServeTo: "Außen-Slice-Aufschlag, um das Feld zu öffnen, dann Vorhand-Inside-out in die gegenüberliegende Ecke: Ziel ist, in drei Schlägen abzuschließen.",
+    cWhen: "C · WANN",
+    t3040AndAd: "30/40 und Vorteil",
+    dAgainstWhom: "D · GEGEN WEN",
+    weakBackhand: "Schwache Rückhand",
+    eWhyItWorks: "E · WARUM ES FUNKTIONIERT",
+    youPullThemWide: "Du bringst ihn nach außen, und das Feld bleibt frei",
+    fSurface: "F · BELAG",
+    hardGrass: "Hartplatz · Rasen",
+    gHowOften: "G · WIE OFT",
+    t1ServeIn3: "1 Aufschlag von 3",
+    hProsWhoUse: "H · PROFIS, DIE ES NUTZEN",
+    proNames: "[Profi-Namen]",
+    trainTheStrategy: "Strategie trainieren",
+    drillVideo: "Übungsvideo",
+    perSession: "pro Einheit",
+    reps: "Wiederholungen",
+    sets: "Sätze",
+  },
+  es: {
+    back: "Atrás",
+    kicker: "{fascia} · Estrategia",
+    adulti: "Adultos",
+    wideServeAndInside: "Saque abierto y derecha invertida",
+    animation: "Animación",
+    voiceExplanation: "Explicación por voz",
+    aBExplanationAnd: "A · B · EXPLICACIÓN Y OBJETIVO",
+    wideSliceServeTo: "Saque con slice abierto para abrir la pista, luego derecha invertida al ángulo opuesto: objetivo, cerrar en tres golpes.",
+    cWhen: "C · CUÁNDO",
+    t3040AndAd: "30/40 y ventaja",
+    dAgainstWhom: "D · CONTRA QUIÉN",
+    weakBackhand: "Revés débil",
+    eWhyItWorks: "E · POR QUÉ FUNCIONA",
+    youPullThemWide: "Lo sacas fuera y queda la pista vacía",
+    fSurface: "F · SUPERFICIE",
+    hardGrass: "Pista dura · Hierba",
+    gHowOften: "G · CADA CUÁNTO",
+    t1ServeIn3: "1 saque de cada 3",
+    hProsWhoUse: "H · PROS QUE LA USAN",
+    proNames: "[Nombres PRO]",
+    trainTheStrategy: "Entrenar la estrategia",
+    drillVideo: "Vídeo del ejercicio",
+    perSession: "por sesión",
+    reps: "repeticiones",
+    sets: "series",
+  },
 };
 
-const NOME_FASCIA = { U10: "Under 10", U12: "Under 12", U14: "Under 14", U16: "Under 16", U18: "Under 18" } as const;
+const NOME_FASCIA = {
+  it: { U10: "Under 10", U12: "Under 12", U14: "Under 14", U16: "Under 16", U18: "Under 18" },
+  en: { U10: "Under 10", U12: "Under 12", U14: "Under 14", U16: "Under 16", U18: "Under 18" },
+  fr: { U10: "Moins de 10 ans", U12: "Moins de 12 ans", U14: "Moins de 14 ans", U16: "Moins de 16 ans", U18: "Moins de 18 ans" },
+  de: { U10: "Under 10", U12: "Under 12", U14: "Under 14", U16: "Under 16", U18: "Under 18" },
+  es: { U10: "Sub-10", U12: "Sub-12", U14: "Sub-14", U16: "Sub-16", U18: "Sub-18" },
+} as const;
 
 export function TatticaStrategia() {
   const t = useT(T);
   const { profilo } = useProfilo();
+  const { lang } = useLang();
   const { inLettura, leggi } = useVoce();
   // chiave che rimonta il disegno animato: "Animazione" lo fa ripartire da capo
   const [giro, setGiro] = useState(0);
   const f = profilo?.fascia ?? "U12";
-  const nomeFascia = f === "ADULTI" ? t.adulti : NOME_FASCIA[f];
+  const nomeFascia = f === "ADULTI" ? t.adulti : NOME_FASCIA[lang][f];
   return (
     <Schermo tab="tattica">
       <div className={S.scr}>

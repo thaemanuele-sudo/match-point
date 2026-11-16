@@ -3,7 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ROTTE } from "@/lib/rotte";
 import { Schermo } from "@/components/app/Schermo";
-import { useT, useLang } from "@/lib/i18n/lingua";
+import { useT, useLang, type Lingua } from "@/lib/i18n/lingua";
 import K from "./comune.module.css";
 
 const T = {
@@ -21,10 +21,33 @@ const T = {
     your4StrategiesTo: "YOUR 4 STRATEGIES TO MEMORIZE",
     tiebreakPlan: "Tiebreak plan",
   },
+  fr: {
+    back: "Retour",
+    setCombinations4Strategies: "Combinaisons fixes · 4 stratégies",
+    opponentProfile: "Profil adversaire",
+    your4StrategiesTo: "TES 4 STRATÉGIES À RETENIR",
+    tiebreakPlan: "Plan pour le tie-break",
+  },
+  de: {
+    back: "Zurück",
+    setCombinations4Strategies: "Feste Kombinationen · 4 Strategien",
+    opponentProfile: "Gegnerprofil",
+    your4StrategiesTo: "DEINE 4 STRATEGIEN ZUM MERKEN",
+    tiebreakPlan: "Plan für den Tiebreak",
+  },
+  es: {
+    back: "Atrás",
+    setCombinations4Strategies: "Combinaciones fijas · 4 estrategias",
+    opponentProfile: "Perfil del rival",
+    your4StrategiesTo: "TUS 4 ESTRATEGIAS PARA MEMORIZAR",
+    tiebreakPlan: "Plan para el tie-break",
+  },
 };
 
+type Profilo = [string, string, string[]];
+
 // Profili d'avversario (dimostrativi): nome, descrizione, 4 strategie da memorizzare.
-const PROFILI = {
+const PROFILI: Record<Lingua, Profilo[]> = {
   it: [
     ["Pallettaro", "Alto e lento, sbaglia poco", ["S7 palla corta dopo 3 profondi", "S6 approccio e rete", "S3 inside-out", "S1 pazienza"]],
     ["Battitore", "Servizio potente, scambi brevi", ["S9 risposta al centro", "Palla bassa in back", "S2 sul rovescio", "Tie-break senza rischi"]],
@@ -41,7 +64,31 @@ const PROFILI = {
     ["Lefty", "Wide slice on the ad side", ["Wider return position on the left", "Down-the-line forehand", "S9 on break points", "Avoid their diagonal"]],
     ["Fast defender", "Gets everything back, counterattacks", ["Change pace: slice and high ball", "S6 net on a short ball", "Same corner twice", "S7 when they're deep"]],
   ],
-} as const;
+  fr: [
+    ["Pousseur", "Haut et lent, rate peu", ["S7 amorti après 3 balles profondes", "S6 approche et filet", "S3 inside-out", "S1 patience"]],
+    ["Gros serveur", "Service puissant, échanges courts", ["S9 retour au centre", "Balle basse en slice", "S2 sur le revers", "Tie-break sans risque"]],
+    ["Revers faible", "Coup droit fort, revers passif", ["S2 service au revers", "S3 inside-out", "S4 lifté haut", "Long de ligne pour ouvrir"]],
+    ["Attaquant au filet", "Monte souvent, bonnes volées", ["Passant bas aux pieds", "Lob sur le revers", "S9 contre le service-volée", "Balle longue et chargée"]],
+    ["Gaucher", "Slice écarté côté avantage", ["Position de retour plus large à gauche", "Coup droit long de ligne", "S9 sur les balles de break", "Éviter sa diagonale"]],
+    ["Défenseur rapide", "Remet tout, contre-attaque", ["Changer de rythme : slice et balle haute", "S6 filet sur balle courte", "Même angle deux fois", "S7 quand il est au fond"]],
+  ],
+  de: [
+    ["Pusher", "Hoch und langsam, macht selten Fehler", ["S7 Stopp nach 3 tiefen Bällen", "S6 Annäherung und Netz", "S3 Inside-out", "S1 Geduld"]],
+    ["Starker Aufschläger", "Harter Aufschlag, kurze Ballwechsel", ["S9 Return in die Mitte", "Niedriger Slice-Ball", "S2 auf die Rückhand", "Risikofreier Tiebreak"]],
+    ["Schwache Rückhand", "Starke Vorhand, passive Rückhand", ["S2 Aufschlag auf die Rückhand", "S3 Inside-out", "S4 hoher Topspin", "Longline zum Öffnen"]],
+    ["Netzspieler", "Kommt oft ans Netz, gute Volleys", ["Tiefer Passierball auf die Füße", "Lob über die Rückhand", "S9 gegen Serve & Volley", "Lange, schwere Bälle"]],
+    ["Linkshänder", "Weiter Slice auf der Vorteilsseite", ["Rückschlagposition weiter links", "Longline-Vorhand", "S9 bei Breakbällen", "Seine Diagonale meiden"]],
+    ["Schneller Verteidiger", "Holt alles zurück, kontert", ["Tempo wechseln: Slice und hoher Ball", "S6 Netz auf kurzen Ball", "Gleiche Ecke zweimal", "S7, wenn er hinten steht"]],
+  ],
+  es: [
+    ["Muro", "Alto y lento, falla poco", ["S7 dejada tras 3 bolas profundas", "S6 aproximación y red", "S3 inside-out", "S1 paciencia"]],
+    ["Gran sacador", "Saque potente, intercambios cortos", ["S9 resto al centro", "Bola baja cortada", "S2 al revés", "Tie-break sin riesgos"]],
+    ["Revés débil", "Derecha fuerte, revés pasivo", ["S2 saque al revés", "S3 inside-out", "S4 liftado alto", "Paralelo para abrir"]],
+    ["Atacante de red", "Sube a menudo, buenas voleas", ["Passing bajo a los pies", "Globo sobre el revés", "S9 contra saque y volea", "Bola larga y cargada"]],
+    ["Zurdo", "Cortado abierto en el lado de ventaja", ["Resto más abierto a la izquierda", "Derecha paralela", "S9 en bolas de break", "Evita su diagonal"]],
+    ["Defensor rápido", "Recupera todo, contraataca", ["Cambia el ritmo: cortado y bola alta", "S6 red en bola corta", "Misma esquina dos veces", "S7 cuando está atrás"]],
+  ],
+};
 
 export function ProfiliAvversario() {
   const t = useT(T);

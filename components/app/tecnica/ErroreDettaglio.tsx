@@ -55,6 +55,72 @@ const T = {
     "gemello_assente": "Correction not available yet",
     "senza_video": "Video not available yet",
     "caricamento": "Loading"
+  },
+  "fr": {
+    "back": "Retour",
+    "serve_label": "Service",
+    "serve_error": "Service · erreur",
+    "low_elbow": "Coude bas",
+    "low_elbow_stiff_legs": "Coude bas, jambes raides",
+    "elbow_at_shoulder_height": "Coude à hauteur d'épaules",
+    "explanation_and_reasons": "EXPLICATION ET RAISONS",
+    "the_arm_stays_below_the_sh": "Le bras reste sous la ligne des épaules, comme un lancer de fléchettes : il manque la descente de la raquette dans le dos.",
+    "effect_on_ball_and_opponen": "EFFET SUR LA BALLE ET L'ADVERSAIRE",
+    "less_speed_low_contact_and": "Moins de vitesse, impact bas et balle dans le filet. Plus de stress sur l'épaule et le coude.",
+    "why_fix_it": "POURQUOI LE CORRIGER",
+    "the_kinetic_chain_doesn_t_": "La chaîne cinétique ne transfère pas l'énergie et le risque de surcharge augmente avec le jeu.",
+    "sv_03_video": "Vidéo SV-03",
+    "drills": "Exercices",
+    "descrizione": "DESCRIPTION",
+    "fasce": "TRANCHES D'ÂGE",
+    "video_btn": "Vidéo",
+    "gemello_assente": "Correction pas encore disponible",
+    "senza_video": "Vidéo pas encore disponible",
+    "caricamento": "Chargement"
+  },
+  "de": {
+    "back": "Zurück",
+    "serve_label": "Aufschlag",
+    "serve_error": "Aufschlag · Fehler",
+    "low_elbow": "Ellbogen tief",
+    "low_elbow_stiff_legs": "Ellbogen tief, steife Beine",
+    "elbow_at_shoulder_height": "Ellbogen auf Schulterhöhe",
+    "explanation_and_reasons": "ERKLÄRUNG UND GRÜNDE",
+    "the_arm_stays_below_the_sh": "Der Arm bleibt unter der Schulterlinie, wie beim Dartwerfen: Der Schläger fällt nicht hinter den Rücken.",
+    "effect_on_ball_and_opponen": "WIRKUNG AUF BALL UND GEGNER",
+    "less_speed_low_contact_and": "Weniger Tempo, tiefer Treffpunkt und Ball im Netz. Mehr Belastung für Schulter und Ellbogen.",
+    "why_fix_it": "WARUM KORRIGIEREN",
+    "the_kinetic_chain_doesn_t_": "Die kinetische Kette überträgt keine Energie, und das Überlastungsrisiko steigt mit der Spielzeit.",
+    "sv_03_video": "Video SV-03",
+    "drills": "Übungen",
+    "descrizione": "BESCHREIBUNG",
+    "fasce": "ALTERSGRUPPEN",
+    "video_btn": "Video",
+    "gemello_assente": "Korrektur noch nicht verfügbar",
+    "senza_video": "Video noch nicht verfügbar",
+    "caricamento": "Wird geladen"
+  },
+  "es": {
+    "back": "Atrás",
+    "serve_label": "Saque",
+    "serve_error": "Saque · error",
+    "low_elbow": "Codo bajo",
+    "low_elbow_stiff_legs": "Codo bajo, piernas rígidas",
+    "elbow_at_shoulder_height": "Codo a la altura de los hombros",
+    "explanation_and_reasons": "EXPLICACIÓN Y MOTIVOS",
+    "the_arm_stays_below_the_sh": "El brazo queda bajo la línea de los hombros, como al lanzar dardos: falta la caída de la raqueta tras la espalda.",
+    "effect_on_ball_and_opponen": "EFECTO EN LA BOLA Y EL RIVAL",
+    "less_speed_low_contact_and": "Menos velocidad, impacto bajo y bola a la red. Más estrés en hombro y codo.",
+    "why_fix_it": "POR QUÉ CORREGIRLO",
+    "the_kinetic_chain_doesn_t_": "La cadena cinética no transfiere energía y el riesgo de sobrecarga crece con el juego.",
+    "sv_03_video": "Vídeo SV-03",
+    "drills": "Ejercicios",
+    "descrizione": "DESCRIPCIÓN",
+    "fasce": "GRUPOS DE EDAD",
+    "video_btn": "Vídeo",
+    "gemello_assente": "Corrección aún no disponible",
+    "senza_video": "Vídeo aún no disponible",
+    "caricamento": "Cargando"
   }
 };
 
@@ -96,7 +162,7 @@ function ErroreReale({ principale, tutti }: { principale: VideoTecnica; tutti: V
     <div className={s.scr} style={{ gap: "12px" }}>
       <header className={s.hdr}>
         <Link href={ROTTE.ErroriServizio} className={s.icon} aria-label={t.back}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg></Link>
-        <div className={s.grow}><div className={s.kick}>{`${t.serve_label} · ${NOME_TIPO[lang][principale.tipo].toLowerCase()}`}</div><h1 className={s.h1}>{principale.titolo}</h1></div>
+        <div className={s.grow}><div className={s.kick}>{`${t.serve_label} · ${(NOME_TIPO[lang] ?? NOME_TIPO.en)[principale.tipo].toLowerCase()}`}</div><h1 className={s.h1}>{principale.titolo}</h1></div>
         <span className={s.code}>{principale.codice}</span>
       </header>
       <div className={s.g2}>

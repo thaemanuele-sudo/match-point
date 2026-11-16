@@ -1,5 +1,5 @@
 "use client";
-// Il layout radice ha lang="it": nella pagina inglese aggiorniamo l'attributo (il contenitore .sito ha già lang corretto nell'HTML).
+// Il layout radice ha lang="it": nelle pagine non italiane aggiorniamo l'attributo (il contenitore .sito ha già lang corretto nell'HTML).
 import { useEffect } from "react";
 
 export function LinguaHtml({ lang }: { lang: string }) {

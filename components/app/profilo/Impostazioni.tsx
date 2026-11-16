@@ -30,11 +30,42 @@ const T = {
     privacy: "PRIVACY", consensi: "Parental consents", consensiV: "12 of 14", dati: "Data stored in", datiV: "EU", esci: "Sign out",
     maestro: "Coach", giocatore: "Student", genitore: "Parent", ospite: "Match Point", sottotitolo: "Account",
   },
+  fr: {
+    titolo: "Réglages", account: "COMPTE", nome: "Prénom", cognome: "Nom", email: "E-mail", telefono: "Téléphone (avec indicatif)",
+    salva: "Enregistrer les modifications", salvo: "Enregistrement…", salvato: "Modifications enregistrées.", errNome: "Le prénom et le nom sont obligatoires.", errTel: "Utilisez l'indicatif international, par exemple +39 333 1234567.", errSalva: "Impossible d'enregistrer. Réessayez.",
+    lingua: "LANGUE ET VOIX", voce: "Voix de l'assistant", femm: "Féminine", glossario: "Glossaire technique", glossarioV: "back · slice · coupé",
+    profilo: "PROFIL", modalita: "Mode", abbonamento: "Abonnement", gratis: "Gratuit",
+    ai: "UTILISATION DE L'IA", spesa: "Dépense IA ce mois-ci", spesaNd: "non disponible",
+    privacy: "CONFIDENTIALITÉ", consensi: "Consentements parentaux", consensiV: "12 sur 14", dati: "Données stockées dans", datiV: "UE", esci: "Se déconnecter",
+    maestro: "Entraîneur", giocatore: "Élève", genitore: "Parent", ospite: "Match Point", sottotitolo: "Compte",
+  },
+  de: {
+    titolo: "Einstellungen", account: "KONTO", nome: "Vorname", cognome: "Nachname", email: "E-Mail", telefono: "Telefon (mit Vorwahl)",
+    salva: "Änderungen speichern", salvo: "Wird gespeichert…", salvato: "Änderungen gespeichert.", errNome: "Vor- und Nachname sind erforderlich.", errTel: "Verwende die internationale Vorwahl, zum Beispiel +39 333 1234567.", errSalva: "Speichern hat nicht geklappt. Bitte versuche es erneut.",
+    lingua: "SPRACHE UND STIMME", voce: "Stimme des Assistenten", femm: "Weiblich", glossario: "Fachglossar", glossarioV: "Backspin · Slice · Coupé",
+    profilo: "PROFIL", modalita: "Modus", abbonamento: "Abo", gratis: "Kostenlos",
+    ai: "KI-NUTZUNG", spesa: "KI-Kosten in diesem Monat", spesaNd: "nicht verfügbar",
+    privacy: "DATENSCHUTZ", consensi: "Einwilligungen der Eltern", consensiV: "12 von 14", dati: "Daten gespeichert in", datiV: "EU", esci: "Abmelden",
+    maestro: "Trainer", giocatore: "Schüler", genitore: "Elternteil", ospite: "Match Point", sottotitolo: "Konto",
+  },
+  es: {
+    titolo: "Ajustes", account: "CUENTA", nome: "Nombre", cognome: "Apellidos", email: "Correo electrónico", telefono: "Teléfono (con prefijo)",
+    salva: "Guardar cambios", salvo: "Guardando…", salvato: "Cambios guardados.", errNome: "El nombre y los apellidos son obligatorios.", errTel: "Usa el prefijo internacional, por ejemplo +39 333 1234567.", errSalva: "No hemos podido guardar. Inténtalo de nuevo.",
+    lingua: "IDIOMA Y VOZ", voce: "Voz del asistente", femm: "Femenina", glossario: "Glosario técnico", glossarioV: "cortado · slice · coupé",
+    profilo: "PERFIL", modalita: "Modo", abbonamento: "Suscripción", gratis: "Gratis",
+    ai: "USO DE LA IA", spesa: "Gasto de IA este mes", spesaNd: "no disponible",
+    privacy: "PRIVACIDAD", consensi: "Consentimientos parentales", consensiV: "12 de 14", dati: "Datos guardados en", datiV: "UE", esci: "Cerrar sesión",
+    maestro: "Entrenador", giocatore: "Alumno", genitore: "Padre/madre", ospite: "Match Point", sottotitolo: "Cuenta",
+  },
 };
 
-const LINGUE: { sigla: string; codice: Lingua | null }[] = [
-  { sigla: "EN", codice: "en" }, { sigla: "IT", codice: "it" }, { sigla: "ES", codice: null }, { sigla: "FR", codice: null }, { sigla: "DE", codice: null },
+// Codici e sigle delle cinque lingue, nell'ordine del selettore.
+const LINGUE: { sigla: string; codice: Lingua }[] = [
+  { sigla: "EN", codice: "en" }, { sigla: "IT", codice: "it" }, { sigla: "ES", codice: "es" }, { sigla: "FR", codice: "fr" }, { sigla: "DE", codice: "de" },
 ];
+
+// Locale per i formati numerici (importo in dollari) di ogni lingua.
+const LOCALE: Record<Lingua, string> = { it: "it-IT", en: "en-US", fr: "fr-FR", de: "de-DE", es: "es-ES" };
 
 /** 63 · Impostazioni: dati dell'account veri, lingua, spesa AI del mese e uscita. */
 export default function Impostazioni() {
@@ -81,7 +112,7 @@ export default function Impostazioni() {
     if (profilo) void supabaseBrowser().from("profiles").update({ lingua: l }).eq("id", profilo.id);
   }
 
-  const fmt = new Intl.NumberFormat(lang === "it" ? "it-IT" : "en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 4 });
+  const fmt = new Intl.NumberFormat(LOCALE[lang], { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 4 });
   const spesaTesto = spesa === null ? "…" : spesa === "nd" ? t.spesaNd : fmt.format(spesa);
   const tipo = profilo ? t[profilo.tipo_utente] : "—";
   const msg = { ok: t.salvato, nome: t.errNome, tel: t.errTel, errore: t.errSalva };
@@ -111,13 +142,9 @@ export default function Impostazioni() {
 
         <div className={c.k} style={{ marginTop: 6 }}>{t.lingua}</div>
         <div className={c.g5}>
-          {LINGUE.map((l) =>
-            l.codice ? (
-              <button key={l.sigla} type="button" className={l.codice === lang ? "chip on" : "chip"} style={{ justifyContent: "center", padding: 0 }} aria-pressed={l.codice === lang} onClick={() => cambiaLingua(l.codice!)}>{l.sigla}</button>
-            ) : (
-              <button key={l.sigla} type="button" className={`chip ${s.off}`} style={{ justifyContent: "center", padding: 0 }} disabled>{l.sigla}</button>
-            ),
-          )}
+          {LINGUE.map((l) => (
+            <button key={l.sigla} type="button" className={l.codice === lang ? "chip on" : "chip"} style={{ justifyContent: "center", padding: 0 }} aria-pressed={l.codice === lang} onClick={() => cambiaLingua(l.codice)}>{l.sigla}</button>
+          ))}
         </div>
         {riga(ico(<><path d="M4 9v6h4l5 4V5L8 9z" /><path d="M16 9a4 4 0 010 6M18.5 6.5a8 8 0 010 11" /></>), t.voce, t.femm)}
         {riga(ico(<><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18" /></>), t.glossario, t.glossarioV)}

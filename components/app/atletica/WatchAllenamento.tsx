@@ -7,6 +7,9 @@ import s from "./atletica.module.css";
 const T = {
   it: { nome: "Allenamento sul quadrante dello smartwatch", titolo: "Allenamento", salva: "Salva lo scambio", salvato: "Scambio salvato", kcal: " KCAL", km: " KM", distanza: "2,7", bpm: "BPM", cuore: "Battito" },
   en: { nome: "Practice on the smartwatch face", titolo: "Practice", salva: "Save the rally", salvato: "Rally saved", kcal: " KCAL", km: " KM", distanza: "2.7", bpm: "BPM", cuore: "Heart rate" },
+  fr: { nome: "Entraînement sur le cadran de la montre connectée", titolo: "Entraînement", salva: "Enregistrer l'échange", salvato: "Échange enregistré", kcal: " KCAL", km: " KM", distanza: "2,7", bpm: "BPM", cuore: "Fréquence cardiaque" },
+  de: { nome: "Training auf dem Display der Smartwatch", titolo: "Training", salva: "Ballwechsel speichern", salvato: "Ballwechsel gespeichert", kcal: " KCAL", km: " KM", distanza: "2,7", bpm: "BPM", cuore: "Herzfrequenz" },
+  es: { nome: "Entrenamiento en la esfera del smartwatch", titolo: "Entrenamiento", salva: "Guardar el punto", salvato: "Punto guardado", kcal: " KCAL", km: " KM", distanza: "2,7", bpm: "BPM", cuore: "Frecuencia cardíaca" },
 };
 
 export function WatchAllenamento() {

@@ -1,14 +1,18 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import type { Lingua } from "@/lib/i18n/lingua";
 import type { CategoriaAtletica, Fascia, VideoAtletica } from "@/lib/types";
 
 export type StatoVideo = "caricamento" | "ok" | "errore";
 
-/** Nomi delle categorie nelle due lingue (filtri, etichette, lettore). */
-export const ETICHETTE_CAT: Record<"it" | "en", Record<CategoriaAtletica, string>> = {
+/** Nomi delle categorie nelle cinque lingue (filtri, etichette, lettore). */
+export const ETICHETTE_CAT: Record<Lingua, Record<CategoriaAtletica, string>> = {
   it: { velocita: "Velocità", forza: "Forza", resistenza: "Resistenza", coordinazione: "Coordinazione", mobilita: "Mobilità", agilita: "Agilità", prevenzione: "Prevenzione" },
   en: { velocita: "Speed", forza: "Strength", resistenza: "Endurance", coordinazione: "Coordination", mobilita: "Mobility", agilita: "Agility", prevenzione: "Prevention" },
+  fr: { velocita: "Vitesse", forza: "Force", resistenza: "Endurance", coordinazione: "Coordination", mobilita: "Mobilité", agilita: "Agilité", prevenzione: "Prévention" },
+  de: { velocita: "Schnelligkeit", forza: "Kraft", resistenza: "Ausdauer", coordinazione: "Koordination", mobilita: "Mobilität", agilita: "Agilität", prevenzione: "Prävention" },
+  es: { velocita: "Rapidez", forza: "Fuerza", resistenza: "Resistencia", coordinazione: "Coordinación", mobilita: "Movilidad", agilita: "Agilidad", prevenzione: "Prevención" },
 };
 
 /** Le chip d'età dei disegni (U10…PRO) e la fascia del database (PRO = ADULTI). */

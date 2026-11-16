@@ -9,16 +9,25 @@ import s from "./atletica.module.css";
 
 const T = {
   it: { kick: "Coach AI · dal video del diritto", titolo: "Analisi atletica", scheda: "Scheda proposta", fascia: "Under 12", sess: "sessioni a settimana", sett: "settimane", per: "per sessione", assegna: "Assegna a Tommaso" },
+  fr: { kick: "Coach IA · d'après la vidéo du coup droit", titolo: "Analyse physique", scheda: "Programme proposé", fascia: "Moins de 12 ans", sess: "séances par semaine", sett: "semaines", per: "par séance", assegna: "Assigner à Tommaso" },
+  de: { kick: "Coach AI · aus dem Vorhand-Video", titolo: "Athletikanalyse", scheda: "Vorgeschlagener Plan", fascia: "Unter 12", sess: "Einheiten pro Woche", sett: "Wochen", per: "pro Einheit", assegna: "An Tommaso zuweisen" },
+  es: { kick: "Coach AI · del vídeo de la derecha", titolo: "Análisis físico", scheda: "Ficha propuesta", fascia: "Sub-12", sess: "sesiones por semana", sett: "semanas", per: "por sesión", assegna: "Asignar a Tommaso" },
   en: { kick: "Coach AI · from the forehand video", titolo: "Fitness analysis", scheda: "Proposed plan", fascia: "Under 12", sess: "sessions per week", sett: "weeks", per: "per session", assegna: "Assign to Tommaso" },
 };
 // Dati dimostrativi: a regime arrivano dall'analisi AI del video.
 const SEGNALI = {
   it: ["Spinta gambe debole", "Split step in ritardo", "Busto poco ruotato", "Postura corretta", "Equilibrio buono"],
+  fr: ["Poussée des jambes faible", "Split-step en retard", "Buste peu tourné", "Posture correcte", "Bon équilibre"],
+  de: ["Schwaches Beindrücken", "Verspäteter Split-Step", "Oberkörper wenig gedreht", "Korrekte Haltung", "Gutes Gleichgewicht"],
+  es: ["Impulso de piernas débil", "Split step tardío", "Poca rotación del tronco", "Postura correcta", "Buen equilibrio"],
   en: ["Weak leg drive", "Late split step", "Limited torso rotation", "Correct posture", "Good balance"],
 };
 const COLORI = ["#F0454A", "#F0454A", "#FFC44D", "#D8F34A", "#D8F34A"];
 const ESERCIZI = {
   it: [["Salti a ostacolini", "Spinta gambe", "3×10"], ["Split step al segnale", "Reattività", "4×8"], ["Rotazioni con palla medica", "Busto e core", "3×12"]],
+  fr: [["Sauts de haies basses", "Poussée des jambes", "3×10"], ["Split-step au signal", "Réactivité", "4×8"], ["Rotations avec médecine-ball", "Buste et gainage", "3×12"]],
+  de: [["Hürdensprünge", "Beindrücken", "3×10"], ["Split-Step auf Signal", "Reaktivität", "4×8"], ["Rotationen mit Medizinball", "Rumpf und Core", "3×12"]],
+  es: [["Saltos de vallas bajas", "Impulso de piernas", "3×10"], ["Split step a la señal", "Reactividad", "4×8"], ["Rotaciones con balón medicinal", "Tronco y core", "3×12"]],
   en: [["Mini-hurdle jumps", "Leg drive", "3×10"], ["Split step on signal", "Reactivity", "4×8"], ["Medicine ball rotations", "Torso and core", "3×12"]],
 };
 

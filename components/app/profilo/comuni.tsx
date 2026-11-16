@@ -4,7 +4,13 @@ import type { ReactNode } from "react";
 import { useT } from "@/lib/i18n/lingua";
 import s from "./comune.module.css";
 
-const T = { it: { indietro: "Indietro" }, en: { indietro: "Back" } };
+const T = {
+  it: { indietro: "Indietro" },
+  en: { indietro: "Back" },
+  fr: { indietro: "Retour" },
+  de: { indietro: "Zurück" },
+  es: { indietro: "Atrás" },
+};
 
 /** Logo "Match Point" con la pallina, come nella Home (font .brand). */
 export function Logo({ size = 30 }: { size?: number }) {

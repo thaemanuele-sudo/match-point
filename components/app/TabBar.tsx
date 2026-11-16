@@ -7,6 +7,9 @@ import { ROTTE } from "@/lib/rotte";
 const T = {
   it: { coach: "Coach AI", tecnica: "Tecnica", tattica: "Tattica", atletica: "Atletica", carica: "Carica o registra un video", sezioni: "Sezioni" },
   en: { coach: "AI Coach", tecnica: "Technique", tattica: "Tactics", atletica: "Fitness", carica: "Upload or record a video", sezioni: "Sections" },
+  fr: { coach: "Coach IA", tecnica: "Technique", tattica: "Tactique", atletica: "Physique", carica: "Importer ou filmer une vidéo", sezioni: "Sections" },
+  de: { coach: "KI-Coach", tecnica: "Technik", tattica: "Taktik", atletica: "Athletik", carica: "Video hochladen oder aufnehmen", sezioni: "Bereiche" },
+  es: { coach: "Coach IA", tecnica: "Técnica", tattica: "Táctica", atletica: "Físico", carica: "Subir o grabar un vídeo", sezioni: "Secciones" },
 };
 
 export type Scheda = "coach" | "tecnica" | "tattica" | "atletica";

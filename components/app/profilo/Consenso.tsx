@@ -27,6 +27,33 @@ const T = {
     v4: "Use videos to improve the AI", v4s: "Optional, always anonymous",
     canc: "Right to erasure", cancs: "Delete data and videos anytime", ok: "I agree and continue",
   },
+  fr: {
+    kick: "Étape 2 sur 3", titolo: "Consentement du parent",
+    gdpr: "Données de mineurs traitées avec ton consentement, stockées dans l'UE et supprimables à tout moment (RGPD).",
+    v1: "Analyse des vidéos de mon enfant", v1s: "Nécessaire pour le Coach IA",
+    v2: "Visages floutés dans les données d'entraînement", v2s: "Anonymisation automatique",
+    v3: "Partager les progrès avec l'entraîneur", v3s: "Rapports, vidéos et plans",
+    v4: "Utiliser les vidéos pour améliorer l'IA", v4s: "Facultatif, toujours anonyme",
+    canc: "Droit à l'effacement", cancs: "Supprime données et vidéos quand tu veux", ok: "J'accepte et je continue",
+  },
+  de: {
+    kick: "Schritt 2 von 3", titolo: "Einwilligung der Eltern",
+    gdpr: "Daten von Minderjährigen werden mit deiner Einwilligung verarbeitet, in der EU gespeichert und können jederzeit gelöscht werden (DSGVO).",
+    v1: "Analyse der Videos meines Kindes", v1s: "Für Coach AI erforderlich",
+    v2: "Gesichter in Trainingsdaten verwischt", v2s: "Automatische Anonymisierung",
+    v3: "Fortschritte mit dem Trainer teilen", v3s: "Berichte, Videos und Pläne",
+    v4: "Videos zur Verbesserung der KI nutzen", v4s: "Optional, immer anonym",
+    canc: "Recht auf Löschung", cancs: "Lösche Daten und Videos, wann du willst", ok: "Ich stimme zu und fahre fort",
+  },
+  es: {
+    kick: "Paso 2 de 3", titolo: "Consentimiento del padre/madre",
+    gdpr: "Datos de menores tratados con tu consentimiento, guardados en la UE y eliminables en cualquier momento (RGPD).",
+    v1: "Análisis de los vídeos de mi hijo", v1s: "Necesario para el Coach AI",
+    v2: "Caras difuminadas en los datos de entrenamiento", v2s: "Anonimización automática",
+    v3: "Compartir los progresos con el entrenador", v3s: "Informes, vídeos y planes",
+    v4: "Usar los vídeos para mejorar la IA", v4s: "Opcional, siempre anónimos",
+    canc: "Derecho de supresión", cancs: "Borra datos y vídeos cuando quieras", ok: "Acepto y continúo",
+  },
 };
 
 /** 14 · Consenso del genitore. Per ora le scelte restano nella schermata (nessuna tabella dei consensi nel database). */
