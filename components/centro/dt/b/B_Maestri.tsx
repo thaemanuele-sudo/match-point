@@ -13,7 +13,7 @@ import { COL, coloreAderenza, coloreAvatar, fmtOre, iniziali, nomeCompleto, rimp
 import "./b.css";
 
 const it = {
-  titolo: "Maestri", kick: "Direttore tecnico · {n} maestri", formazione: "Formazione dei maestri", ordina: "ORDINA PER",
+  titolo: "Maestri", kick: "Direttore tecnico · {n} maestri in campo", formazione: "Formazione dei maestri", ordina: "ORDINA PER",
   aderenza: "Aderenza", risposta: "Risposta", valutazioni: "Da valutare",
   aderenzaK: "ADERENZA", lezioni: "lezioni", allievi: "allievi", progressi: "progressi", daValutare: "da valutare",
   rispostaTag: "Risposta {v}", formazioneTag: "Formazione {a}/{b}", scheda: "Scheda di {nome}",

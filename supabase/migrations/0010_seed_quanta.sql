@@ -119,7 +119,7 @@ begin
   where not exists (select 1 from public.membri m where m.centro_id = b and m.ruolo = 'dt' and m.user_id is null and m.nome = d.nome and m.cognome = d.cognome);
 
   -- 12 maestri (i nomi di fantasia tranne Alan Fiordelmonte e Marco Campanella, indicati dal cliente, responsabili dell'area Adulti)
-  create temp table _qm (idx int, nome text, cognome text) on commit drop;
+  create temp table if not exists _qm (idx int, nome text, cognome text);
   insert into _qm values
     (1, 'Andrea', 'Vallarino'), (2, 'Silvia', 'Montecresto'), (3, 'Alan', 'Fiordelmonte'), (4, 'Chiara', 'Belcorvo'),
     (5, 'Davide', 'Torresani'), (6, 'Marco', 'Campanella'), (7, 'Elena', 'Rovescalli'), (8, 'Paolo', 'Sandrelli'),
@@ -146,8 +146,8 @@ begin
 
   -- ---- gruppi: 30, coerenti con le aree e gli orari ----
   -- ord, nome, area, fascia, livello, giorni (1 = lun), ora, minuti, campo, maestro principale (idx), secondo maestro, n allievi, anni di nascita da-a, programma annuale
-  create temp table _qg (ord int, nome text, area text, fascia text, livello text, giorni int[], ora time, durata int, campo int,
-                         m1 int, m2 int, n int, a0 int, a1 int, prog text) on commit drop;
+  create temp table if not exists _qg (ord int, nome text, area text, fascia text, livello text, giorni int[], ora time, durata int, campo int,
+                         m1 int, m2 int, n int, a0 int, a1 int, prog text);
   insert into _qg values
     -- Scuola Tennis (4-16 anni): gruppi omogenei, sessioni da 80 minuti con preparazione atletica, pomeriggio 16:30-19:30 e sabato mattina
     (1,  'Mini 4-7 · Lun-Mer',       'Scuola Tennis', 'U8',  'Mini',       array[1,3], '16:30', 80, 12, 1, null, 12, 2019, 2022, 'U10'),
@@ -205,8 +205,8 @@ begin
 
   -- ---- allievi (322), famiglie, iscrizioni, consensi: solo alla prima esecuzione ----
   if not exists (select 1 from public.allievi where centro_id = b) then
-    create temp table _qa (id uuid default gen_random_uuid(), k int, gnome text, a0 int, a1 int, nome text, cognome text,
-                           nascita date, adulto boolean, sib boolean, fam int) on commit drop;
+    create temp table if not exists _qa (id uuid default gen_random_uuid(), k int, gnome text, a0 int, a1 int, nome text, cognome text,
+                           nascita date, adulto boolean, sib boolean, fam int);
     insert into _qa (k, gnome, a0, a1, nome, cognome, nascita, sib, fam)
     select t.k, t.gnome, t.a0, t.a1,
            v_nomi[1 + t.k % cardinality(v_nomi)], v_cogn[1 + t.k % cardinality(v_cogn)],
@@ -417,7 +417,7 @@ begin
     and not exists (select 1 from public.formazione x where x.corso_id = c.id and x.membro_id = m.id);
 
   -- conversazioni famiglia-maestro (circa il 4% degli allievi), messaggi immutabili: si inseriscono una volta sola
-  create temp table _qc (cid uuid default gen_random_uuid(), allievo uuid, genitore uuid, maestro uuid, an text, titolo text) on commit drop;
+  create temp table if not exists _qc (cid uuid default gen_random_uuid(), allievo uuid, genitore uuid, maestro uuid, an text, titolo text);
   insert into _qc (allievo, genitore, maestro, an, titolo)
   select a.id, f.membro_id, gm.membro_id, a.nome, 'Famiglia ' || a.cognome || ' (' || a.nome || ') · ' || m.nome
   from public.allievi a
@@ -514,7 +514,7 @@ begin
   ) a(titolo, testo, dest, conferma, promemoria, quando)
   where not exists (select 1 from public.avvisi x where x.centro_id = b and x.titolo = a.titolo);
 
-  create temp table _dest (avviso_id uuid, membro_id uuid, quando timestamptz, pct int) on commit drop;
+  create temp table if not exists _dest (avviso_id uuid, membro_id uuid, quando timestamptz, pct int);
   insert into _dest
   select av.id, t.membro, av.consegna_il, case when av.titolo like 'Quanta%' then 70 when av.titolo like 'Agonismo%' then 85 else 40 end
   from public.avvisi av
