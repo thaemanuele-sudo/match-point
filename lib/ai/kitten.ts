@@ -38,28 +38,83 @@ function eItaliana(o: Record<string, unknown>, clonata: boolean): boolean {
   return JSON.stringify(o).toLowerCase().includes("ital");
 }
 
-/** Elenco delle sole voci italiane (più le clonate) dell'account. Lancia un Error leggibile se Kitten non risponde. */
-export async function vociItaliane(chiave: string): Promise<VoceKitten[]> {
-  const r = await fetch(`${API}/voices?model=${MODELLO_KITTEN}`, {
-    headers: { authorization: `Bearer ${chiave}` },
-    signal: AbortSignal.timeout(ATTESA_ELENCO_MS),
-    cache: "no-store",
-  });
-  if (!r.ok) throw new Error(r.status === 401 || r.status === 403 ? "Chiave KittenML non valida." : `KittenML ha risposto ${r.status}.`);
-  const j: unknown = await r.json().catch(() => null);
-  const lista = Array.isArray(j) ? j : j && typeof j === "object" ? Object.values(j as Record<string, unknown>).find(Array.isArray) : null;
-  const out: VoceKitten[] = [];
-  for (const v of Array.isArray(lista) ? lista : []) {
+/** Campi che indicano una voce dell'account (e non di serie). */
+const CAMPI_PROPRIETARIO = ["owner", "owner_id", "user_id", "created_by"];
+/** Nome dell'array nella risposta che fa pensare a voci dell'utente: custom_voices, user_voices, cloned, my_voices… */
+const NOME_ARRAY_CLONATE = /custom|user|clon|(^|[._-])my|(^|[._-])own|mine/i;
+
+type Grezza = { dato: unknown; daArrayClonate: boolean };
+
+/** Raccoglie TUTTI gli array della risposta (anche annidati di un livello): KittenML può separare voci di serie e voci dell'utente. */
+function raccogliArray(j: unknown): Grezza[] {
+  const out: Grezza[] = [];
+  const aggiungi = (arr: unknown[], nome: string) => { for (const dato of arr) out.push({ dato, daArrayClonate: NOME_ARRAY_CLONATE.test(nome) }); };
+  if (Array.isArray(j)) { aggiungi(j, ""); return out; }
+  if (!j || typeof j !== "object") return out;
+  for (const [k1, v1] of Object.entries(j as Record<string, unknown>)) {
+    if (Array.isArray(v1)) { aggiungi(v1, k1); continue; }
+    if (v1 && typeof v1 === "object") {
+      for (const [k2, v2] of Object.entries(v1 as Record<string, unknown>)) {
+        if (Array.isArray(v2)) aggiungi(v2, `${k1}.${k2}`);
+      }
+    }
+  }
+  return out;
+}
+
+/** Legge un elenco di voci da un indirizzo; null se KittenML non lo offre (così si può unire con altri elenchi). */
+async function leggiElenco(url: string, chiave: string, obbligatorio: boolean): Promise<unknown | null> {
+  try {
+    const r = await fetch(url, { headers: { authorization: `Bearer ${chiave}` }, signal: AbortSignal.timeout(ATTESA_ELENCO_MS), cache: "no-store" });
+    if (!r.ok) {
+      if (obbligatorio) throw new Error(r.status === 401 || r.status === 403 ? "Chiave KittenML non valida." : `KittenML ha risposto ${r.status}.`);
+      return null;
+    }
+    return await r.json().catch(() => null);
+  } catch (e) {
+    if (obbligatorio) throw e instanceof Error ? e : new Error("KittenML non risponde.");
+    return null;
+  }
+}
+
+export type ElencoVoci = { voci: VoceKitten[]; ricevute: number; clonate: number };
+
+/**
+ * Elenco delle voci di KittenML. Unisce tutti gli array della risposta (voci di serie + voci dell'account/clonate),
+ * senza doppioni. Le clonate si mostrano sempre, in qualunque lingua; le altre solo italiane, salvo `tutte`.
+ * Lancia un Error leggibile se Kitten non risponde.
+ */
+export async function elencoVoci(chiave: string, tutte = false): Promise<ElencoVoci> {
+  // Un solo indirizzo è documentato (/voices?model=…). Si prova anche /voices senza filtro del modello:
+  // il filtro potrebbe escludere le voci clonate, e se non c'è si ignora in silenzio.
+  const [principale, senzaFiltro] = await Promise.all([
+    leggiElenco(`${API}/voices?model=${MODELLO_KITTEN}`, chiave, true),
+    leggiElenco(`${API}/voices`, chiave, false),
+  ]);
+  const grezze = [...raccogliArray(principale), ...raccogliArray(senzaFiltro)];
+  const perId = new Map<string, { voce: VoceKitten; o: Record<string, unknown> }>();
+  for (const { dato: v, daArrayClonate } of grezze) {
     const o: Record<string, unknown> = typeof v === "string" ? { name: v } : v && typeof v === "object" ? (v as Record<string, unknown>) : {};
     const id = testo(o.id) ?? testo(o.voice_id) ?? testo(o.name);
     if (!id) continue;
     const tipo = JSON.stringify([o.type, o.category, o.source, o.kind]).toLowerCase();
-    const clonata = id.startsWith("voice_") || o.cloned === true || o.custom === true || /clon|custom|user/.test(tipo);
-    if (!eItaliana(o, clonata)) continue;
-    out.push({ id, nome: testo(o.display_name) ?? testo(o.name) ?? id, genere: leggiGenere(o), clonata });
+    const clonata =
+      daArrayClonate || id.startsWith("voice_") || o.cloned === true || o.custom === true ||
+      CAMPI_PROPRIETARIO.some((c) => o[c] != null && o[c] !== "") || /clon|custom|user/.test(tipo);
+    const gia = perId.get(id);
+    if (gia) { if (clonata) gia.voce.clonata = true; continue; } // doppione: si tiene una sola voce, clonata se lo è in una delle due
+    perId.set(id, { voce: { id, nome: testo(o.display_name) ?? testo(o.name) ?? id, genere: leggiGenere(o), clonata }, o });
   }
+  const tutteLeVoci = [...perId.values()];
+  const voci = tutteLeVoci.filter(({ voce, o }) => tutte || voce.clonata || eItaliana(o, false)).map((x) => x.voce);
   // le clonate in testa: sono quelle che il cliente cerca
-  return out.sort((a, b) => Number(b.clonata) - Number(a.clonata) || a.nome.localeCompare(b.nome, "it"));
+  voci.sort((a, b) => Number(b.clonata) - Number(a.clonata) || a.nome.localeCompare(b.nome, "it"));
+  return { voci, ricevute: tutteLeVoci.length, clonate: tutteLeVoci.filter((x) => x.voce.clonata).length };
+}
+
+/** Elenco delle sole voci italiane (più le clonate, sempre) dell'account. */
+export async function vociItaliane(chiave: string): Promise<VoceKitten[]> {
+  return (await elencoVoci(chiave, false)).voci;
 }
 
 /** Audio mp3 di Kitten. `voceId` vuoto = prima voce italiana dell'elenco. Lancia un Error con messaggio leggibile. */
