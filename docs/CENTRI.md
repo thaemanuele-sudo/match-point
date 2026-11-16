@@ -216,3 +216,19 @@ Nuova scheda "Centri" in `Admin.tsx`:
 - Non toccare `package.json`. Per una dipendenza nuova (es. `stripe`), scriverlo nel rapporto: la aggiunge l'organizzatore. Per Stripe usare `fetch` sulla REST API, senza SDK.
 - Non fare commit né push: li fa l'organizzatore alla fine.
 - Riprodurre fedelmente ogni mockup. Gli stati interattivi dei mockup (chip, seg, pannelli) diventano funzioni vere sui dati.
+
+## Scala: grandi centri (requisito del cliente)
+L'app deve reggere almeno 3-4 grandi centri insieme. Ipotesi per ogni centro:
+- 1500 allievi, 2000 famiglie, 40 maestri, 80 gruppi, 15 campi;
+- 2 anni di storico, cioè circa 25.000 lezioni, 400.000 presenze, 200.000 messaggi e 300.000 notifiche.
+
+Regole per tutte le aree:
+- **Liste lunghe paginate lato database:**
+  - usare `.range()` a blocchi di 50 con "carica altri" o lo scroll infinito; mai scaricare tutto per filtrare nel browser;
+  - ricerca con `ilike` o `textSearch` sul server, con un debounce di 300 ms.
+- **Colonne:** selezionare solo quelle che servono, mai `select('*')` su tabelle grandi (`lezioni`, `presenze`, `messaggi`, `notifiche`, `valutazioni`, `quote`, `registro`).
+- **Date:** filtrare sempre per intervallo (settimana, mese, ultimi 90 giorni) su lezioni, presenze, messaggi e notifiche.
+- **Aggregati:** numeri e statistiche (panoramica, aderenza, progressi, incassi, letture) arrivano da RPC che calcolano nel database, non sommando righe nel client.
+- **Niente N+1:** niente query dentro un ciclo, si usa un'unica query con `in(...)` o i join di PostgREST.
+- **Realtime:** solo su `notifiche` e `messaggi`, con il filtro per membro o conversazione; la sottoscrizione si chiude allo smontaggio.
+- **Storage:** gli URL firmati vanno chiesti quando servono e in gruppo (`createSignedUrls`); i video non si scaricano mai in anticipo.

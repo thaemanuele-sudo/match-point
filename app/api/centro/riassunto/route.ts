@@ -17,7 +17,7 @@ const SISTEMA =
   "Non nominare singoli bambini, non dare giudizi sul corpo o sul talento, non inventare fatti che non ti vengono dati. " +
   "Rispondi solo con il testo del riassunto.";
 
-type Blocco = { titolo?: unknown; colpo?: unknown; minuti?: unknown; scelta?: unknown; alternative?: unknown; esercizio?: unknown };
+type Blocco = { titolo?: unknown; colpo?: unknown; minuti?: unknown; sostituto?: unknown; esercizio?: unknown };
 type Svolto = { indice?: unknown; minuti?: unknown; fatto?: unknown; saltato?: unknown; sostituito?: unknown };
 
 const num = (v: unknown, d = 0) => (typeof v === "number" && Number.isFinite(v) ? v : d);
@@ -65,9 +65,8 @@ export async function POST(req: Request) {
     const s = svolto.find((x) => num(x.indice, -1) === i);
     const fatto = s ? s.fatto === true && s.saltato !== true : true;
     const minuti = s ? num(s.minuti, num(b.minuti)) : num(b.minuti);
-    const alt = Array.isArray(b.alternative) ? (b.alternative as unknown[]) : [];
-    const sc = num(b.scelta, -1);
-    const esercizio = sc >= 0 && alt[sc] ? txt(alt[sc]) : txt(b.esercizio);
+    const sost = b.sostituto && typeof b.sostituto === "object" ? txt((b.sostituto as { titolo?: unknown }).titolo) : "";
+    const esercizio = sost || txt(b.esercizio);
     return `- ${txt(b.titolo) || txt(b.colpo) || "Blocco"}${esercizio ? ` (${esercizio})` : ""}: ${fatto ? `${minuti} minuti` : "non svolto"}`;
   });
 
