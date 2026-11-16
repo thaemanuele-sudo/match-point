@@ -1,10 +1,8 @@
-// Letture condivise dalle schermate dei pagamenti: colonne esplicite, blocchi, cache del catalogo e totali.
+// Letture condivise dalle schermate dei pagamenti: colonne esplicite, blocchi, cache del catalogo e totali (RPC).
 // Con 1500 allievi e 2000 famiglie per centro una quota ha migliaia di righe al mese: niente tabelle intere,
 // niente `in(...)` con centinaia di id (l'indirizzo della richiesta diventa troppo lungo) e niente totali sommati riga per riga nel browser.
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { rpcTollerante } from "@/components/centro/famiglia/util";
-import type { AllievoMin, Corso, GruppoMin, LegameFamiglia, MembroMin, Quota, StatoEff } from "./util";
-import { statoEff } from "./util";
+import type { AllievoMin, Corso, GruppoMin, LegameFamiglia, MembroMin } from "./util";
 
 export const COL_QUOTA = "id,centro_id,allievo_id,corso_id,periodo,importo_cent,scade_il,stato,pagata_il,metodo,stripe_id";
 export const COL_CORSO = "id,centro_id,nome,gruppo_id,quota_cent,sconto_fratelli_pct,rate,scadenze";
@@ -103,57 +101,18 @@ export const chiaveFamiglia = (allievoId: string, genitori: string[] | undefined
 export type Riepilogo = { P: number; A: number; S: number; fam: { P: number; A: number; S: number } };
 const RIEPILOGO_VUOTO: Riepilogo = { P: 0, A: 0, S: 0, fam: { P: 0, A: 0, S: 0 } };
 
-/** Somma gli importi per stato e conta le famiglie (stato peggiore tra le loro quote: scaduta > in attesa > pagata). */
-export function riepilogoDaQuote(
-  quote: Pick<Quota, "allievo_id" | "importo_cent" | "stato" | "scade_il">[],
-  genitoriDi: Map<string, string[]>,
-  oggi: string,
-): Riepilogo {
-  const r: Riepilogo = { P: 0, A: 0, S: 0, fam: { P: 0, A: 0, S: 0 } };
-  const peso = { P: 0, A: 1, S: 2 };
-  const peggio = new Map<string, StatoEff>();
-  for (const q of quote) {
-    const st = statoEff(q, oggi);
-    r[st] += q.importo_cent;
-    const k = chiaveFamiglia(q.allievo_id, genitoriDi.get(q.allievo_id));
-    const c = peggio.get(k);
-    if (!c || peso[st] > peso[c]) peggio.set(k, st);
-  }
-  peggio.forEach((v) => r.fam[v]++);
-  return r;
-}
-
-// Se il database non ha ancora la funzione dei totali non si ritenta a ogni cambio di mese
-let funzioneTotaliAssente = false;
-
 /**
- * Totali del mese più gli arretrati (quote non pagate di mesi precedenti).
- * Via giusta: la funzione `riepilogo_pagamenti` calcola nel database (vedi il rapporto per la definizione).
- * Ripiego finché non esiste: legge solo le quattro colonne che servono, a blocchi di 1000, e somma nel browser come prima.
+ * Totali del mese più gli arretrati (quote non pagate di mesi precedenti): li calcola il database con la RPC
+ * `riepilogo_pagamenti` (docs/RPC.md, Aggregati), nel perimetro della RLS di `quote`. Una quota in attesa scaduta
+ * prima di `oggi` vale scaduta; per famiglia conta lo stato peggiore (scaduta, poi attesa, poi pagata).
  */
 export async function riepilogoPagamenti(sb: SupabaseClient, centroId: string, da: string, a: string, oggi: string): Promise<Riepilogo> {
-  if (!funzioneTotaliAssente) {
-    const r = await rpcTollerante(sb, "riepilogo_pagamenti", { centro: centroId, dal: da, al: a, oggi });
-    if (!r.error && r.data) {
-      const j = (Array.isArray(r.data) ? r.data[0] : r.data) as Record<string, number | null> | null;
-      if (j) {
-        return {
-          P: Number(j.pagato_cent ?? 0), A: Number(j.attesa_cent ?? 0), S: Number(j.scaduto_cent ?? 0),
-          fam: { P: Number(j.famiglie_pagate ?? 0), A: Number(j.famiglie_attesa ?? 0), S: Number(j.famiglie_scadute ?? 0) },
-        };
-      }
-      return RIEPILOGO_VUOTO;
-    }
-    // funzione assente (PGRST202, 42883): si passa al ripiego; qualsiasi altro errore si segnala
-    const assente = r.error && (r.error.code === "PGRST202" || r.error.code === "42883" || /could not find the function|does not exist/i.test(r.error.message));
-    if (r.error && !assente) throw new Error(r.error.message);
-    funzioneTotaliAssente = true;
-  }
-  const quote = await tuttePagine<Pick<Quota, "allievo_id" | "importo_cent" | "stato" | "scade_il">>((x, y) =>
-    sb.from("quote").select("allievo_id,importo_cent,stato,scade_il").eq("centro_id", centroId)
-      .or(`and(scade_il.gte.${da},scade_il.lte.${a}),and(scade_il.lt.${da},stato.neq.pagata)`)
-      .order("id").range(x, y),
-  );
-  const { genitoriDi } = await leggiLegami(sb, centroId, quote.map((q) => q.allievo_id), false);
-  return riepilogoDaQuote(quote, genitoriDi, oggi);
+  const r = await sb.rpc("riepilogo_pagamenti", { p_centro: centroId, p_dal: da, p_al: a, p_oggi: oggi });
+  if (r.error) throw new Error(r.error.message);
+  const j = (Array.isArray(r.data) ? r.data[0] : r.data) as Record<string, number | null> | null;
+  if (!j) return RIEPILOGO_VUOTO;
+  return {
+    P: Number(j.pagato_cent ?? 0), A: Number(j.attesa_cent ?? 0), S: Number(j.scaduto_cent ?? 0),
+    fam: { P: Number(j.famiglie_pagate ?? 0), A: Number(j.famiglie_attesa ?? 0), S: Number(j.famiglie_scadute ?? 0) },
+  };
 }

@@ -2,12 +2,12 @@
 // C20 · Organizzazione del centro: la direzione tecnica sopra le aree; ogni area ha uno o più responsabili.
 // Si aggiungono e si tolgono responsabili, si creano e si modificano le aree. Metodo e tutela restano della direzione.
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { SchermoCentro } from "@/components/centro/Schermo";
 import { Avatar, Btn, Campo, Caricamento, Chip, Chips, Errore, Foglio, Ico, Nota, Tag, Vuoto } from "@/components/centro/ui";
 import { rotta } from "@/lib/centro/rotte";
 import { useT } from "@/lib/i18n/lingua";
-import { FASCE, PERMESSI_BASE, allieviDelGruppo, colorePerArea, fasceTesto, nomeCompleto, sostituisci, useOrg, type DatiOrg, type Org } from "./dati";
+import { FASCE, PERMESSI_BASE, colorePerArea, fasceTesto, nomeCompleto, sostituisci, useOrg, type DatiOrg, type Org } from "./dati";
 import { InvitoBox, creaInvito } from "./Invito";
 import type { AreaR } from "./tipi";
 import "./org.css";
@@ -36,6 +36,20 @@ export default function CentroOrganigramma() {
   const [togli, setTogli] = useState<{ id: string; nome: string; area: string } | null>(null);
   const [errore, setErrore] = useState<string | null>(null);
   const puo = o.isDT;
+
+  // allievi per area, contati dal database (un allievo in due gruppi dell'area vale uno); si rileggono dopo ogni modifica
+  const [perArea, setPerArea] = useState<Record<string, number>>({});
+  const idAree = d ? d.aree.map((a) => a.id).join(",") : "";
+  useEffect(() => {
+    if (!d || !idAree) return;
+    let vivo = true;
+    void Promise.all(idAree.split(",").map(async (id) => {
+      const x = await o.sb.rpc("allievi_riepilogo", { p_centro: centro.id, p_aree: [id] });
+      return [id, x.error ? 0 : Number((x.data as { attivi: number }).attivi)] as const;
+    })).then((r) => { if (vivo) setPerArea(Object.fromEntries(r)); });
+    return () => { vivo = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [o.sb, centro.id, idAree, d]);
 
   const schermo = (corpo: React.ReactNode, sopra?: string) => (
     <SchermoCentro ruolo={o.eResp ? "area" : "dt"} tab="organizzazione" titolo={t.titolo} sopra={sopra ?? centro.nome} indietro={o.eResp ? r.area.base : r.dt.base}
@@ -71,7 +85,7 @@ export default function CentroOrganigramma() {
         <div className="og-dash c2" style={{ gap: 6 }}>
           {d.aree.map((a) => {
             const gs = d.gruppi.filter((g) => g.area_id === a.id && g.attivo);
-            const n = new Set(gs.flatMap((g) => allieviDelGruppo(d.iscrizioni, g.id))).size;
+            const n = perArea[a.id] ?? 0;
             const rs = d.membri.filter((m) => m.ruolo === "responsabile_area" && m.area_id === a.id);
             return (
               <div key={a.id} className="card og-card og-fascia-card" style={{ ["--c" as string]: colorePerArea(d, a.id), padding: "9px 12px", gap: 6 }}>

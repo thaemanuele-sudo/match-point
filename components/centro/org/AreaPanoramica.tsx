@@ -8,8 +8,8 @@ import { Avatar, Btn, Caricamento, Chip, Chips, Errore, Ico, Sezione, Tag, Tile,
 import { rotta, ROTTE_APP } from "@/lib/centro/rotte";
 import { aggiungiGiorni, fmtData, fmtGiorni, fmtOra, inizioSettimana, isoGiorno } from "@/lib/centro/date";
 import { useT } from "@/lib/i18n/lingua";
-import { allieviDelGruppo, colorePerArea, leggiPresenze, maestriDi, nomeAllievo, nomeCompleto, sostituisci, useOrg } from "./dati";
-import type { AllievoL, AssenzaR, PresenzaL } from "./tipi";
+import { allieviDelGruppo, colorePerArea, maestriDi, nomeAllievo, nomeCompleto, sostituisci, useConteggi, useOrg } from "./dati";
+import type { AllievoL, AssenzaR } from "./tipi";
 import "./org.css";
 
 const IT = {
@@ -28,8 +28,8 @@ export default function AreaPanoramica() {
   const { centro, sb, dati: d } = o;
   const r = rotta(centro.slug);
   const [areaSel, setAreaSel] = useState<string | null>(null);
-  // presenze del mese dell'area scelta: la chiave dice di quale area sono, così non si mostrano numeri di un'altra
-  const [pres, setPres] = useState<{ chiave: string; righe: PresenzaL[] } | null>(null);
+  // presenze degli ultimi 30 giorni dell'area scelta (`area_presenze_mese`): `area` dice di quale area sono, così non si mostrano numeri di un'altra
+  const [pres, setPres] = useState<{ area: string; perc: number | null } | null>(null);
   const [assenzeOggi, setAssenzeOggi] = useState<AssenzaR[] | null>(null);
   const [nomi, setNomi] = useState<Map<string, AllievoL>>(new Map());
   const [err, setErr] = useState<string | null>(null);
@@ -49,16 +49,19 @@ export default function AreaPanoramica() {
     return () => { vivo = false; };
   }, [sb, centro.id]);
 
-  // presenze del mese solo dei gruppi dell'area scelta (una lettura con join, non una per blocco di lezioni)
+  // percentuale di presenza dell'area, calcolata dal database
   useEffect(() => {
-    if (!chiaveArea) { setPres({ chiave: chiaveArea, righe: [] }); return; }
+    if (!areaId) { setPres({ area: "", perc: null }); return; }
     let vivo = true;
-    void leggiPresenze(sb, centro.id, `${isoGiorno().slice(0, 7)}-01`, idGruppiArea).then((p) => {
+    void sb.rpc("area_presenze_mese", { p_centro: centro.id, p_area: areaId }).then((x: { data: unknown; error: { message: string } | null }) => {
       if (!vivo) return;
-      if (p.errore) setErr(p.errore); else setPres({ chiave: chiaveArea, righe: p.righe });
+      if (x.error) setErr(x.error.message); else setPres({ area: areaId, perc: x.data === null ? null : Number(x.data) });
     });
     return () => { vivo = false; };
-  }, [sb, centro.id, chiaveArea, idGruppiArea]);
+  }, [sb, centro.id, areaId]);
+
+  // allievi e iscritti per gruppo dell'area scelta, contati dal database
+  const conteggi = useConteggi(sb, centro.id, areaId ? [areaId] : [], d);
 
   // allievi dell'area con un'assenza oggi: un'unica lettura per id, mai una per riga
   const idAssenti = useMemo(() => {
@@ -82,7 +85,7 @@ export default function AreaPanoramica() {
       {corpo}
     </SchermoCentro>
   );
-  if (!d || !assenzeOggi || !pres) return schermo(o.errore || err ? <Errore messaggio={o.errore ?? err} onRiprova={() => void o.carica()} /> : <Caricamento />);
+  if (!d || !assenzeOggi || !pres || (areaId && !conteggi.riepilogo)) return schermo(o.errore || err ? <Errore messaggio={o.errore ?? err} onRiprova={() => void o.carica()} /> : <Caricamento />);
 
   const area = d.aree.find((a) => a.id === areaId);
   if (!area) return schermo(<Vuoto titolo={t.vuotoT} testo={t.vuotoS} icona="star" />);
@@ -91,9 +94,9 @@ export default function AreaPanoramica() {
   const idG = new Set(gruppi.map((g) => g.id));
   // `d.iscrizioni` contiene già solo le iscrizioni in corso
   const alunni = new Set(gruppi.flatMap((g) => allieviDelGruppo(d.iscrizioni, g.id)));
+  const nAlunni = conteggi.riepilogo?.attivi ?? 0;
   const maestri = new Set(d.gm.filter((x) => idG.has(x.gruppo_id)).map((x) => x.membro_id));
-  const pm = pres.chiave === chiaveArea ? pres.righe.filter((p) => idG.has(p.gruppo_id)) : [];
-  const perc = pm.length ? Math.round((pm.filter((p) => p.presente).length / pm.length) * 100) : null;
+  const perc = pres.area === area.id ? pres.perc : null;
 
   const lun = inizioSettimana(), dom = isoGiorno(aggiungiGiorni(lun, 6)), l0 = isoGiorno(lun);
   const cambi = d.cambi.filter((c) => idG.has(c.gruppo_id) && c.data >= l0 && c.data <= dom).sort((a, b) => (a.data > b.data ? 1 : -1));
@@ -104,7 +107,7 @@ export default function AreaPanoramica() {
     <div className="og-pagina">
       {scelte.length > 1 && <Chips>{scelte.map((id) => <Chip key={id} on={id === area.id} onClick={() => setAreaSel(id)}>{d.aree.find((a) => a.id === id)?.nome}</Chip>)}</Chips>}
       <div className="g4" style={{ gap: 6 }}>
-        <Tile valore={gruppi.length} etichetta={t.gruppi} /><Tile valore={alunni.size} etichetta={t.allievi} />
+        <Tile valore={gruppi.length} etichetta={t.gruppi} /><Tile valore={nAlunni} etichetta={t.allievi} />
         <Tile valore={perc === null ? "—" : `${perc}%`} etichetta={t.presenze} /><Tile valore={maestri.size} etichetta={t.maestri} />
       </div>
       <div className="og-dash c2">
@@ -118,7 +121,7 @@ export default function AreaPanoramica() {
               <div key={g.id} className="li" style={{ padding: "9px 12px" }}>
                 <span className="dot" style={{ background: colorePerArea(d, g.area_id) }} />
                 <span className="grow"><span className="t" style={{ display: "block", fontSize: 14.5 }}>{g.nome} · {fmtGiorni(g.giorni)} {fmtOra(g.ora)}</span>
-                  <span className="s" style={{ display: "block" }}>{sostituisci(t.sub, { m: m.length ? m.map(nomeCompleto).join(" · ") : t.nessunMaestro, n: allieviDelGruppo(d.iscrizioni, g.id).length })}</span></span>
+                  <span className="s" style={{ display: "block" }}>{sostituisci(t.sub, { m: m.length ? m.map(nomeCompleto).join(" · ") : t.nessunMaestro, n: conteggi.perGruppo?.get(g.id) ?? 0 })}</span></span>
                 <Tag>{c ? sostituisci(t.campo, { n: c.numero }) : t.senzaCampo}</Tag>
               </div>
             );

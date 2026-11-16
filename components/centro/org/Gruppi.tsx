@@ -9,7 +9,7 @@ import { aggiungiGiorni, fmtData, fmtGiorni, fmtOra, inizioSettimana, isoGiorno 
 import { useT } from "@/lib/i18n/lingua";
 import {
   COL_ALLIEVO_LISTA, FASCE, PAGINA, colorePerArea, conflittiPosti, maestriDi, nomeAllievo, nomeBreve, postiDelGiorno, pulisciRicerca, settimanaProgramma, sostituisci, allieviDelGruppo,
-  useDebounce, useOrg, type DatiOrg, type Org,
+  useConteggi, useDebounce, useOrg, type DatiOrg, type Org,
 } from "./dati";
 import type { AllievoL, GruppoMaestroR, GruppoR } from "./tipi";
 import "./org.css";
@@ -38,6 +38,8 @@ export default function CentroGruppi() {
   const [fascia, setFascia] = useState("tutti");
   const [foglio, setFoglio] = useState<{ g: GruppoR | null } | null>(null);
   const puoCreare = o.can("gruppi");
+  // allievi per gruppo e allievi del centro (o dell'area) contati dal database
+  const conteggi = useConteggi(o.sb, centro.id, o.ids, d);
 
   const giorniSett = useMemo(() => {
     const lun = inizioSettimana();
@@ -55,7 +57,7 @@ export default function CentroGruppi() {
   );
   if (!d) return schermo(o.errore ? <Errore messaggio={o.errore} onRiprova={() => void o.carica()} /> : <Caricamento />);
 
-  const nAllievi = new Set(o.iscrAttive.map((i) => i.allievo_id)).size;
+  const nAllievi = conteggi.riepilogo?.attivi ?? 0;
   const conflitti = giorniSett.flatMap((iso) => {
     const posti = postiDelGiorno(gruppi, d.cambi, iso);
     return conflittiPosti(posti, d.gm).map((c) => ({ iso, c }));
@@ -74,7 +76,7 @@ export default function CentroGruppi() {
         <Vuoto titolo={t.vuotoT} testo={t.vuotoS} icona="users" azione={puoCreare ? <Btn pieno={false} onClick={() => setFoglio({ g: null })} icona="plus">{t.nuovo}</Btn> : undefined} />
       ) : (
         <div className="og-dash c2">
-          {gruppi.map((g) => <SchedaGruppo key={g.id} g={g} d={d} o={o} modifica={o.can("gruppi", g.area_id) ? () => setFoglio({ g }) : undefined} />)}
+          {gruppi.map((g) => <SchedaGruppo key={g.id} g={g} d={d} o={o} n={conteggi.perGruppo?.get(g.id) ?? 0} modifica={o.can("gruppi", g.area_id) ? () => setFoglio({ g }) : undefined} />)}
         </div>
       ))}
 
@@ -119,13 +121,12 @@ export default function CentroGruppi() {
   );
 }
 
-function SchedaGruppo({ g, d, o, modifica }: { g: GruppoR; d: DatiOrg; o: Org; modifica?: () => void }) {
+function SchedaGruppo({ g, d, n, modifica }: { g: GruppoR; d: DatiOrg; o: Org; n: number; modifica?: () => void }) {
   const t = useT(T);
   const campo = d.campi.find((c) => c.id === g.campo_id);
   const maestri = maestriDi(d, g.id);
   const prog = d.programmi.find((p) => p.id === g.programma_id);
   const sett = settimanaProgramma(prog);
-  const n = allieviDelGruppo(o.iscrAttive, g.id).length;
   const corpo = (
     <>
       <div className="og-riga" style={{ flexWrap: "nowrap" }}>

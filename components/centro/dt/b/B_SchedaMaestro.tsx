@@ -48,15 +48,12 @@ const abbrevia = (a: Riga) => `${a.nome ?? ""} ${a.cognome ? a.cognome[0] + "." 
 const chiaveTest = (k: string) => k.replace("-", " ");
 
 /** Allievi del maestro con il voto medio nel test corrente, dal più indietro al più avanti. */
-function ordineAllievi(dati: Dati, m: MaestroStat): [string, number][] {
-  const mie = new Set(m.allieviIds);
-  const somme = new Map<string, [number, number]>();
-  for (const v of dati.valutazioni) {
-    if (!mie.has(v.allievo_id) || v.voto == null || v.test !== dati.testCorrente) continue;
-    const c = somme.get(v.allievo_id) ?? [0, 0];
-    somme.set(v.allievo_id, [c[0] + Number(v.voto), c[1] + 1]);
-  }
-  return [...somme.entries()].map(([id, [s, n]]): [string, number] => [id, s / n]).sort((a, b) => a[1] - b[1]);
+function ordineAllievi(dati: Dati, _m: MaestroStat): [string, number][] {
+  // la media dell'ultimo test di ogni allievo arriva da `statistiche_allievi_maestro`
+  return dati.statAllievi
+    .filter((s) => s.media_ultimo_test != null)
+    .map((s): [string, number] => [s.allievo_id, Number(s.media_ultimo_test)])
+    .sort((a, b) => a[1] - b[1]);
 }
 
 export default function BSchedaMaestro() {
@@ -135,8 +132,8 @@ export default function BSchedaMaestro() {
         const mp = media(prec.filter((v) => (v.colpo ?? "") === colpo));
         const delta = mp == null ? "" : rimpiazza(t.rispettoA, { d: `${mc - mp >= 0 ? "+" : ""}${virgola(mc - mp)}`, p: chiaveTest(dati.testPrecedente ?? "") });
         out.push({
-          c: rated >= m.allieviIds.length ? COL.verde : COL.giallo,
-          t: rimpiazza(t.testRiga, { t: chiaveTest(dati.testCorrente), a: rated, b: m.allieviIds.length }),
+          c: rated >= m.nAllievi ? COL.verde : COL.giallo,
+          t: rimpiazza(t.testRiga, { t: chiaveTest(dati.testCorrente), a: rated, b: m.nAllievi }),
           s: rimpiazza(t.testSub, { colpo: colpo ? colpo[0].toUpperCase() + colpo.slice(1) : "—", m: virgola(mc), d: delta }),
           r: m.mancanti ? rimpiazza(t.mancano, { n: m.mancanti }) : t.completo,
         });
@@ -226,7 +223,7 @@ export default function BSchedaMaestro() {
 
             <div className="g3">
               <div className="tile" style={{ padding: "8px 12px" }}><b>{m.lezioniChiuse}</b><span>{t.lezioniReg}</span></div>
-              <div className="tile" style={{ padding: "8px 12px" }}><b>{m.allieviIds.length}</b><span>{t.allievi}</span></div>
+              <div className="tile" style={{ padding: "8px 12px" }}><b>{m.nAllievi}</b><span>{t.allievi}</span></div>
               <div className="tile" style={{ padding: "8px 12px" }}><b style={{ color: m.rispostaOre != null && m.rispostaOre > 24 ? COL.arancio : COL.verde }}>{fmtOre(m.rispostaOre)}</b><span>{t.rispostaChat}</span></div>
             </div>
 

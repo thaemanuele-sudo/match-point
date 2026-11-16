@@ -77,7 +77,7 @@ export default function BMaestri() {
               <div className="bar" style={{ margin: "7px 0", height: 6 }}><i style={{ width: `${m.aderenza ?? 0}%`, background: colA }} /></div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(4,minmax(0,1fr))", gap: 4, fontSize: 11.5, color: COL.muto }}>
                 <span><b style={{ color: "#F3F6F1", fontSize: 14 }}>{m.lezioniChiuse}</b> {t.lezioni}</span>
-                <span><b style={{ color: "#F3F6F1", fontSize: 14 }}>{m.allieviIds.length}</b> {t.allievi}</span>
+                <span><b style={{ color: "#F3F6F1", fontSize: 14 }}>{m.nAllievi}</b> {t.allievi}</span>
                 <span><b style={{ color: COL.verde, fontSize: 14 }}>{m.progressi == null ? "—" : `${m.progressi > 0 ? "+" : ""}${m.progressi}%`}</b> {t.progressi}</span>
                 <span><b style={{ fontSize: 14, color: m.mancanti >= 3 ? COL.arancio : m.mancanti > 0 ? COL.giallo : COL.verde }}>{m.mancanti}</b> {t.daValutare}</span>
               </div>
