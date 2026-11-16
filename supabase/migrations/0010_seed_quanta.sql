@@ -406,33 +406,81 @@ begin
 end
 $seed$;
 
--- ============ C. Direzione: osservazioni, formazione, conversazioni, avvisi, segnalazioni, notifiche, registro ============
+-- ============ C1. Direzione e comunicazione: osservazioni, formazione, conversazioni e messaggi ============
+-- Per ogni maestro 6-9 conversazioni (famiglia-maestro, allievo-maestro con i genitori in sola lettura), una chat con un DT;
+-- 4-12 messaggi negli ultimi 30 giorni, alcuni non letti. In più conversazioni famiglia-segreteria e una chat dello staff.
 do $seed$
 declare
   b uuid := (select id from public.centri where slug = 'quanta-club');
-  brigo uuid := (select id from public.membri where centro_id = (select id from public.centri where slug = 'quanta-club') and ruolo = 'dt' and nome = 'Marco' and cognome = 'Brigo');
-  chiappini uuid := (select id from public.membri where centro_id = (select id from public.centri where slug = 'quanta-club') and ruolo = 'dt' and nome = 'Fabio' and cognome = 'Chiappini');
-  segr uuid := (select id from public.membri where centro_id = (select id from public.centri where slug = 'quanta-club') and ruolo = 'segreteria' limit 1);
-  alan uuid := (select id from public.membri where centro_id = (select id from public.centri where slug = 'quanta-club') and ruolo = 'maestro' and nome = 'Alan' and cognome = 'Fiordelmonte');
-  campanella uuid := (select id from public.membri where centro_id = (select id from public.centri where slug = 'quanta-club') and ruolo = 'maestro' and nome = 'Marco' and cognome = 'Campanella');
-  s1 uuid; s2 uuid;
+  brigo uuid := (select id from public.membri where centro_id = b and ruolo = 'dt' and nome = 'Marco' and cognome = 'Brigo');
+  chiappini uuid := (select id from public.membri where centro_id = b and ruolo = 'dt' and nome = 'Fabio' and cognome = 'Chiappini');
+  segr uuid := (select id from public.membri where centro_id = b and ruolo = 'segreteria' limit 1);
+  alan uuid := (select id from public.membri where centro_id = b and ruolo = 'maestro' and nome = 'Alan' and cognome = 'Fiordelmonte');
+  campanella uuid := (select id from public.membri where centro_id = b and ruolo = 'maestro' and nome = 'Marco' and cognome = 'Campanella');
+  -- testi: le righe dispari le scrive la famiglia (o l'allievo), le pari il maestro (#A = allievo, #M = maestro)
+  v_fam text[] := array[
+    'Buonasera, #A oggi non si sentiva molto bene: domani può partecipare comunque alla lezione?',
+    'Buonasera, certo, se sta meglio può venire. Se serve lo faccio lavorare con meno intensità.',
+    'Grazie. Una cosa: come sta andando con il dritto?',
+    'Sta migliorando: nelle ultime lezioni ha preso più sicurezza e la preparazione è più compatta.',
+    'Perfetto. Nel fine settimana c''è un torneo: è consigliato iscriverlo?',
+    'Per ora direi di sì, è un buon modo per mettersi alla prova. Ne parliamo prima della prossima lezione.',
+    'Ok. Venerdì dobbiamo ritirarlo: a che ora finisce la lezione?',
+    'Finiamo all''orario previsto, poi servono cinque minuti per lo stretching.',
+    'Ricevuto, ci saremo. Grazie ancora!',
+    'Un piacere. A presto in campo!',
+    'Una domanda sul certificato medico: va consegnato in segreteria?',
+    'Sì, basta portarlo in segreteria, anche in copia. Grazie!'];
+  v_all text[] := array[
+    'Ciao #M, ho fatto gli esercizi al muro come mi hai detto. Quanti ne devo fare per il dritto?',
+    'Ciao #A! Bravo. Continua con tre serie da dieci e concentrati sul punto d''impatto davanti al corpo.',
+    'Ok! Posso provare anche il servizio?',
+    'Sì, ma solo i lanci di palla per ora: l''obiettivo è il lancio alto e costante.',
+    'Domani c''è lezione anche se piove?',
+    'Se il campo è scoperto controlliamo la mattina: ti scrivo qui entro mezzogiorno.',
+    'Grazie. Mi sono accorto che il rovescio mi viene corto: è normale?',
+    'È normale, succede quando non porti il peso in avanti. Lo vediamo insieme in campo.',
+    'Perfetto, ci provo alla prossima lezione!',
+    'Ottimo, porta la borraccia!',
+    'Ho dimenticato la racchetta nello spogliatoio, è ancora lì?',
+    'Sì, l''ho messa in segreteria. Passa a prenderla prima della lezione.'];
+  v_seg text[] := array[
+    'Buongiorno, vorrei sapere come funziona l''iscrizione al Quanta Junior Tour.',
+    'Buongiorno, le inviamo i dettagli appena sono disponibili nel calendario del club.',
+    'Grazie. Per l''iscrizione di #A serve qualche documento?',
+    'Serve il certificato medico in corso di validità; se è in scadenza lo aggiorniamo insieme.',
+    'Ho portato il certificato ieri, riuscite a verificarlo?',
+    'Verificato, risulta tutto in regola. Grazie a voi!',
+    'Una domanda sul recupero della lezione persa: come posso fare?',
+    'Può concordarlo con il maestro: se c''è posto in un altro gruppo la segreteria lo registra.'];
+  v_stf text[] := array[
+    'Ciao #M, la settimana prossima ti osservo in campo: ti va bene?',
+    'Va bene, nessun problema. Porto il piano della lezione.',
+    'Perfetto. Guardiamo soprattutto i tempi dei blocchi e la correzione.',
+    'Ricevuto, grazie.'];
 begin
-  -- osservazioni dei due DT su sei maestri (sulla terzultima lezione chiusa di ciascuno)
+  -- osservazioni in campo dei due DT: due per ogni maestro, su lezioni chiuse diverse
   insert into public.osservazioni (centro_id, maestro_id, osservatore_id, lezione_id, voti, voto, consigli, nota, created_at)
-  select b, m.id, case when q.n % 2 = 0 then brigo else chiappini end, l.id,
-         jsonb_build_object('tempi', 3 + q.n % 3, 'correzione', 4 + q.n % 2, 'gruppo', 3 + (q.n + 1) % 3, 'sicurezza', 4 + q.n % 2),
-         3 + q.n % 3,
-         case q.n % 2 when 0 then array['Dare un obiettivo misurabile a ogni blocco', 'Lasciare più tempo di gioco nell''ultimo blocco']
-                      else array['Rispettare i minuti di ogni blocco', 'Preparare il campo prima dell''arrivo dei ragazzi'] end,
-         case q.n % 2 when 0 then 'Correzioni chiare e buona gestione del gruppo.' else 'Lezione solida, con qualche tempo allungato nel primo blocco.' end,
+  select b, m.id, case when hh.h % 2 = 0 then brigo else chiappini end, l.id,
+         jsonb_build_object('tempi', 3 + hh.h % 3, 'correzione', 3 + (hh.h / 3) % 3, 'gruppo', 3 + (hh.h / 7) % 3, 'sicurezza', 4 + (hh.h / 5) % 2),
+         3 + hh.h % 3,
+         case hh.h % 4
+           when 0 then array['Dare un obiettivo misurabile a ogni blocco', 'Lasciare più tempo di gioco nell''ultimo blocco']
+           when 1 then array['Rispettare i minuti di ogni blocco', 'Preparare il campo prima dell''arrivo dei ragazzi']
+           when 2 then array['Spiegare lo scopo tattico di ogni esercizio', 'Chiudere sempre con un momento di defaticamento']
+           else array['Coinvolgere di più i ragazzi meno attivi', 'Aggiungere un video di riferimento per il colpo del giorno'] end,
+         (array['Correzioni chiare e buona gestione del gruppo.', 'Lezione solida, con qualche tempo allungato nel primo blocco.',
+                'Intensità giusta e clima positivo: i ragazzi sono coinvolti.', 'Buon livello tecnico; migliorare la chiusura della lezione.'])[1 + hh.h % 4],
          (l.data + 1)::timestamp at time zone 'Europe/Rome'
-  from (values (1, 'Andrea', 'Vallarino'), (2, 'Silvia', 'Montecresto'), (3, 'Alan', 'Fiordelmonte'), (4, 'Chiara', 'Belcorvo'),
-               (5, 'Elena', 'Rovescalli'), (6, 'Giulia', 'Ferranova')) q(n, nome, cognome)
-  join public.membri m on m.centro_id = b and m.ruolo = 'maestro' and m.nome = q.nome and m.cognome = q.cognome
-  cross join lateral (select x.id, x.data from public.lezioni x where x.maestro_id = m.id and x.stato = 'chiusa' order by x.data desc offset 2 limit 1) l
-  where not exists (select 1 from public.osservazioni o where o.centro_id = b and o.maestro_id = m.id);
+  from public.membri m
+  cross join (values (1), (2)) o(k)
+  cross join lateral (select abs(hashtext(m.id::text || o.k::text)) as h) hh
+  cross join lateral (select x.id, x.data from public.lezioni x where x.maestro_id = m.id and x.stato = 'chiusa'
+                      order by x.data desc offset (case o.k when 1 then 2 else 9 end) limit 1) l
+  where m.centro_id = b and m.ruolo = 'maestro'
+    and not exists (select 1 from public.osservazioni z where z.maestro_id = m.id and z.lezione_id = l.id);
 
-  -- formazione: ogni maestro ha fatto una parte dei moduli di ogni corso (certificato solo se completo)
+  -- formazione: ogni maestro ha fatto una parte dei moduli di ogni corso (certificato solo se completo): molti corsi sono in corso
   insert into public.formazione (centro_id, corso_id, membro_id, moduli_fatti, certificato_il, scadenza)
   select b, c.id, m.id, f.fatti,
          case when f.fatti >= c.moduli then date '2026-03-01' + (abs(hashtext(m.id::text || c.id::text)) % 200) end,
@@ -443,121 +491,194 @@ begin
   where m.centro_id = b and m.ruolo = 'maestro' and c.centro_id = b
     and not exists (select 1 from public.formazione x where x.corso_id = c.id and x.membro_id = m.id);
 
-  -- conversazioni famiglia-maestro (circa il 4% degli allievi), messaggi immutabili: si inseriscono una volta sola
-  create temp table if not exists _qc (cid uuid default gen_random_uuid(), allievo uuid, genitore uuid, maestro uuid, an text, titolo text);
-  insert into _qc (allievo, genitore, maestro, an, titolo)
-  select a.id, f.membro_id, gm.membro_id, a.nome, 'Famiglia ' || a.cognome || ' (' || a.nome || ') · ' || m.nome
+  -- dai 14 anni l'allievo ha un account proprio (impostazione account_ragazzo_da): serve per le chat allievo-maestro
+  insert into public.membri (centro_id, ruolo, nome, cognome, email, stato)
+  select b, 'allievo'::public.ruolo_centro, a.nome, a.cognome, 'allievo.' || a.id || '@quanta-demo.example', 'attivo'
   from public.allievi a
-  join public.allievi_famiglie f on f.allievo_id = a.id
-  join public.iscrizioni i on i.allievo_id = a.id
-  join public.gruppi_maestri gm on gm.gruppo_id = i.gruppo_id and gm.principale
-  join public.membri m on m.id = gm.membro_id
-  where a.centro_id = b and abs(hashtext(a.id::text || 'conv')) % 100 < 4
-    and not exists (select 1 from public.conversazioni c where c.centro_id = b and c.allievo_id = a.id and c.tipo = 'famiglia_maestro');
+  where a.centro_id = b and a.membro_id is null and a.data_nascita between date '2008-01-01' and date '2012-11-16'
+    and not exists (select 1 from public.membri m where m.centro_id = b and m.email = 'allievo.' || a.id || '@quanta-demo.example');
+  update public.allievi a set membro_id = m.id
+  from public.membri m
+  where a.centro_id = b and a.membro_id is null and m.centro_id = b and m.email = 'allievo.' || a.id || '@quanta-demo.example';
+
+  -- conversazioni dei maestri: 6-9 per maestro (secondo gli allievi disponibili)
+  create temp table if not exists _qc (cid uuid default gen_random_uuid(), tipo text, allievo uuid, maestro uuid, genitore uuid, accmem uuid,
+                                       an text, mn text, titolo text, n int, ult timestamptz);
+  insert into _qc (tipo, allievo, maestro, genitore, accmem, an, mn, titolo, n, ult)
+  select y.tipo, y.allievo, y.maestro, y.genitore, y.accmem, y.an, y.mn, y.titolo, 4 + y.h % 9,
+         timestamptz '2026-11-04 17:40+01' + (y.h % 12) * interval '1 day' + (y.h % 5) * interval '37 minutes'
+  from (
+    select z.*, row_number() over (partition by z.maestro order by abs(hashtext(z.allievo::text || z.tipo || 'rk'))) rk
+    from (
+      select a.id allievo, gm.membro_id maestro, f.membro_id genitore, a.membro_id accmem, t.tipo, a.nome an, m.nome mn,
+             case t.tipo when 'famiglia_maestro' then 'Famiglia ' || a.cognome || ' (' || a.nome || ') · ' || m.nome
+                         else a.nome || ' ' || a.cognome || ' · ' || m.nome end titolo,
+             abs(hashtext(a.id::text || t.tipo)) h
+      from public.allievi a
+      join public.iscrizioni i on i.allievo_id = a.id
+      join public.gruppi_maestri gm on gm.gruppo_id = i.gruppo_id and gm.principale
+      join public.membri m on m.id = gm.membro_id
+      left join lateral (select ff.membro_id from public.allievi_famiglie ff where ff.allievo_id = a.id order by ff.created_at, ff.id limit 1) f on true
+      cross join (values ('famiglia_maestro'), ('allievo_maestro')) t(tipo)
+      where a.centro_id = b and ((t.tipo = 'famiglia_maestro' and f.membro_id is not null) or (t.tipo = 'allievo_maestro' and a.membro_id is not null))
+    ) z
+  ) y
+  where y.rk <= 6 + abs(hashtext(y.maestro::text)) % 4
+    and not exists (select 1 from public.conversazioni c where c.centro_id = b and c.allievo_id = y.allievo and c.tipo = y.tipo and c.titolo = y.titolo);
 
   insert into public.conversazioni (id, centro_id, tipo, allievo_id, titolo, creata_da, created_at)
-  select cid, b, 'famiglia_maestro', allievo, titolo, genitore, timestamptz '2026-11-09 17:00+01' from _qc
-  on conflict (id) do nothing;
-  insert into public.partecipanti (centro_id, conversazione_id, membro_id, sola_lettura)
-  select b, q.cid, x.membro, false from _qc q cross join lateral (values (q.genitore), (q.maestro)) x(membro)
-  where not exists (select 1 from public.partecipanti p where p.conversazione_id = q.cid and p.membro_id = x.membro);
-  -- h=0: la famiglia scrive e nessuno risponde; h=1: risposta del maestro; h=2: scambio completo; h=3: risposta del maestro
-  insert into public.messaggi (centro_id, conversazione_id, autore_id, testo, consegna_il, created_at)
-  select b, q.cid, case s.n when 2 then q.maestro else q.genitore end,
-         case s.n
-           when 1 then case abs(hashtext(q.cid::text)) % 3
-                         when 0 then 'Buonasera, ' || q.an || ' può portare un amico alla prossima lezione di prova?'
-                         when 1 then 'Buongiorno, ' || q.an || ' ha chiesto se può recuperare la lezione persa la settimana scorsa.'
-                         else 'Buonasera, a che ora finisce domani la lezione di ' || q.an || '? Devo organizzare il ritiro.' end
-           when 2 then 'Buonasera, certo: basta avvisare la segreteria prima dell''inizio della lezione.'
-           else 'Perfetto, grazie mille!' end,
-         ts.t, ts.t
+  select q.cid, b, q.tipo, q.allievo, q.titolo, case q.tipo when 'famiglia_maestro' then q.genitore else q.accmem end,
+         q.ult - (q.n - 1) * (interval '1 day' * least(2.0, 20.0 / q.n)::float8)
   from _qc q
-  cross join (values (1), (2), (3)) s(n)
-  cross join lateral (select abs(hashtext(q.cid::text)) % 4 as h) hh
-  cross join lateral (select timestamptz '2026-11-09 17:30+01' + (abs(hashtext(q.cid::text)) % 5) * interval '1 day' + (s.n - 1) * interval '35 minutes' as t) ts
-  where (s.n = 1 or (s.n = 2 and hh.h <> 0) or (s.n = 3 and hh.h = 2))
-    and not exists (select 1 from public.messaggi x where x.conversazione_id = q.cid);
+  on conflict (id) do nothing;
 
-  -- due conversazioni famiglia-segreteria e una chat dello staff
-  insert into public.conversazioni (centro_id, tipo, allievo_id, titolo, creata_da, created_at)
-  select b, 'famiglia_segreteria', q.allievo, 'Famiglia ' || a.cognome || ' · Segreteria', q.genitore, timestamptz '2026-11-12 10:00+01'
-  from (select * from _qc order by cid limit 2) q join public.allievi a on a.id = q.allievo
-  where not exists (select 1 from public.conversazioni c where c.centro_id = b and c.tipo = 'famiglia_segreteria' and c.allievo_id = q.allievo);
+  -- nella chat allievo-maestro i genitori sono in sola lettura
+  insert into public.partecipanti (centro_id, conversazione_id, membro_id, sola_lettura)
+  select b, q.cid, x.m, x.ro
+  from _qc q
+  cross join lateral (values (q.maestro, false),
+                             (case q.tipo when 'famiglia_maestro' then q.genitore else q.accmem end, false),
+                             (case when q.tipo = 'allievo_maestro' then q.genitore end, true)) x(m, ro)
+  where x.m is not null
+  on conflict (conversazione_id, membro_id) do nothing;
+
+  insert into public.messaggi (centro_id, conversazione_id, autore_id, testo, consegna_il, created_at)
+  select b, q.cid,
+         case when i % 2 = 1 then (case q.tipo when 'famiglia_maestro' then q.genitore else q.accmem end) else q.maestro end,
+         replace(replace((case q.tipo when 'famiglia_maestro' then v_fam else v_all end)[((i - 1 + 2 * (abs(hashtext(q.cid::text)) % 3)) % 12) + 1], '#A', q.an), '#M', q.mn),
+         t.ts, t.ts
+  from _qc q
+  cross join lateral generate_series(1, q.n) i
+  cross join lateral (select q.ult - (q.n - i) * (interval '1 day' * least(2.0, 20.0 / q.n)::float8) as ts) t
+  where not exists (select 1 from public.messaggi x where x.conversazione_id = q.cid);
+
+  -- chat con un DT per ogni maestro (4 messaggi)
+  create temp table if not exists _qt (cid uuid default gen_random_uuid(), maestro uuid, dt uuid, mn text, titolo text, ult timestamptz);
+  insert into _qt (maestro, dt, mn, titolo, ult)
+  select r.id, r.dt, r.nome, public._nome_membro(r.dt) || ' · ' || r.nome, timestamptz '2026-11-09 09:00+01' + (r.rn % 6) * interval '1 day'
+  from (select m.id, m.nome, case when row_number() over (order by m.id) % 2 = 0 then brigo else chiappini end dt,
+               row_number() over (order by m.id) rn
+        from public.membri m where m.centro_id = b and m.ruolo = 'maestro') r
+  where not exists (select 1 from public.conversazioni c where c.centro_id = b and c.tipo = 'staff' and c.titolo = public._nome_membro(r.dt) || ' · ' || r.nome);
+  insert into public.conversazioni (id, centro_id, tipo, titolo, creata_da, created_at)
+  select cid, b, 'staff', titolo, dt, ult - interval '3 hours' from _qt on conflict (id) do nothing;
+  insert into public.partecipanti (centro_id, conversazione_id, membro_id, sola_lettura)
+  select b, q.cid, x.m, false from _qt q cross join lateral (values (q.maestro), (q.dt)) x(m)
+  on conflict (conversazione_id, membro_id) do nothing;
+  insert into public.messaggi (centro_id, conversazione_id, autore_id, testo, consegna_il, created_at)
+  select b, q.cid, case when i % 2 = 1 then q.dt else q.maestro end, replace(v_stf[i], '#M', q.mn),
+         q.ult - (4 - i) * interval '40 minutes', q.ult - (4 - i) * interval '40 minutes'
+  from _qt q cross join lateral generate_series(1, 4) i
+  where not exists (select 1 from public.messaggi x where x.conversazione_id = q.cid);
+
+  -- conversazioni famiglia-segreteria (circa il 9% delle famiglie)
+  create temp table if not exists _qs (cid uuid default gen_random_uuid(), allievo uuid, genitore uuid, an text, titolo text, n int, ult timestamptz);
+  insert into _qs (allievo, genitore, an, titolo, n, ult)
+  select a.id, f.membro_id, a.nome, 'Famiglia ' || a.cognome || ' (' || a.nome || ') · Segreteria', 4 + abs(hashtext(a.id::text || 's')) % 5,
+         timestamptz '2026-11-06 10:10+01' + (abs(hashtext(a.id::text || 'u')) % 9) * interval '1 day'
+  from public.allievi a
+  join lateral (select ff.membro_id from public.allievi_famiglie ff where ff.allievo_id = a.id order by ff.created_at, ff.id limit 1) f on true
+  where a.centro_id = b and abs(hashtext(a.id::text || 'seg')) % 100 < 9
+    and not exists (select 1 from public.conversazioni c where c.centro_id = b and c.tipo = 'famiglia_segreteria' and c.allievo_id = a.id);
+  insert into public.conversazioni (id, centro_id, tipo, allievo_id, titolo, creata_da, created_at)
+  select cid, b, 'famiglia_segreteria', allievo, titolo, genitore, ult - (n - 1) * interval '1 day' from _qs on conflict (id) do nothing;
+  insert into public.partecipanti (centro_id, conversazione_id, membro_id, sola_lettura)
+  select b, q.cid, x.m, false from _qs q cross join lateral (values (q.genitore), (segr)) x(m)
+  on conflict (conversazione_id, membro_id) do nothing;
+  insert into public.messaggi (centro_id, conversazione_id, autore_id, testo, consegna_il, created_at)
+  select b, q.cid, case when i % 2 = 1 then q.genitore else segr end, replace(v_seg[1 + (i - 1) % 8], '#A', q.an),
+         q.ult - (q.n - i) * interval '1 day', q.ult - (q.n - i) * interval '1 day'
+  from _qs q cross join lateral generate_series(1, q.n) i
+  where not exists (select 1 from public.messaggi x where x.conversazione_id = q.cid);
+
+  -- chat dello staff (DT e responsabili Adulti)
   insert into public.conversazioni (centro_id, tipo, titolo, creata_da, created_at)
   select b, 'staff', 'Coordinamento staff', brigo, timestamptz '2026-11-10 09:00+01'
-  where not exists (select 1 from public.conversazioni c where c.centro_id = b and c.tipo = 'staff');
-
+  where not exists (select 1 from public.conversazioni c where c.centro_id = b and c.titolo = 'Coordinamento staff');
   insert into public.partecipanti (centro_id, conversazione_id, membro_id, sola_lettura)
-  select b, c.id, x.membro, false
-  from public.conversazioni c
-  join public.allievi_famiglie f on f.allievo_id = c.allievo_id
-  cross join lateral (values (f.membro_id), (segr)) x(membro)
-  where c.centro_id = b and c.tipo = 'famiglia_segreteria'
-    and not exists (select 1 from public.partecipanti p where p.conversazione_id = c.id and p.membro_id = x.membro);
-  insert into public.partecipanti (centro_id, conversazione_id, membro_id, sola_lettura)
-  select b, c.id, x.membro, false
-  from public.conversazioni c cross join lateral (values (brigo), (chiappini), (alan), (campanella)) x(membro)
-  where c.centro_id = b and c.tipo = 'staff'
-    and not exists (select 1 from public.partecipanti p where p.conversazione_id = c.id and p.membro_id = x.membro);
-
-  insert into public.messaggi (centro_id, conversazione_id, autore_id, testo, consegna_il, created_at)
-  select b, c.id, case s.n when 1 then f.membro_id else segr end,
-         case s.n when 1 then 'Buongiorno, vorrei sapere come funziona l''iscrizione al Quanta Junior Tour.'
-                  else 'Buongiorno, le inviamo i dettagli non appena sono disponibili nel calendario del club.' end,
-         timestamptz '2026-11-12 10:00+01' + (s.n - 1) * interval '30 minutes', timestamptz '2026-11-12 10:00+01' + (s.n - 1) * interval '30 minutes'
-  from public.conversazioni c
-  join public.allievi_famiglie f on f.allievo_id = c.allievo_id
-  cross join (values (1), (2)) s(n)
-  where c.centro_id = b and c.tipo = 'famiglia_segreteria'
-    and not exists (select 1 from public.messaggi x where x.conversazione_id = c.id);
+  select b, c.id, x.m, false
+  from public.conversazioni c cross join lateral (values (brigo), (chiappini), (alan), (campanella)) x(m)
+  where c.centro_id = b and c.titolo = 'Coordinamento staff'
+  on conflict (conversazione_id, membro_id) do nothing;
   insert into public.messaggi (centro_id, conversazione_id, autore_id, testo, consegna_il, created_at)
   select b, c.id, s.autore, s.testo, s.t, s.t
   from public.conversazioni c
   cross join (values
-    (brigo, 'Giovedì riunione di coordinamento sul calendario del Quanta Junior Tour: servono i campi 12-17 sabato mattina.', timestamptz '2026-11-10 09:05+01'),
+    (brigo, 'Giovedì riunione di coordinamento sul calendario del Quanta Junior Tour: servono i campi play it il sabato mattina.', timestamptz '2026-11-10 09:05+01'),
     (alan, 'Per gli Adulti la sera confermo i campi play it: nessun cambio.', timestamptz '2026-11-10 09:40+01'),
     (chiappini, 'Perfetto, ne parliamo giovedì.', timestamptz '2026-11-10 10:00+01')) s(autore, testo, t)
-  where c.centro_id = b and c.tipo = 'staff' and not exists (select 1 from public.messaggi x where x.conversazione_id = c.id);
+  where c.centro_id = b and c.titolo = 'Coordinamento staff' and not exists (select 1 from public.messaggi x where x.conversazione_id = c.id);
 
-  -- notifiche dei messaggi: quelli più vecchi di due giorni sono già letti
+  -- notifiche dei messaggi (ultimo messaggio di ogni conversazione): i più recenti restano in parte non letti
   insert into public.notifiche (centro_id, membro_id, tipo, titolo, testo, link, mittente, letta_il, consegna_il, rif_id, created_at)
   select b, p.membro_id, 'messaggio', public._nome_membro(ms.autore_id), left(ms.testo, 140), '/c/quanta-club/chat/' || cv.id,
-         public._nome_membro(ms.autore_id), case when ms.created_at < timestamptz '2026-11-14 00:00+01' then ms.created_at + interval '1 hour' end, ms.consegna_il, cv.id, ms.created_at
+         public._nome_membro(ms.autore_id),
+         case when ms.created_at >= timestamptz '2026-11-10 00:00+01' and abs(hashtext(cv.id::text)) % 100 < 55 then null else ms.created_at + interval '2 hours' end,
+         ms.consegna_il, cv.id, ms.created_at
   from public.conversazioni cv
   join lateral (select * from public.messaggi x where x.conversazione_id = cv.id order by x.created_at desc limit 1) ms on true
-  join public.partecipanti p on p.conversazione_id = cv.id and p.membro_id <> ms.autore_id
+  join public.partecipanti p on p.conversazione_id = cv.id and p.membro_id <> ms.autore_id and not p.sola_lettura
   where cv.centro_id = b
     and not exists (select 1 from public.notifiche n where n.membro_id = p.membro_id and n.tipo = 'messaggio' and n.rif_id = cv.id);
+end
+$seed$;
 
-  -- avvisi del DT con le letture dei destinatari
+-- ============ C2. Avvisi, cambi campo, compiti, assenze di oggi e domani, notifiche ============
+do $seed$
+declare
+  b uuid := (select id from public.centri where slug = 'quanta-club');
+  brigo uuid := (select id from public.membri where centro_id = b and ruolo = 'dt' and nome = 'Marco' and cognome = 'Brigo');
+  chiappini uuid := (select id from public.membri where centro_id = b and ruolo = 'dt' and nome = 'Fabio' and cognome = 'Chiappini');
+  resp_alan uuid := (select id from public.membri where centro_id = b and ruolo = 'responsabile_area' and nome = 'Alan' limit 1);
+begin
+  -- 10 avvisi (centro, fascia, gruppo, area) con letture parziali
   insert into public.avvisi (centro_id, autore_id, titolo, testo, destinatari, conferma, promemoria, consegna_il, created_at)
-  select b, brigo, a.titolo, a.testo, a.dest, a.conferma, a.promemoria, a.quando, a.quando
+  select b, a.autore, a.titolo, a.testo, a.dest, a.conferma, a.promemoria, a.quando, a.quando
   from (values
-    ('Quanta Junior Tour · prossima tappa sabato 19 dicembre', 'Sabato 19 dicembre si gioca la tappa del Quanta Junior Tour, categorie Red, Orange, Green e Yellow. Le famiglie sono invitate a confermare la presenza.',
+    (brigo, 'Quanta Junior Tour · prossima tappa sabato 19 dicembre', 'Sabato 19 dicembre si gioca la tappa del Quanta Junior Tour, categorie Red, Orange, Green e Yellow. Le famiglie sono invitate a confermare la presenza.',
       '{"tipo":"fascia","valori":["U8","U10","U12"]}'::jsonb, true, false, timestamptz '2026-11-12 09:00+01'),
-    ('Agonismo e Academy: orari della prossima settimana', 'Nella prossima settimana gli orari di Agonismo Junior e Tennis Academy restano invariati. Per qualsiasi variazione scriviamo qui.',
+    (chiappini, 'Agonismo e Academy: orari della prossima settimana', 'Nella prossima settimana gli orari di Agonismo Junior e Tennis Academy restano invariati. Per qualsiasi variazione scriviamo qui.',
       jsonb_build_object('tipo', 'area', 'valori', (select coalesce(jsonb_agg(ar.id::text), '[]'::jsonb) from public.aree ar where ar.centro_id = b and ar.nome in ('Agonismo Junior', 'Tennis Academy'))),
       false, false, timestamptz '2026-11-13 10:00+01'),
-    ('Segreteria: orari e contatti', 'Ricordiamo che per qualsiasi richiesta amministrativa potete scrivere alla segreteria dall''app, nella sezione Messaggi.',
-      '{"tipo":"centro","valori":[]}'::jsonb, false, true, timestamptz '2026-11-14 12:00+01')
-  ) a(titolo, testo, dest, conferma, promemoria, quando)
+    (brigo, 'Segreteria: orari e contatti', 'Per qualsiasi richiesta amministrativa potete scrivere alla segreteria dall''app, nella sezione Messaggi.',
+      '{"tipo":"centro","valori":[]}'::jsonb, false, true, timestamptz '2026-11-14 12:00+01'),
+    (chiappini, 'Test tecnici di novembre completati', 'I test tecnici di novembre sono stati completati: i risultati sono nelle schede dei progressi. Grazie a tutti per l''impegno.',
+      '{"tipo":"fascia","valori":["U10","U12","U14","U16","U18"]}'::jsonb, false, false, timestamptz '2026-11-13 18:30+01'),
+    (brigo, 'Intermedio · Mar-Gio: cambio campo di martedì', 'Martedì 17 novembre il gruppo Intermedio · Mar-Gio si allena su un altro campo alla solita ora. Trovate i dettagli nel calendario.',
+      jsonb_build_object('tipo', 'gruppo', 'valori', (select coalesce(jsonb_agg(g.id::text), '[]'::jsonb) from public.gruppi g where g.centro_id = b and g.nome = 'Intermedio · Mar-Gio')),
+      false, false, timestamptz '2026-11-15 18:00+01'),
+    (resp_alan, 'Adulti: serata di gioco libero', 'Venerdì sera, al termine dei corsi, i campi play it restano a disposizione per il gioco libero degli iscritti Adulti.',
+      jsonb_build_object('tipo', 'area', 'valori', (select coalesce(jsonb_agg(ar.id::text), '[]'::jsonb) from public.aree ar where ar.centro_id = b and ar.nome in ('Scuola Tennis Adulti', 'Agonismo Adulti'))),
+      false, false, timestamptz '2026-11-10 11:00+01'),
+    (brigo, 'Mini tennis: festa di fine anno', 'Il gruppo Mini 4-7 prepara una piccola festa di fine anno. Chiediamo alle famiglie di confermare la presenza.',
+      jsonb_build_object('tipo', 'gruppo', 'valori', (select coalesce(jsonb_agg(g.id::text), '[]'::jsonb) from public.gruppi g where g.centro_id = b and g.nome like 'Mini 4-7%')),
+      true, false, timestamptz '2026-11-09 17:00+01'),
+    (chiappini, 'Certificato medico: promemoria', 'Ricordiamo che per giocare serve il certificato medico in corso di validità. Chi ha il certificato in scadenza lo porti in segreteria.',
+      '{"tipo":"centro","valori":[]}'::jsonb, false, true, timestamptz '2026-11-02 09:30+01'),
+    (brigo, 'Pre-Academy e Academy: preparazione atletica', 'Questa settimana la sessione di preparazione atletica si svolge prima della lezione in campo: presentarsi con l''abbigliamento adatto.',
+      jsonb_build_object('tipo', 'area', 'valori', (select coalesce(jsonb_agg(ar.id::text), '[]'::jsonb) from public.aree ar where ar.centro_id = b and ar.nome = 'Tennis Academy')),
+      false, false, timestamptz '2026-11-06 15:00+01'),
+    (chiappini, 'Lezioni private e One Shot: nuove disponibilità', 'Sono disponibili nuovi orari per le lezioni private e per i gruppi One Shot. Per prenotare scrivete alla segreteria.',
+      jsonb_build_object('tipo', 'area', 'valori', (select coalesce(jsonb_agg(ar.id::text), '[]'::jsonb) from public.aree ar where ar.centro_id = b and ar.nome in ('Lezioni private', 'One Shot'))),
+      false, false, timestamptz '2026-11-05 10:00+01')
+  ) a(autore, titolo, testo, dest, conferma, promemoria, quando)
   where not exists (select 1 from public.avvisi x where x.centro_id = b and x.titolo = a.titolo);
 
+  -- destinatari risolti: famiglie e account degli allievi dei gruppi coinvolti (più i maestri per gli avvisi a tutto il centro)
   create temp table if not exists _dest (avviso_id uuid, membro_id uuid, quando timestamptz, pct int);
   insert into _dest
-  select av.id, t.membro, av.consegna_il, case when av.titolo like 'Quanta%' then 70 when av.titolo like 'Agonismo%' then 85 else 40 end
+  select av.id, t.membro, av.consegna_il, 35 + abs(hashtext(av.titolo)) % 55
   from public.avvisi av
   join public.gruppi g on g.centro_id = b and (av.destinatari ->> 'tipo' = 'centro'
        or (av.destinatari ->> 'tipo' = 'fascia' and g.fascia in (select jsonb_array_elements_text(av.destinatari -> 'valori')))
+       or (av.destinatari ->> 'tipo' = 'gruppo' and g.id::text in (select jsonb_array_elements_text(av.destinatari -> 'valori')))
        or (av.destinatari ->> 'tipo' = 'area' and g.area_id::text in (select jsonb_array_elements_text(av.destinatari -> 'valori'))))
   join public.iscrizioni i on i.gruppo_id = g.id
   cross join lateral (select f.membro_id membro from public.allievi_famiglie f where f.allievo_id = i.allievo_id
                       union select a.membro_id from public.allievi a where a.id = i.allievo_id and a.membro_id is not null) t
   where av.centro_id = b and not exists (select 1 from public.avvisi_letture l where l.avviso_id = av.id)
   union
-  -- l'avviso a tutto il centro arriva anche ai maestri
-  select av.id, m.id, av.consegna_il, 40
+  select av.id, m.id, av.consegna_il, 35 + abs(hashtext(av.titolo)) % 55
   from public.avvisi av join public.membri m on m.centro_id = b and m.ruolo = 'maestro'
   where av.centro_id = b and av.destinatari ->> 'tipo' = 'centro' and not exists (select 1 from public.avvisi_letture l where l.avviso_id = av.id);
 
@@ -570,14 +691,100 @@ begin
   insert into public.notifiche (centro_id, membro_id, tipo, titolo, testo, link, mittente, letta_il, consegna_il, rif_id, created_at)
   select b, d.membro_id, 'avviso', av.titolo, left(av.testo, 140),
          '/c/quanta-club' || case m.ruolo when 'maestro' then '/maestro/notifiche' when 'allievo' then '/allievo/notifiche' else '/genitore' end,
-         'Marco Brigo', l.letto_il, av.consegna_il, av.id, av.consegna_il
+         public._nome_membro(av.autore_id), l.letto_il, av.consegna_il, av.id, av.consegna_il
   from _dest d
   join public.avvisi av on av.id = d.avviso_id
   join public.membri m on m.id = d.membro_id
   left join public.avvisi_letture l on l.avviso_id = d.avviso_id and l.membro_id = d.membro_id
   where not exists (select 1 from public.notifiche n where n.membro_id = d.membro_id and n.tipo = 'avviso' and n.rif_id = d.avviso_id);
 
-  -- notifica ai maestri per le assenze già avvisate (da oggi in poi)
+  -- 3 cambi campo nella settimana corrente e nella prossima (vale solo per la data indicata)
+  create temp table if not exists _qcc (gnome text, data date, da int, a int, motivo text, quando timestamptz, chi uuid);
+  insert into _qcc select * from (values
+    ('Intermedio · Mar-Gio', date '2026-11-17', 13, 14, 'Manutenzione del fondo del Campo 13', timestamptz '2026-11-15 18:00+01', brigo),
+    ('Agonismo Junior U12',  date '2026-11-18', 1, 7,  'Pioggia prevista: si passa al campo con pallone', timestamptz '2026-11-16 08:30+01', chiappini),
+    ('Base · Mar-Gio',       date '2026-11-26', 12, 15, 'Ritracciatura delle linee del Campo 12', timestamptz '2026-11-16 09:00+01', brigo)
+  ) v(gnome, data, da, a, motivo, quando, chi) where not exists (select 1 from _qcc);
+
+  insert into public.cambi_campo (centro_id, gruppo_id, data, campo_da, campo_a, motivo, deciso_da, avvisa, created_at)
+  select b, g.id, c.data, (select k.id from public.campi k where k.centro_id = b and k.numero = c.da),
+         (select k.id from public.campi k where k.centro_id = b and k.numero = c.a), c.motivo, c.chi, true, c.quando
+  from _qcc c join public.gruppi g on g.centro_id = b and g.nome = c.gnome
+  where not exists (select 1 from public.cambi_campo x where x.gruppo_id = g.id and x.data = c.data);
+  update public.lezioni l set campo_id = cc.campo_a
+  from public.cambi_campo cc
+  where cc.centro_id = b and l.gruppo_id = cc.gruppo_id and l.data = cc.data and l.stato = 'programmata' and l.campo_id is distinct from cc.campo_a;
+  insert into public.registro (centro_id, membro_id, azione, oggetto, dettagli, created_at)
+  select b, cc.deciso_da, 'cambio_campo', g.nome, jsonb_build_object('data', cc.data, 'da', cc.campo_da, 'a', cc.campo_a, 'motivo', cc.motivo, 'avvisa', true), cc.created_at
+  from public.cambi_campo cc join public.gruppi g on g.id = cc.gruppo_id
+  where cc.centro_id = b and not exists (select 1 from public.registro r where r.centro_id = b and r.azione = 'cambio_campo' and r.oggetto = g.nome and r.dettagli ->> 'data' = cc.data::text);
+  -- notifiche a maestri, allievi e famiglie del gruppo; le più vecchie in parte già lette
+  insert into public.notifiche (centro_id, membro_id, tipo, titolo, testo, link, mittente, letta_il, consegna_il, rif_id, created_at)
+  select b, s.x, 'cambio_campo', 'Cambio campo',
+         g.nome || ' · ' || public._data_it(cc.data) || ' · Campo ' || k1.numero || ' → Campo ' || k2.numero || ' · motivo: ' || cc.motivo,
+         '/c/quanta-club' || case m.ruolo when 'maestro' then '/maestro/notifiche' when 'allievo' then '/allievo/notifiche' else '/genitore' end,
+         public._nome_membro(cc.deciso_da),
+         case when cc.created_at < timestamptz '2026-11-16 00:00+01' and abs(hashtext(s.x::text || cc.id::text)) % 100 < 70 then cc.created_at + interval '3 hours' end,
+         cc.created_at, cc.id, cc.created_at
+  from public.cambi_campo cc
+  join public.gruppi g on g.id = cc.gruppo_id
+  join public.campi k1 on k1.id = cc.campo_da
+  join public.campi k2 on k2.id = cc.campo_a
+  join lateral (
+    select gm.membro_id x from public.gruppi_maestri gm where gm.gruppo_id = cc.gruppo_id
+    union select af.membro_id from public.iscrizioni i join public.allievi_famiglie af on af.allievo_id = i.allievo_id where i.gruppo_id = cc.gruppo_id
+    union select a.membro_id from public.iscrizioni i join public.allievi a on a.id = i.allievo_id where i.gruppo_id = cc.gruppo_id and a.membro_id is not null
+  ) s on true
+  join public.membri m on m.id = s.x
+  where cc.centro_id = b and not exists (select 1 from public.notifiche n where n.rif_id = cc.id and n.membro_id = s.x);
+
+  -- le lezioni programmate non hanno ancora un compito: lo assegna il maestro alla chiusura
+  update public.lezioni set compito = null where centro_id = b and stato = 'programmata' and compito is not null;
+
+  -- compiti per casa dei gruppi junior (uno per le lezioni chiuse con compito, dal 26/10) e compiti svolti
+  insert into public.compiti (centro_id, gruppo_id, maestro_id, titolo, durata_min, scadenza, lezione_id)
+  select b, l.gruppo_id, l.maestro_id, l.compito, 15, l.data + 5, l.id
+  from public.lezioni l
+  where l.centro_id = b and l.stato = 'chiusa' and l.compito is not null and l.data >= date '2026-10-26'
+    and not exists (select 1 from public.compiti c where c.lezione_id = l.id);
+  insert into public.compiti_fatti (centro_id, compito_id, allievo_id, fatto_il)
+  select b, c.id, i.allievo_id,
+         (least(l.data + 1 + abs(hashtext(i.allievo_id::text || c.id::text)) % 3, date '2026-11-16')::timestamp + time '18:30') at time zone 'Europe/Rome'
+  from public.compiti c
+  join public.lezioni l on l.id = c.lezione_id
+  join public.iscrizioni i on i.gruppo_id = c.gruppo_id
+  where c.centro_id = b and abs(hashtext(i.allievo_id::text || c.id::text || 'cf')) % 100 < case when l.data < date '2026-11-09' then 75 else 45 end
+    and not exists (select 1 from public.compiti_fatti x where x.compito_id = c.id and x.allievo_id = i.allievo_id);
+  -- notifiche dei compiti assegnati nelle ultime due settimane (a famiglie e allievi con account); quelli già fatti sono letti
+  insert into public.notifiche (centro_id, membro_id, tipo, titolo, testo, link, mittente, letta_il, consegna_il, rif_id, created_at)
+  select b, s.x, 'compito', 'Nuovo compito', c.titolo,
+         '/c/quanta-club' || case m.ruolo when 'allievo' then '/allievo/compiti' else '/genitore' end,
+         public._nome_membro(c.maestro_id),
+         case when abs(hashtext(s.x::text || c.id::text)) % 100 < 55 then (l.data + 1)::timestamp at time zone 'Europe/Rome' end,
+         (l.data::timestamp + time '19:30') at time zone 'Europe/Rome', c.id, (l.data::timestamp + time '19:30') at time zone 'Europe/Rome'
+  from public.compiti c
+  join public.lezioni l on l.id = c.lezione_id
+  join lateral (
+    select af.membro_id x from public.iscrizioni i join public.allievi_famiglie af on af.allievo_id = i.allievo_id where i.gruppo_id = c.gruppo_id
+    union select a.membro_id from public.iscrizioni i join public.allievi a on a.id = i.allievo_id where i.gruppo_id = c.gruppo_id and a.membro_id is not null
+  ) s on true
+  join public.membri m on m.id = s.x
+  where c.centro_id = b and l.data >= date '2026-11-02'
+    and not exists (select 1 from public.notifiche n where n.rif_id = c.id and n.membro_id = s.x);
+
+  -- assenze avvisate per oggi (16/11) e domani (17/11)
+  insert into public.assenze (centro_id, allievo_id, data, gruppo_id, motivo, testo, avvisato_da)
+  select b, i.allievo_id, l.data, l.gruppo_id, m.motivo,
+         case m.motivo when 'malato' then 'Ha la febbre da ieri sera.' when 'scuola' then 'Verifica o recupero a scuola nel pomeriggio.'
+                       when 'viaggio' then 'Fuori città fino a domani.' else 'Visita medica nel pomeriggio.' end,
+         (select f.membro_id from public.allievi_famiglie f where f.allievo_id = i.allievo_id order by f.created_at limit 1)
+  from public.lezioni l
+  join public.iscrizioni i on i.gruppo_id = l.gruppo_id
+  cross join lateral (select (array['malato', 'scuola', 'viaggio', 'altro'])[1 + abs(hashtext(i.allievo_id::text || l.data::text)) % 4] as motivo) m
+  where l.centro_id = b and l.data in (date '2026-11-16', date '2026-11-17')
+    and abs(hashtext(i.allievo_id::text || l.data::text || 'ad')) % 100 < 7
+    and not exists (select 1 from public.assenze x where x.allievo_id = i.allievo_id and x.data = l.data);
+  -- notifica al maestro per ogni assenza avvisata da oggi in poi
   insert into public.notifiche (centro_id, membro_id, tipo, titolo, testo, link, mittente, rif_id, created_at)
   select b, gm.membro_id, 'assenza', 'Assenza comunicata', a.nome || ' ' || a.cognome || ' · ' || public._data_it(s.data) || ' (' || s.motivo || ')',
          '/c/quanta-club/maestro/notifiche', 'Famiglia ' || a.cognome, s.id, timestamptz '2026-11-16 08:00+01'
@@ -586,38 +793,111 @@ begin
   join public.gruppi_maestri gm on gm.gruppo_id = s.gruppo_id and gm.principale
   where s.centro_id = b and s.data >= date '2026-11-16'
     and not exists (select 1 from public.notifiche n where n.rif_id = s.id and n.membro_id = gm.membro_id);
+end
+$seed$;
 
-  -- 2 segnalazioni (testi dimostrativi) con note del DT
+
+-- ============ C3. Segnalazioni, esercizi proposti, riassunti, certificati, registro, benvenuto ============
+do $seed$
+declare
+  b uuid := (select id from public.centri where slug = 'quanta-club');
+  brigo uuid := (select id from public.membri where centro_id = b and ruolo = 'dt' and nome = 'Marco' and cognome = 'Brigo');
+  chiappini uuid := (select id from public.membri where centro_id = b and ruolo = 'dt' and nome = 'Fabio' and cognome = 'Chiappini');
+  v_gen1 uuid; v_gen2 uuid; v_gen3 uuid;
+begin
+  select m.id into v_gen1 from public.membri m where m.centro_id = b and m.ruolo = 'genitore' order by m.created_at, m.id limit 1 offset 3;
+  select m.id into v_gen2 from public.membri m where m.centro_id = b and m.ruolo = 'genitore' order by m.created_at, m.id limit 1 offset 40;
+  select m.id into v_gen3 from public.membri m where m.centro_id = b and m.ruolo = 'genitore' order by m.created_at, m.id limit 1 offset 90;
+
+  -- segnalazioni in tre stati diversi (nuova, presa, chiusa), come arrivano dalle famiglie
   insert into public.segnalazioni (centro_id, autore_id, anonima, per_allievo_id, categoria, testo, priorita, stato, riguarda_dt, created_at)
   select b, x.autore, x.anonima, null, x.categoria, x.testo, x.priorita, x.stato, false, x.quando
   from (values
-    ((select f.membro_id from public.allievi_famiglie f join public.allievi a on a.id = f.allievo_id where a.centro_id = b order by f.created_at, f.id limit 1),
-     false, 'struttura', 'Le righe di uno dei campi play it sono consumate e alla sera si vedono poco: si potrebbero ritracciare?', 'media', 'nuova', timestamptz '2026-11-15 18:10+01'),
-    (null::uuid, true, 'comportamento', 'Tra alcuni ragazzi di un gruppo ci sono prese in giro negli spogliatoi: vorrei che se ne occupasse qualcuno con delicatezza.', 'bassa', 'presa', timestamptz '2026-11-09 21:40+01')
+    (v_gen1, false, 'struttura', 'Gli spogliatoi vicino ai campi in terra rossa hanno poca acqua calda nel tardo pomeriggio.', 'media', 'nuova', timestamptz '2026-11-15 19:10+01'),
+    (null::uuid, true, 'comportamento', 'Durante un allenamento serale alcuni ragazzi hanno preso in giro un compagno. Vorrei che se ne occupasse qualcuno con delicatezza.', 'alta', 'presa', timestamptz '2026-11-11 21:20+01'),
+    (v_gen3, false, 'organizzazione', 'Sarebbe utile avere gli orari dei campi in pallone pubblicati con più anticipo.', 'bassa', 'chiusa', timestamptz '2026-10-27 12:40+01')
   ) x(autore, anonima, categoria, testo, priorita, stato, quando)
   where not exists (select 1 from public.segnalazioni s where s.centro_id = b and s.testo = x.testo);
 
-  select id into s1 from public.segnalazioni where centro_id = b and categoria = 'struttura' order by created_at limit 1;
-  select id into s2 from public.segnalazioni where centro_id = b and categoria = 'comportamento' order by created_at limit 1;
   insert into public.segnalazioni_note (centro_id, segnalazione_id, autore_id, testo, created_at)
-  select b, n.sid, chiappini, n.testo, n.quando
-  from (values (s2, 'Parlato con i maestri del gruppo: incontro sul rispetto in spogliatoio la prossima settimana.', timestamptz '2026-11-10 10:00+01')) n(sid, testo, quando)
-  where n.sid is not null and not exists (select 1 from public.segnalazioni_note x where x.segnalazione_id = n.sid and x.testo = n.testo);
+  select b, s.id, n.autore, n.testo, n.quando
+  from (values
+    ('Durante un allenamento serale alcuni ragazzi hanno preso in giro un compagno. Vorrei che se ne occupasse qualcuno con delicatezza.', chiappini, 'Ho parlato con il maestro del gruppo: seguiremo la situazione nei prossimi allenamenti.', timestamptz '2026-11-12 09:30+01'),
+    ('Sarebbe utile avere gli orari dei campi in pallone pubblicati con più anticipo.', chiappini, 'Da ora gli orari vengono pubblicati ogni giovedì per la settimana successiva.', timestamptz '2026-10-29 10:00+01'),
+    ('Sarebbe utile avere gli orari dei campi in pallone pubblicati con più anticipo.', brigo, 'Chiusa: comunicato alle famiglie con un avviso.', timestamptz '2026-10-30 11:00+01')
+  ) n(rif, autore, testo, quando)
+  join public.segnalazioni s on s.centro_id = b and s.testo = n.rif
+  where not exists (select 1 from public.segnalazioni_note x where x.segnalazione_id = s.id and x.testo = n.testo);
+
+  insert into public.notifiche (centro_id, membro_id, tipo, titolo, testo, link, mittente, letta_il, rif_id, created_at)
+  select b, d.id, 'segnalazione', 'Nuova segnalazione', left(s.testo, 120), '/c/quanta-club/dt/segnalazioni',
+         'Famiglia', case when s.stato <> 'nuova' then s.created_at + interval '5 hours' end, s.id, s.created_at
+  from public.segnalazioni s
+  join public.membri d on d.centro_id = b and d.ruolo in ('dt', 'titolare')
+  where s.centro_id = b and not exists (select 1 from public.notifiche n where n.rif_id = s.id and n.membro_id = d.id);
+
+  -- esercizi proposti dai maestri, in attesa di approvazione
+  insert into public.esercizi (centro_id, titolo, colpo, fasce, durata_min, materiale, descrizione, fonte, stato, proposto_da)
+  select b, x.titolo, x.colpo, x.fasce, x.durata, x.materiale, x.descrizione, 'maestro', 'proposto',
+         (select m.id from public.membri m where m.centro_id = b and m.ruolo = 'maestro' and m.nome = x.nome and m.cognome = x.cognome limit 1)
+  from (values
+    ('Dritto a bersagli colorati', 'Dritto', array['U8','U10']::text[], 12, 'Coni colorati, palline', 'Colpire il dritto cercando il cono del colore chiamato dal maestro.', 'Chiara', 'Belcorvo'),
+    ('Servizio con zone di rimbalzo', 'Servizio', array['U12','U14']::text[], 15, 'Cerchi, secchio di palline', 'Servire cercando due zone del quadrato, con punteggio per la precisione.', 'Davide', 'Torresani'),
+    ('Risposta in tre tempi', 'Risposta', array['U14','U16','U18']::text[], 15, 'Palline, coni', 'Lettura della traiettoria, passo di avvicinamento e risposta lungolinea.', 'Elena', 'Rovescalli'),
+    ('Volée a rete a coppie', 'Volée', array['U12','U14']::text[], 10, 'Palline', 'Scambio ravvicinato a rete a coppie, contando i colpi consecutivi.', 'Paolo', 'Sandrelli'),
+    ('Circuito di agilità a scaletta', 'Atletica', array['U8','U10','U12']::text[], 10, 'Scaletta, cinesini', 'Percorso di appoggi rapidi seguito da uno scatto laterale.', 'Giulia', 'Ferranova')
+  ) x(titolo, colpo, fasce, durata, materiale, descrizione, nome, cognome)
+  where not exists (select 1 from public.esercizi e where e.centro_id = b and e.titolo = x.titolo);
 
   insert into public.notifiche (centro_id, membro_id, tipo, titolo, testo, link, mittente, rif_id, created_at)
-  select b, m.id, 'segnalazione', 'Nuova segnalazione', 'Struttura: righe dei campi play it da ritracciare.', '/c/quanta-club/dt/segnalazioni', 'Sistema', s1, timestamptz '2026-11-15 18:10+01'
-  from public.membri m
-  where m.centro_id = b and m.ruolo in ('dt', 'titolare') and s1 is not null
-    and not exists (select 1 from public.notifiche n where n.membro_id = m.id and n.rif_id = s1);
+  select b, d.id, 'sistema', 'Esercizio proposto', e.titolo || ' · proposto da ' || public._nome_membro(e.proposto_da),
+         '/c/quanta-club/dt/esercizi', public._nome_membro(e.proposto_da), e.id, timestamptz '2026-11-14 18:00+01'
+  from public.esercizi e
+  join public.membri d on d.centro_id = b and d.ruolo = 'dt'
+  where e.centro_id = b and e.stato = 'proposto' and not exists (select 1 from public.notifiche n where n.rif_id = e.id and n.membro_id = d.id);
 
-  -- registro delle modifiche (autori: i due DT)
+  -- voci del registro delle due direzioni tecniche
   insert into public.registro (centro_id, membro_id, azione, oggetto, dettagli, created_at)
   select b, x.membro, x.azione, x.oggetto, x.dettagli, x.quando
   from (values
-    (brigo, 'sostituzione_blocco', 'Base · Lun-Mer · 05/11', '{"blocco":"Colpo del giorno","da":"Dritto a due palle","a":"Dritto a bersagli"}'::jsonb, timestamptz '2026-11-05 17:20+01'),
-    (chiappini, 'modifica_permessi', 'Area Agonismo Junior', '{"permesso":"maestri","da":false,"a":true}'::jsonb, timestamptz '2026-10-02 09:30+01'),
-    (brigo, 'modifica_permessi', 'Area Scuola Tennis Adulti', '{"permesso":"campi","da":false,"a":true}'::jsonb, timestamptz '2026-10-03 11:00+01')
+    (brigo, 'modifica_permessi', 'Area Tennis Academy', '{"permesso":"maestri","da":false,"a":true}'::jsonb, timestamptz '2026-10-05 09:30+01'),
+    (chiappini, 'sostituzione_blocco', 'Base · Mar-Gio · 10/11', '{"blocco":"Servizio","da":"Servizio ai bersagli","a":"Servizio e risposta a punti"}'::jsonb, timestamptz '2026-11-10 17:20+01'),
+    (brigo, 'sostituzione_blocco', 'Intermedio · Mar-Gio · 12/11', '{"blocco":"Volée","da":"Volée di incontro","a":"Volée e passante"}'::jsonb, timestamptz '2026-11-12 16:45+01')
   ) x(membro, azione, oggetto, dettagli, quando)
   where not exists (select 1 from public.registro r where r.centro_id = b and r.azione = x.azione and r.oggetto = x.oggetto);
+
+  -- riassunti dell'assistente già approvati sulle lezioni chiuse dal 9 al 15 novembre (esclusi gli adulti)
+  update public.lezioni l set
+    riassunto = 'Lezione ' || g.nome || ': riscaldamento e coordinazione, poi lavoro sul colpo del giorno con palline a basso rimbalzo e gioco finale a punti. Il gruppo ha lavorato con attenzione; da consolidare la posizione di partenza.',
+    riassunto_ok = true
+  from public.gruppi g
+  join public.aree ar on ar.id = g.area_id
+  where g.id = l.gruppo_id and l.centro_id = b and l.stato = 'chiusa'
+    and l.data between date '2026-11-09' and date '2026-11-15'
+    and ar.nome not in ('Scuola Tennis Adulti', 'Agonismo Adulti')
+    and l.riassunto is null;
+
+  -- certificati medici in scadenza nei prossimi giorni per circa il 7% degli allievi
+  update public.allievi a set certificato_scade = date '2026-11-16' + (3 + abs(hashtext(a.id::text)) % 25)
+  where a.centro_id = b and abs(hashtext(a.id::text || 'cert')) % 100 < 7;
+
+  -- note private aggiuntive dei maestri
+  insert into public.note_private (centro_id, allievo_id, maestro_id, testo, created_at)
+  select b, a.id, gm.membro_id,
+         (array['Ha bisogno di più sicurezza al servizio.', 'Molto motivato: proporre il passaggio al gruppo successivo.', 'Da seguire sulla posizione dei piedi nel rovescio.', 'Ottimo atteggiamento in campo, aiuta i compagni.'])[1 + abs(hashtext(a.id::text)) % 4],
+         timestamptz '2026-11-12 19:00+01'
+  from public.allievi a
+  join public.iscrizioni i on i.allievo_id = a.id
+  join public.gruppi_maestri gm on gm.gruppo_id = i.gruppo_id and gm.principale
+  where a.centro_id = b and abs(hashtext(a.id::text || 'np')) % 100 < 6
+    and not exists (select 1 from public.note_private x where x.allievo_id = a.id);
+
+  -- messaggio di benvenuto per ogni membro con un account
+  insert into public.notifiche (centro_id, membro_id, tipo, titolo, testo, link, mittente, letta_il, created_at)
+  select b, m.id, 'sistema', 'Benvenuto in Quanta Club', 'Qui trovi calendario, avvisi e messaggi del tuo centro.',
+         '/c/quanta-club', 'Match Point', timestamptz '2026-11-01 10:00+01', timestamptz '2026-11-01 09:00+01'
+  from public.membri m
+  where m.centro_id = b and m.user_id is not null
+    and not exists (select 1 from public.notifiche n where n.membro_id = m.id and n.tipo = 'sistema' and n.titolo = 'Benvenuto in Quanta Club');
 end
 $seed$;
