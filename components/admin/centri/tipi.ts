@@ -12,6 +12,17 @@ export type Centro = {
   logo_path: string | null; colore: string | null; colore_ink: string | null;
   stato: StatoCentro; prova_fino: string | null; piano: string | null; created_at: string;
 };
+/** Colonne della scheda "Centri": niente `select('*')`, la tabella porta anche `impostazioni` e altro che l'elenco non usa. */
+export const COL_CENTRO = "id,slug,nome,nome_app,citta,logo_path,colore,colore_ink,stato,prova_fino,piano,created_at";
+/** Colonne di `membri` e `inviti` come le mostra il pannello. */
+export const COL_MEMBRO = "id,centro_id,user_id,ruolo,nome,cognome,email,telefono,area_id,stato,created_at";
+export const COL_INVITO = "id,centro_id,codice,ruolo,gruppo_id,area_id,allievo_id,scade_il,usi_max,usi,created_at";
+/** Righe per pagina nelle liste lunghe (membri e inviti di un grande centro). */
+export const PAGINA = 50;
+/** Attesa prima di cercare sul server mentre si scrive. */
+export const DEBOUNCE_MS = 300;
+/** Il testo di ricerca senza i caratteri che nei filtri del database hanno un significato. */
+export const pulisciRicerca = (s: string) => s.replace(/[%_,()\\*"]/g, " ").replace(/\s+/g, " ").trim();
 export type CentroConConteggi = Centro & { n_membri: number; n_allievi: number };
 
 export type Membro = {

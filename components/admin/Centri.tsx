@@ -8,7 +8,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Errore, I, Ico, Tile, errMsg, useAdmin } from "./comuni";
 import { Dettaglio } from "./centri/Dettaglio";
 import { Nuovo } from "./centri/Nuovo";
-import { BADGE_STATO, NOME_STATO, SLUG_MODELLO, esadecimale, giorniA, urlApp, urlDashboard, urlLogo, type Centro, type CentroConConteggi, type StatoCentro } from "./centri/tipi";
+import { BADGE_STATO, COL_CENTRO, NOME_STATO, SLUG_MODELLO, esadecimale, giorniA, urlApp, urlDashboard, urlLogo, type Centro, type CentroConConteggi, type StatoCentro } from "./centri/tipi";
 
 export function Centri() {
   const { sb } = useAdmin();
@@ -20,11 +20,12 @@ export function Centri() {
   const [filtro, setFiltro] = useState<StatoCentro | "tutti">("tutti");
 
   const carica = useCallback(async () => {
-    const { data, error } = await sb.from("centri").select("*").order("created_at", { ascending: false });
+    const { data, error } = await sb.from("centri").select(COL_CENTRO).order("created_at", { ascending: false });
     if (error) return setErrore(errMsg(error));
     setErrore(null);
     const centri = (data ?? []) as Centro[];
-    // i contatori si chiedono al database un centro per volta (solo conteggio, nessun dato di persone)
+    // i contatori si chiedono al database un centro per volta (solo conteggio, nessun dato di persone): due richieste a centro, in parallelo.
+    // Con molti centri conviene una funzione del database che li restituisce tutti insieme (vedi il rapporto: admin_conteggi_centri).
     const conteggi = await Promise.all(centri.map(async (c) => {
       const [m, a] = await Promise.all([
         sb.from("membri").select("id", { count: "exact", head: true }).eq("centro_id", c.id),

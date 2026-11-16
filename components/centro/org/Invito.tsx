@@ -5,7 +5,7 @@ import { useT } from "@/lib/i18n/lingua";
 import type { SB } from "@/lib/centro/contesto";
 import { ROTTE_APP } from "@/lib/centro/rotte";
 import { Btn } from "@/components/centro/ui";
-import { nuovoCodice } from "./dati";
+import { COL_INVITO, nuovoCodice } from "./dati";
 import type { InvitoR } from "./tipi";
 import "./org.css";
 
@@ -23,7 +23,7 @@ export async function creaInvito(sb: SB, centroId: string, v: NuovoInvito): Prom
     const { data, error } = await sb
       .from("inviti")
       .insert({ centro_id: centroId, codice: nuovoCodice(), ruolo: v.ruolo, gruppo_id: v.gruppo_id ?? null, area_id: v.area_id ?? null, allievo_id: v.allievo_id ?? null, scade_il: scade.toISOString(), usi_max: v.usi_max ?? 1 })
-      .select("*")
+      .select(COL_INVITO)
       .single();
     if (!error) return { invito: data as InvitoR };
     ultimo = error.message;

@@ -126,9 +126,10 @@ export default function Programmi() {
 
   const leggi = useCallback(async () => {
     const [a, b, c] = await Promise.all([
-      sb.from("programmi").select("*").eq("centro_id", centro.id),
+      sb.from("programmi").select("id,nome,fascia,schema,anno,mesi,settimane_test").eq("centro_id", centro.id),
       sb.from("modelli_lezione").select("id,nome,durata_min").eq("centro_id", centro.id),
-      sb.from("gruppi").select("*").eq("centro_id", centro.id),
+      // solo i gruppi attivi e solo le colonne usate (80 gruppi per centro, ma niente `*`)
+      sb.from("gruppi").select("id,nome,fascia,giorni,ora,programma_id,attivo").eq("centro_id", centro.id).or("attivo.is.null,attivo.eq.true"),
     ]);
     if (a.error) {
       setKo(true);

@@ -54,7 +54,7 @@ export default function CentroImpostazioni() {
       .then(({ data }: { data: unknown }) => setInviti((data ?? []) as InvitoR[]));
   }, [sb, centro.id, rev]);
 
-  // consensi e certificati: solo conteggi (head), e solo quando si apre la scheda "Dati". (centro_id, allievo, tipo) è unico: una riga = un allievo.
+  // consensi e certificati: solo conteggi (head), e solo quando si apre la scheda "Dati". (allievo, tipo) è unico: una riga = un allievo.
   useEffect(() => {
     if (tab !== "dati") return;
     let vivo = true;

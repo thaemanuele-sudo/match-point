@@ -110,7 +110,7 @@ export default function LineeGuida() {
   const defL = useMemo(() => [t.scala_1, t.scala_2, t.scala_3, t.scala_4], [t]);
 
   const leggi = useCallback(async () => {
-    const { data, error } = await sb.from("linee_guida").select("*").eq("centro_id", centro.id);
+    const { data, error } = await sb.from("linee_guida").select("id,fascia,colpo,competenze,errori,regola,scala,bloccata,created_at").eq("centro_id", centro.id);
     if (error) {
       setKo(true);
       setCarica(false);
