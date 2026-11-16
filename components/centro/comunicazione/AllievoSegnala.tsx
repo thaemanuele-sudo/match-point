@@ -21,6 +21,10 @@ const it = {
   o_altro: "Altro",
   manda: "Manda a {nome}",
   mandaSenza: "Manda al responsabile",
+  riguarda: "Riguarda {nome}?",
+  riguardaSenza: "Riguarda il responsabile?",
+  riguardaNota: "Se riguarda {nome}, il messaggio non va a {nome}: va al capo del centro.",
+  riguardaNotaSenza: "Se riguarda il responsabile, il messaggio va al capo del centro.",
   inviando: "Invio…",
   urgente: "Se è urgente, vai subito da un adulto di cui ti fidi o chiama il 112.",
   chiama: "Chiama il 112",
@@ -50,6 +54,7 @@ export default function AllievoSegnala() {
   const [invio, setInvio] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [fatto, setFatto] = useState(false);
+  const [riguardaDt, setRiguardaDt] = useState(false);
   const lab: Record<string, string> = { disagio: t.o_disagio, infortunio: t.o_infortunio, gruppo: t.o_gruppo, altro: t.o_altro };
 
   async function invia() {
@@ -59,7 +64,7 @@ export default function AllievoSegnala() {
     try {
       const k = OPZ[sel].k;
       // il bambino non scrive un testo: la categoria scelta è il messaggio. Non è anonima (il DT deve poter rispondere) ma il maestro non la vede mai.
-      const { error } = await sb.rpc("segnala", { categoria: k, testo: lab[k], anonima: false, per_allievo: figlio?.id ?? null, riguarda_dt: false, centro: centro?.id ?? null });
+      const { error } = await sb.rpc("segnala", { categoria: k, testo: lab[k], anonima: false, per_allievo: figlio?.id ?? null, riguarda_dt: riguardaDt, centro: centro?.id ?? null });
       if (error) throw error;
       setFatto(true);
     } catch (e) {
@@ -98,6 +103,13 @@ export default function AllievoSegnala() {
                   </button>
                 ))}
               </div>
+            </div>
+            <div>
+              <button type="button" className="cm-grande" style={{ width: "100%" }} aria-pressed={riguardaDt} onClick={() => setRiguardaDt((v) => !v)}>
+                <Ic n="users" size={30} />
+                <span>{primo ? f(t.riguarda, { nome: primo }) : t.riguardaSenza}</span>
+              </button>
+              {riguardaDt && <div className="v" style={{ fontSize: 13, marginTop: 6, color: "#A1A1A6" }}>{primo ? f(t.riguardaNota, { nome: primo }) : t.riguardaNotaSenza}</div>}
             </div>
             <ErroreC testo={err} />
             <button type="button" className="cm-bt" style={{ height: 56, fontSize: 17 }} disabled={sel < 0 || invio} onClick={invia}>

@@ -20,17 +20,6 @@ declare
   b uuid;
   v_admin uuid;
   v_nuovo boolean := false;
-  -- elenchi per generare nomi di fantasia: 40 nomi e 59 cognomi (numeri primi tra loro, così le coppie non si ripetono)
-  v_nomi text[] := array['Alessandro','Sofia','Lorenzo','Giulia','Leonardo','Aurora','Mattia','Alice','Gabriele','Ginevra',
-    'Riccardo','Beatrice','Tommaso','Emma','Edoardo','Chiara','Federico','Vittoria','Francesco','Martina',
-    'Andrea','Greta','Filippo','Anna','Giacomo','Elisa','Nicolò','Sara','Samuele','Noemi',
-    'Pietro','Camilla','Matteo','Arianna','Davide','Bianca','Simone','Irene','Daniele','Ludovica'];
-  v_cogn text[] := array['Rinaldi','Ferrante','Sorrentino','Caputo','Marchesi','Bellini','Gentile','Fabbri','Serra','Orlando',
-    'Testa','Coppola','Palumbo','Amato','Bernardi','Guidi','De Santis','Mazza','Pellegrino','Valentini',
-    'Messina','Cattaneo','Benedetti','Grassi','Rizzo','Sanna','Basile','Donati','Fiore','Lombardo',
-    'Carbone','Silvestri','Barone','Piazza','Farina','Rossetti','Monti','Vitale','Negri','Cirillo',
-    'Martini','Bianco','Papa','Battaglia','Ruggiero','Pagano','Ferri','Villa','Morelli','Conti',
-    'Costa','Gallo','Leone','Sala','Ricci','Riva','Marini','Parisi','Esposito'];
 begin
   if src is null then raise exception 'Centro modello matchpoint-modello assente: eseguire prima le migrazioni 0006'; end if;
 
@@ -206,7 +195,42 @@ begin
   join public.membri m on m.centro_id = b and m.ruolo = 'maestro' and m.nome = q.nome and m.cognome = q.cognome
   where not exists (select 1 from public.gruppi_maestri y where y.gruppo_id = gr.id and y.membro_id = m.id);
 
-  -- ---- allievi (322), famiglie, iscrizioni, consensi: solo alla prima esecuzione ----
+  -- (allievi: vedi il blocco A2)
+end
+$seed$;
+
+-- ============ A2. Allievi (322), famiglie, iscrizioni, consensi: solo alla prima esecuzione ============
+do $seed$
+declare
+  b uuid := (select id from public.centri where slug = 'quanta-club');
+  -- elenchi per generare nomi di fantasia: 40 nomi e 59 cognomi (numeri primi tra loro, così le coppie non si ripetono)
+  v_nomi text[] := array['Alessandro','Sofia','Lorenzo','Giulia','Leonardo','Aurora','Mattia','Alice','Gabriele','Ginevra',
+    'Riccardo','Beatrice','Tommaso','Emma','Edoardo','Chiara','Federico','Vittoria','Francesco','Martina',
+    'Andrea','Greta','Filippo','Anna','Giacomo','Elisa','Nicolò','Sara','Samuele','Noemi',
+    'Pietro','Camilla','Matteo','Arianna','Davide','Bianca','Simone','Irene','Daniele','Ludovica'];
+  v_cogn text[] := array['Rinaldi','Ferrante','Sorrentino','Caputo','Marchesi','Bellini','Gentile','Fabbri','Serra','Orlando',
+    'Testa','Coppola','Palumbo','Amato','Bernardi','Guidi','De Santis','Mazza','Pellegrino','Valentini',
+    'Messina','Cattaneo','Benedetti','Grassi','Rizzo','Sanna','Basile','Donati','Fiore','Lombardo',
+    'Carbone','Silvestri','Barone','Piazza','Farina','Rossetti','Monti','Vitale','Negri','Cirillo',
+    'Martini','Bianco','Papa','Battaglia','Ruggiero','Pagano','Ferri','Villa','Morelli','Conti',
+    'Costa','Gallo','Leone','Sala','Ricci','Riva','Marini','Parisi','Esposito'];
+begin
+  -- per gruppo: ordine, nome, n allievi, anni di nascita da-a (gli stessi dei gruppi creati sopra)
+  create temp table if not exists _qn (ord int, nome text, n int, a0 int, a1 int);
+  insert into _qn select * from (values
+    (1,'Mini 4-7 · Lun-Mer',12,2019,2022),(2,'Mini 4-7 · Mar-Gio',12,2019,2022),(3,'Mini 4-7 · Sabato',12,2019,2022),
+    (4,'Base · Lun-Mer',12,2016,2018),(5,'Base · Mar-Gio',12,2016,2018),(6,'Base · Sabato',12,2016,2018),
+    (7,'Intermedio · Lun-Mer',12,2014,2015),(8,'Intermedio · Mar-Gio',12,2014,2015),(9,'Intermedio · Venerdì',12,2014,2015),
+    (10,'Avanzato · Lun-Mer',12,2012,2013),(11,'Avanzato · Mar-Gio',12,2012,2013),
+    (12,'Adulti principianti · Lun-Mer',12,1975,2000),(13,'Adulti principianti · Mar-Gio',12,1975,2000),
+    (14,'Adulti intermedi · Lun-Mer',12,1975,2000),(15,'Adulti intermedi · Mar-Gio',12,1975,2000),(16,'Adulti avanzati · Venerdì',12,1975,2000),
+    (17,'Agonismo Junior U12',12,2014,2015),(18,'Agonismo Junior U14',12,2012,2013),(19,'Agonismo Junior U16',12,2010,2011),(20,'Agonismo Junior U18',12,2008,2009),
+    (21,'Agonismo Adulti · Lun-Mer',8,1980,2002),(22,'Agonismo Adulti · Mar-Gio',8,1980,2002),
+    (23,'Pre-Academy Junior A',10,2012,2014),(24,'Pre-Academy Junior B',10,2012,2014),
+    (25,'Pre-TAcademy · 3ª categoria',9,2010,2013),(26,'Pre-TAcademy · 2ª categoria',9,2008,2011),
+    (27,'Academy A',8,2007,2010),(28,'Academy B',8,2007,2010),(29,'Lezioni private',8,1990,2012),(30,'One Shot',4,1985,2010)
+  ) v(ord, nome, n, a0, a1) where not exists (select 1 from _qn);
+
   if not exists (select 1 from public.allievi where centro_id = b) then
     create temp table if not exists _qa (id uuid default gen_random_uuid(), k int, gnome text, a0 int, a1 int, nome text, cognome text,
                            nascita date, adulto boolean, sib boolean, fam int);
@@ -216,8 +240,8 @@ begin
            make_date(t.a0 + t.k % (t.a1 - t.a0 + 1), 1 + (t.k * 5) % 12, 1 + (t.k * 11) % 28),
            -- ogni 11° allievo junior è fratello del precedente: stessa famiglia e stesso cognome
            (t.k % 11 = 0 and t.a0 >= 2010 and coalesce(t.pa0, 0) >= 2010), t.k
-    from (select h.nome gnome, h.a0, h.a1, h.pos + i k, lag(h.a0) over (order by h.ord, i) pa0
-          from (select g.*, sum(g.n) over (order by g.ord) - g.n pos from _qg g) h
+    from (select h.nome gnome, h.a0, h.a1, (h.pos + i)::int k, lag(h.a0) over (order by h.ord, i) pa0
+          from (select g.*, sum(g.n) over (order by g.ord) - g.n pos from _qn g) h
           cross join lateral generate_series(1, h.n) i) t;
     update _qa x set cognome = y.cognome, fam = y.k from _qa y where x.sib and y.k = x.k - 1;
     update _qa set adulto = nascita < date '2008-01-01' where k > 0;
