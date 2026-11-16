@@ -119,11 +119,11 @@ const fmtSett = (t: Record<string, string>, k: string) => t.sett_di.replace("{c}
 const fmt2 = (s: string, l: number, f: string) => s.replace("{l}", String(l)).replace("{f}", f);
 
 /** Legge i mesi salvati nel database in modo tollerante e completa i buchi con la bozza generata. */
-export function leggiMesi(j: unknown, fallback: Mese[]): Mese[] {
+export function leggiMesi(j: unknown, fallback: Mese[], t: Record<string, string>): Mese[] {
   if (!Array.isArray(j) || j.length === 0) return fallback;
   const colorePerTema = (tema: string) => {
     const n = norm(tema);
-    const hit = Object.values(TH).find(([lk]) => n.length > 0 && norm(lk) === n);
+    const hit = Object.values(TH).find(([lk]) => n.length > 0 && norm(t[lk] ?? "") === n);
     return hit ? hit[2] : undefined;
   };
   const out = fallback.map((f) => ({ ...f, settimane: f.settimane.map((s) => ({ ...s })) }));

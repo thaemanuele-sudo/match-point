@@ -9,7 +9,7 @@ import { useT } from "@/lib/i18n/lingua";
 import { SchermoCentro } from "../../Schermo";
 import { Ic } from "./Ic";
 import { useDatiMaestri, type Dati } from "./dati";
-import { COL, coloreAderenza, fmtOre, mediana, nomeCompleto, rimpiazza, virgola } from "./util";
+import { COL, coloreAderenza, fmtOre, mediana, nomeCompleto, rimpiazza } from "./util";
 import "./b.css";
 
 const it = {
@@ -61,11 +61,10 @@ function calcola(d: Dati, per: Per, t: typeof it) {
 
 export default function BPanoramica() {
   const t = useT(T);
-  const { centro, sb } = useCentro();
+  const { centro } = useCentro();
   const R = rotta(centro.slug);
   const { dati, carica, errore, ricarica } = useDatiMaestri();
   const [per, setPer] = useState<Per>("oggi");
-  void sb;
 
   const numeri = useMemo(() => (dati ? calcola(dati, per, t) : []), [dati, per, t]);
 
@@ -218,4 +217,3 @@ export default function BPanoramica() {
   );
 }
 
-void virgola;
