@@ -216,9 +216,9 @@ begin
            make_date(t.a0 + t.k % (t.a1 - t.a0 + 1), 1 + (t.k * 5) % 12, 1 + (t.k * 11) % 28),
            -- ogni 11° allievo junior è fratello del precedente: stessa famiglia e stesso cognome
            (t.k % 11 = 0 and t.a0 >= 2010 and coalesce(t.pa0, 0) >= 2010), t.k
-    from (select g.nome gnome, g.a0, g.a1, (sum(g.n) over (order by g.ord) - g.n + i) k,
-                 lag(g.a0) over (order by g.ord, i) pa0
-          from _qg g cross join lateral generate_series(1, g.n) i) t;
+    from (select h.nome gnome, h.a0, h.a1, h.pos + i k, lag(h.a0) over (order by h.ord, i) pa0
+          from (select g.*, sum(g.n) over (order by g.ord) - g.n pos from _qg g) h
+          cross join lateral generate_series(1, h.n) i) t;
     update _qa x set cognome = y.cognome, fam = y.k from _qa y where x.sib and y.k = x.k - 1;
     update _qa set adulto = nascita < date '2008-01-01';
 
