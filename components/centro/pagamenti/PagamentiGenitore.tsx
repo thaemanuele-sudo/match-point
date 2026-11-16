@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { SchermoCentro } from "@/components/centro/Schermo";
 import { useCentro } from "@/lib/centro/contesto";
 import { useT } from "@/lib/i18n/lingua";
+import { COL_QUOTA, catalogoCentro, leggi } from "./dati";
 import { useCartaAttiva } from "./hooks";
 import s from "./pagamenti.module.css";
 import {
@@ -81,45 +82,63 @@ export default function PagamentiGenitore() {
   const [esito, setEsito] = useState<"" | "ok" | "no">("");
   const oggi = oggiISO();
 
+  /**
+   * Quote dei miei figli: quelle da pagare (poche) e le pagate dell'ultimo biennio con le ricevute, non tutto lo storico.
+   * Si rileggono da sole quando il webhook di Stripe segna una quota pagata.
+   */
+  const caricaQuote = useCallback(async (ids: string[]) => {
+    const dal = aggiungiGiorni(oggi, -730);
+    const [aperte, pagate] = await Promise.all([
+      leggi<Quota>(sb.from("quote").select(COL_QUOTA).in("allievo_id", ids).neq("stato", "pagata").order("scade_il").limit(200)),
+      leggi<Quota>(sb.from("quote").select(COL_QUOTA).in("allievo_id", ids).eq("stato", "pagata").gte("scade_il", dal).order("pagata_il", { ascending: false }).limit(200)),
+    ]);
+    return [...aperte, ...pagate];
+  }, [sb, oggi]);
+
   const carica = useCallback(async () => {
     if (!me) { setCaricato(true); return; }
-    const lg = await sb.from("allievi_famiglie").select("allievo_id").eq("membro_id", me.id);
-    if (lg.error) { setErr(lg.error.message); setCaricato(true); return; }
-    const ids = Array.from(new Set(((lg.data ?? []) as { allievo_id: string }[]).map((x) => x.allievo_id)));
-    if (!ids.length) { setFigli([]); setQuote([]); setErr(""); setCaricato(true); return; }
-    const [al, qu, co, gr, isc] = await Promise.all([
-      sb.from("allievi").select("id,nome,cognome").in("id", ids).order("nome"),
-      sb.from("quote").select("*").in("allievo_id", ids).order("scade_il"),
-      sb.from("corsi").select("*").eq("centro_id", centro.id),
-      sb.from("gruppi").select("id,nome,fascia,giorni,ora").eq("centro_id", centro.id),
-      sb.from("iscrizioni").select("allievo_id,gruppo_id,al").in("allievo_id", ids),
-    ]);
-    const e = al.error ?? qu.error ?? co.error ?? gr.error ?? isc.error;
-    if (e) { setErr(e.message); setCaricato(true); return; }
-    const gMap = new Map(((gr.data ?? []) as GruppoMin[]).map((g) => [g.id, g]));
-    const iscr = (isc.data ?? []) as { allievo_id: string; gruppo_id: string; al: string | null }[];
-    setFigli(((al.data ?? []) as AllievoMin[]).map((a) => {
-      const att = iscr.find((i) => i.allievo_id === a.id && (!i.al || i.al >= oggi));
-      return { ...a, fascia: att ? gMap.get(att.gruppo_id)?.fascia ?? null : null };
-    }));
-    setQuote((qu.data ?? []) as Quota[]);
-    setCorsi(new Map(((co.data ?? []) as Corso[]).map((c) => [c.id, c])));
-    setGruppi(gMap);
-    setErr("");
+    try {
+      const legami = await leggi<{ allievo_id: string }>(sb.from("allievi_famiglie").select("allievo_id").eq("centro_id", centro.id).eq("membro_id", me.id));
+      const ids = Array.from(new Set(legami.map((x) => x.allievo_id)));
+      if (!ids.length) { setFigli([]); setQuote([]); setErr(""); setCaricato(true); return; }
+      // corsi e gruppi del centro vengono dalla cache condivisa con la schermata del centro; l'iscrizione si filtra nel database
+      const [al, qu, cat, iscr] = await Promise.all([
+        leggi<AllievoMin>(sb.from("allievi").select("id,nome,cognome").in("id", ids).order("nome")),
+        caricaQuote(ids),
+        catalogoCentro(sb, centro.id),
+        leggi<{ allievo_id: string; gruppo_id: string }>(sb.from("iscrizioni").select("allievo_id,gruppo_id").in("allievo_id", ids).or(`al.is.null,al.gte.${oggi}`)),
+      ]);
+      const gMap = new Map(cat.gruppi.map((g) => [g.id, g]));
+      const gruppoDi = new Map<string, string>();
+      for (const i of iscr) if (!gruppoDi.has(i.allievo_id)) gruppoDi.set(i.allievo_id, i.gruppo_id);
+      setFigli(al.map((a) => ({ ...a, fascia: gMap.get(gruppoDi.get(a.id) ?? "")?.fascia ?? null })));
+      setQuote(qu);
+      setCorsi(new Map(cat.corsi.map((c) => [c.id, c])));
+      setGruppi(gMap);
+      setErr("");
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    }
     setCaricato(true);
-  }, [sb, me, centro.id, oggi]);
+  }, [sb, me, centro.id, oggi, caricaQuote]);
   useEffect(() => { carica(); }, [carica]);
 
   // Ritorno da Stripe: il webhook può arrivare qualche secondo dopo, quindi si riprova a leggere per un po'.
+  // Si rileggono solo le quote (figli, corsi e gruppi non cambiano), non l'intera schermata.
+  const idFigli = useMemo(() => figli.map((x) => x.id), [figli]);
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
     if (p.get("annullato")) setEsito("no");
     if (!p.get("pagato")) return;
     setEsito("ok");
+    if (!idFigli.length) return;
     let n = 0;
-    const id = setInterval(() => { carica(); if (++n >= 6) clearInterval(id); }, 2500);
+    const id = setInterval(() => {
+      caricaQuote(idFigli).then(setQuote, () => { /* si riprova al prossimo giro */ });
+      if (++n >= 6) clearInterval(id);
+    }, 2500);
     return () => clearInterval(id);
-  }, [carica]);
+  }, [idFigli, caricaQuote]);
 
   const f = figli[Math.min(fig, Math.max(figli.length - 1, 0))];
   const mie = useMemo(() => quote.filter((q) => f && q.allievo_id === f.id), [quote, f]);

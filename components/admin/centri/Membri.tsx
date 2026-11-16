@@ -6,28 +6,77 @@
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Campo, Conferma, Errore, I, Ico, coloreAvatar, errMsg, iniziali, useAdmin } from "../comuni";
-import { NOME_RUOLO, RUOLI, doppione, nomeCompleto, urlVediCome, type Area, type CentroConConteggi, type Membro, type RuoloCentro } from "./tipi";
+import { COL_MEMBRO, DEBOUNCE_MS, NOME_RUOLO, PAGINA, RUOLI, doppione, nomeCompleto, pulisciRicerca, urlVediCome, type Area, type CentroConConteggi, type Membro, type RuoloCentro } from "./tipi";
 
 const BADGE: Record<Membro["stato"], string> = { attivo: "verde", invitato: "arancio", sospeso: "grigio" };
 const NOME_STATO_MEMBRO: Record<Membro["stato"], string> = { attivo: "Attivo", invitato: "Invitato", sospeso: "Sospeso" };
 
 export function Membri({ centro, aree, ricarica }: { centro: CentroConConteggi; aree: Area[]; ricarica: () => Promise<void> }) {
   const { sb, avvisa } = useAdmin();
+  // una pagina alla volta (50), con ricerca e filtro per ruolo sul server: un grande centro ha migliaia di genitori tra i membri
   const [lista, setLista] = useState<Membro[] | null>(null);
+  const [altri, setAltri] = useState(false);
+  const [caricando, setCaricando] = useState(false);
+  // quanti membri per ruolo (solo conteggi): servono a mostrare i filtri dei ruoli che il centro ha davvero
+  const [perRuolo, setPerRuolo] = useState<Partial<Record<RuoloCentro, number>>>({});
+  const [versione, setVersione] = useState(0);
+  const [versioneConteggi, setVersioneConteggi] = useState(0);
   const [errore, setErrore] = useState<string | null>(null);
   const [cerca, setCerca] = useState("");
+  const [cercaDeb, setCercaDeb] = useState("");
   const [filtro, setFiltro] = useState<RuoloCentro | "tutti">("tutti");
   const [aggiungi, setAggiungi] = useState(false);
   const [occ, setOcc] = useState<string | null>(null);
   const [rimuovi, setRimuovi] = useState<Membro | null>(null);
 
-  const carica = useCallback(async () => {
-    const { data, error } = await sb.from("membri").select("*").eq("centro_id", centro.id).order("created_at");
+  useEffect(() => {
+    const id = window.setTimeout(() => setCercaDeb(cerca), DEBOUNCE_MS);
+    return () => window.clearTimeout(id);
+  }, [cerca]);
+
+  const leggi = useCallback(async (da: number) => {
+    let q = sb.from("membri").select(COL_MEMBRO).eq("centro_id", centro.id);
+    if (filtro !== "tutti") q = q.eq("ruolo", filtro);
+    for (const tok of pulisciRicerca(cercaDeb).split(" ").filter(Boolean)) q = q.or(`nome.ilike.%${tok}%,cognome.ilike.%${tok}%,email.ilike.%${tok}%`);
+    // si chiede una riga in più per sapere se c'è un'altra pagina, senza contare l'intera tabella
+    return q.order("created_at").order("id").range(da, da + PAGINA);
+  }, [sb, centro.id, filtro, cercaDeb]);
+
+  // si riparte dalla prima pagina quando cambiano filtro, ricerca (dopo il debounce) o dopo un'aggiunta
+  useEffect(() => {
+    let vivo = true;
+    setCaricando(true);
+    void leggi(0).then(({ data, error }) => {
+      if (!vivo) return;
+      setCaricando(false);
+      if (error) return setErrore(errMsg(error));
+      setErrore(null);
+      const righe = (data ?? []) as Membro[];
+      setLista(righe.slice(0, PAGINA));
+      setAltri(righe.length > PAGINA);
+    });
+    return () => { vivo = false; };
+  }, [leggi, versione]);
+
+  useEffect(() => {
+    let vivo = true;
+    void Promise.all(RUOLI.map((r) => sb.from("membri").select("id", { count: "exact", head: true }).eq("centro_id", centro.id).eq("ruolo", r)))
+      .then((x) => { if (vivo) setPerRuolo(Object.fromEntries(RUOLI.map((r, i) => [r, x[i].count ?? 0]))); });
+    return () => { vivo = false; };
+  }, [sb, centro.id, versioneConteggi]);
+
+  const caricaAltri = async () => {
+    if (!lista || caricando) return;
+    setCaricando(true);
+    const { data, error } = await leggi(lista.length);
+    setCaricando(false);
     if (error) return setErrore(errMsg(error));
-    setErrore(null);
-    setLista((data ?? []) as Membro[]);
-  }, [sb, centro.id]);
-  useEffect(() => { void carica(); }, [carica]);
+    const righe = (data ?? []) as Membro[];
+    setLista([...lista, ...righe.slice(0, PAGINA)]);
+    setAltri(righe.length > PAGINA);
+  };
+  /** Dopo un'aggiunta si rilegge dall'inizio. */
+  const carica = async () => { setVersione((v) => v + 1); setVersioneConteggi((v) => v + 1); };
 
   const aggiorna = async (m: Membro, campi: Partial<Membro>, ok: string) => {
     setOcc(m.id); setErrore(null);
@@ -35,7 +84,9 @@ export function Membri({ centro, aree, ricarica }: { centro: CentroConConteggi; 
     setOcc(null);
     if (error) return setErrore(doppione(error) ? "Questa persona ha già questo ruolo nel centro." : errMsg(error));
     avvisa(ok);
-    await carica();
+    // la riga si aggiorna al suo posto (la pagina in cui si sta lavorando non si perde); solo i conteggi dei ruoli si rileggono
+    setLista((l) => (l ?? []).flatMap((x) => (x.id !== m.id ? [x] : filtro !== "tutti" && campi.ruolo && campi.ruolo !== filtro ? [] : [{ ...x, ...campi }])));
+    if (campi.ruolo) setVersioneConteggi((v) => v + 1);
     void ricarica();
   };
 
@@ -46,13 +97,8 @@ export function Membri({ centro, aree, ricarica }: { centro: CentroConConteggi; 
     void aggiorna(m, { ruolo, area_id: ruolo === "responsabile_area" ? m.area_id ?? aree[0]?.id ?? null : null }, `Ruolo cambiato in ${NOME_RUOLO[ruolo].toLowerCase()}`);
   };
 
-  const elenco = useMemo(() => {
-    const q = cerca.trim().toLowerCase();
-    return (lista ?? []).filter((m) =>
-      (filtro === "tutti" || m.ruolo === filtro) &&
-      (!q || [m.nome, m.cognome, m.email].some((x) => (x ?? "").toLowerCase().includes(q))));
-  }, [lista, cerca, filtro]);
-  const presenti = RUOLI.filter((r) => (lista ?? []).some((m) => m.ruolo === r));
+  const elenco = lista ?? [];
+  const presenti = RUOLI.filter((r) => (perRuolo[r] ?? 0) > 0 || r === filtro);
 
   return (
     <section className="db-card">
@@ -105,7 +151,8 @@ export function Membri({ centro, aree, ricarica }: { centro: CentroConConteggi; 
           </span>
         </div>
       ))}
-      {lista && !elenco.length && <div className="db-vuoto">{lista.length ? "Nessun membro corrisponde alla ricerca." : "Questo centro non ha ancora membri. Aggiungine uno o crea un invito."}</div>}
+      {lista && !elenco.length && <div className="db-vuoto">{filtro !== "tutti" || cercaDeb.trim() ? "Nessun membro corrisponde alla ricerca." : "Questo centro non ha ancora membri. Aggiungine uno o crea un invito."}</div>}
+      {altri && <div className="db-sottoazioni" style={{ justifyContent: "center" }}><button type="button" className="db-btn2" disabled={caricando} onClick={() => void caricaAltri()}>Carica altri</button></div>}
 
       {rimuovi && (
         <Conferma titolo="Rimuovere questa persona?" azione="Rimuovi" occupato={occ === rimuovi.id}
@@ -118,7 +165,8 @@ export function Membri({ centro, aree, ricarica }: { centro: CentroConConteggi; 
             setRimuovi(null);
             if (error) return setErrore(errMsg(error));
             avvisa("Persona rimossa");
-            await carica();
+            setLista((l) => (l ?? []).filter((x) => x.id !== rimuovi.id));
+            setVersioneConteggi((v) => v + 1);
             void ricarica();
           }} />
       )}

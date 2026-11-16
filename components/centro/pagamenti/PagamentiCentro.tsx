@@ -5,13 +5,13 @@ import { SchermoCentro } from "@/components/centro/Schermo";
 import { useCentro } from "@/lib/centro/contesto";
 import { useT } from "@/lib/i18n/lingua";
 import { FoglioLocale, Interruttore } from "./FoglioLocale";
-import { BLOCCO_LETTURA, COL_QUOTA, PAGINA, catalogoCentro, chiaveFamiglia, invalidaCatalogo, leggi, leggiLegami, riepilogoPagamenti, type Riepilogo } from "./dati";
+import { BLOCCO_LETTURA, COL_QUOTA, PAGINA, catalogoCentro, chiaveFamiglia, leggi, leggiLegami, riepilogoPagamenti, type Riepilogo } from "./dati";
 import { useCartaAttiva } from "./hooks";
 import s from "./pagamenti.module.css";
 import {
   COLORE_STATO, PER_IT, csv, daIso, etichettaMetodo, etichettaQuota, euro, fineMese, fmt, fmtCorto, fmtMese, importoCSV,
   inizioMese, iso, leggiImp, oggiISO, scaricaFile, scaricaRicevuta, statoEff,
-  type ImpPagamenti, type MetodoQuota, type Quota, type StatoEff,
+  type AllievoMin, type Corso, type GruppoMin, type ImpPagamenti, type MetodoQuota, type Quota, type StatoEff,
 } from "./util";
 
 const IT = {
@@ -254,7 +254,20 @@ export default function PagamentiCentro() {
   const sub = (r: Riga) => [r.gruppo?.nome, r.famiglia ? fmt(t.famigliaDi, { c: r.famiglia }) : "", r.st === "P" ? etichettaMetodo(r.q.metodo, t) : etichettaQuota(r.q, t), r.q.scade_il < iso(inizioMese(mese)) && r.st !== "P" ? t.arretrato : ""].filter(Boolean).join(" · ");
   const nomeAllievo = (r: Riga) => (r.allievo ? `${r.allievo.nome}${r.allievo.cognome ? " " + r.allievo.cognome.charAt(0) + "." : ""}` : "");
   const famN = (n: number) => (n === 1 ? t.famiglia1 : fmt(t.famiglieN, { n }));
-  const aperte = righe.filter((r) => r.st !== "P");
+  // finestra "Registra incasso": le prime 100 quote non pagate si leggono quando si apre, non si tengono in memoria
+  const [aperteLette, setAperteLette] = useState<Riga[] | null>(null);
+  const incassoAperto = foglio?.tipo === "incasso";
+  useEffect(() => {
+    if (!incassoAperto) { setAperteLette(null); return; }
+    let vivo = true;
+    leggiBlocco("N", 0, 99).then((r) => { if (vivo) setAperteLette(r.righe); }, (e: unknown) => { if (vivo) { setAperteLette([]); setErr(e instanceof Error ? e.message : String(e)); } });
+    return () => { vivo = false; };
+  }, [incassoAperto, leggiBlocco]);
+  const aperte = useMemo(() => {
+    const dal = foglio?.tipo === "incasso" ? foglio.riga : undefined;
+    const lette = aperteLette ?? [];
+    return dal && !lette.some((r) => r.q.id === dal.q.id) ? [dal, ...lette] : lette;
+  }, [aperteLette, foglio]);
 
   // ---------- azioni ----------
   const salvaAuto = async (k: keyof ImpPagamenti["auto"], v: boolean) => {
@@ -268,6 +281,7 @@ export default function PagamentiCentro() {
 
   const inviaPromemoria = async (lista: Riga[]) => {
     setMsg("");
+    setLavoro(true);
     // una notifica per genitore e per quota: il testo dice quale allievo e quanto
     const righeNot = lista.flatMap((r) =>
       r.genitori.map((g) => ({
@@ -285,17 +299,33 @@ export default function PagamentiCentro() {
         mittente: attivo?.id ?? null,
       })),
     );
-    if (!righeNot.length) return setMsg(t.promemoriaNessuno);
-    const { error } = await sb.from("notifiche").insert(righeNot);
-    if (error) return setErr(fmt(t.erroreSalva, { e: error.message }));
+    if (!righeNot.length) { setLavoro(false); return setMsg(t.promemoriaNessuno); }
+    // a blocchi di 200: con migliaia di famiglie una sola richiesta sarebbe troppo grande
+    for (let i = 0; i < righeNot.length; i += 200) {
+      const { error } = await sb.from("notifiche").insert(righeNot.slice(i, i + 200));
+      if (error) { setLavoro(false); return setErr(fmt(t.erroreSalva, { e: error.message })); }
+    }
+    setLavoro(false);
     setErr("");
     setMsg(fmt(t.promemoriaInviati, { n: new Set(lista.filter((r) => r.genitori.length).map((r) => r.chiave)).size }));
   };
 
-  const esporta = () => {
-    if (!righe.length) return setMsg(t.esportaVuoto);
+  /** Promemoria a tutte le quote del filtro corrente: le righe si leggono a blocchi, non sono tutte nella lista. */
+  const inviaPromemoriaFiltro = async () => {
+    setLavoro(true);
+    try { await inviaPromemoria(await leggiTutte(filtro)); } catch (e) { setLavoro(false); setErr(fmt(t.erroreSalva, { e: e instanceof Error ? e.message : String(e) })); }
+  };
+
+  const esporta = async () => {
+    setLavoro(true);
+    setMsg(t.esportazione);
+    let tutte: Riga[];
+    try { tutte = await leggiTutte("T"); } catch (e) { setLavoro(false); setMsg(""); return setErr(e instanceof Error ? e.message : String(e)); }
+    setLavoro(false);
+    setMsg("");
+    if (!tutte.length) return setMsg(t.esportaVuoto);
     const intest = ["Famiglia", "Allievo", "Gruppo", "Corso", "Periodo", "Importo (EUR)", "Scadenza", "Stato", "Pagata il", "Metodo", "Riferimento Stripe"];
-    const dati = righe.map((r) => [
+    const dati = tutte.map((r) => [
       r.famiglia, `${r.allievo?.nome ?? ""} ${r.allievo?.cognome ?? ""}`.trim(), r.gruppo?.nome ?? "", r.corso?.nome ?? "", etichettaQuota(r.q, t),
       importoCSV(r.q.importo_cent), r.q.scade_il, nomeStato(r.st), r.q.pagata_il ?? "", etichettaMetodo(r.q.metodo, t), r.q.stripe_id ?? "",
     ]);
@@ -313,7 +343,7 @@ export default function PagamentiCentro() {
   const mesePrec = () => setMese(new Date(mese.getFullYear(), mese.getMonth() - 1, 1));
   const meseSucc = () => setMese(new Date(mese.getFullYear(), mese.getMonth() + 1, 1));
 
-  const filtri: ["T" | StatoEff, string][] = [["T", t.fTutte], ["S", t.fScadute], ["A", t.fAttesa], ["P", t.fPagate]];
+  const filtri: [Filtro, string][] = [["T", t.fTutte], ["S", t.fScadute], ["A", t.fAttesa], ["P", t.fPagate]];
 
   return (
     <SchermoCentro
@@ -381,7 +411,7 @@ export default function PagamentiCentro() {
           </div>
           <div className="note">{t.autoNota}</div>
 
-          <button type="button" className="btn" style={{ height: 48, fontSize: 15, cursor: "pointer" }} onClick={esporta}>
+          <button type="button" className="btn" style={{ height: 48, fontSize: 15, cursor: "pointer" }} disabled={lavoro} onClick={esporta}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 14v6h14v-6" /></svg>{t.esporta}
           </button>
         </div>
@@ -391,17 +421,17 @@ export default function PagamentiCentro() {
           <div className="chips" role="group" aria-label={t.filtroAria}>
             {filtri.map(([k, l]) => <button key={k} type="button" className={k === filtro ? "chip on" : "chip"} aria-pressed={k === filtro} onClick={() => setFiltro(k)}>{l}</button>)}
           </div>
-          {filtro !== "T" && filtro !== "P" && visibili.length ? (
-            <button type="button" className={s.testoBtn} style={{ alignSelf: "flex-start" }} onClick={() => inviaPromemoria(visibili)}>{fmt(t.promemoriaTutti, { n: visibili.length })}</button>
+          {filtro !== "T" && filtro !== "P" && righe.length ? (
+            <button type="button" className={s.testoBtn} style={{ alignSelf: "flex-start" }} disabled={lavoro} onClick={inviaPromemoriaFiltro}>{fmt(t.promemoriaTutti, { n: nFiltro })}</button>
           ) : null}
           {msg ? <div className={s.msgOk} role="status">{msg}</div> : null}
 
-          {caricato && !righe.length && !err ? (
+          {caricato && !righe.length && !err && filtro === "T" ? (
             <div className="note">{t.vuotoMese} <Link href={`${base}/corsi`} style={{ fontWeight: 700 }}>{t.vaiCorsi}</Link></div>
           ) : null}
-          {caricato && righe.length && !visibili.length ? <div className="note">{t.vuotoFiltro}</div> : null}
+          {caricato && !righe.length && !err && filtro !== "T" ? <div className="note">{t.vuotoFiltro}</div> : null}
 
-          {visibili.map((r) => (
+          {righe.map((r) => (
             <button key={r.q.id} type="button" className={`li ${s.listaBtn}`} style={{ padding: "8px 12px", gap: 10 }} onClick={() => setFoglio({ tipo: "dettaglio", riga: r })}>
               <span className="dot" style={{ background: COLORE_STATO[r.st] }} aria-hidden="true" />
               <span className="grow">
@@ -414,6 +444,7 @@ export default function PagamentiCentro() {
               </span>
             </button>
           ))}
+          {!finito ? <button type="button" className="btn2" style={{ alignSelf: "center" }} disabled={altri} onClick={caricaAltri}>{altri ? t.caricamento : t.altri}</button> : null}
         </div>
       </div>
 
@@ -423,7 +454,7 @@ export default function PagamentiCentro() {
             const { error } = await sb.from("quote").update({ stato: "pagata", pagata_il: oggiISO(), metodo }).eq("id", id);
             if (error) return error.message;
             setMsg(t.incassoOk);
-            await carica();
+            applicaPatch(id, { stato: "pagata", pagata_il: oggiISO(), metodo });
             return "";
           }} />
       ) : null}
@@ -444,7 +475,7 @@ export default function PagamentiCentro() {
           <div className={s.azioni} style={{ flexWrap: "wrap" }}>
             {foglio.riga.st !== "P" ? (
               <>
-                <button type="button" className="btn" style={{ flex: 1, height: 48, fontSize: 14 }} onClick={() => setFoglio({ tipo: "incasso", quota: foglio.riga.q })}>{t.incassoConferma}</button>
+                <button type="button" className="btn" style={{ flex: 1, height: 48, fontSize: 14 }} onClick={() => setFoglio({ tipo: "incasso", quota: foglio.riga.q, riga: foglio.riga })}>{t.incassoConferma}</button>
                 <button type="button" className="btn2" onClick={() => { inviaPromemoria([foglio.riga]); setFoglio(null); }}>{t.mandaPromemoria}</button>
               </>
             ) : (
@@ -455,7 +486,7 @@ export default function PagamentiCentro() {
                   if (error) return setErr(fmt(t.erroreSalva, { e: error.message }));
                   setMsg(t.annullaOk);
                   setFoglio(null);
-                  carica();
+                  applicaPatch(foglio.riga.q.id, { stato: "attesa", pagata_il: null, metodo: null, stripe_id: null });
                 }}>{t.annullaIncasso}</button>
               </>
             )}
