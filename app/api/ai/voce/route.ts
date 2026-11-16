@@ -1,10 +1,13 @@
-import { guardia, errore } from "@/lib/ai/guardia";
+import { guardia, errore, type Contesto } from "@/lib/ai/guardia";
 import { costoTts, registraUso } from "@/lib/ai/costi";
 import { audioKitten, MODELLO_KITTEN } from "@/lib/ai/kitten";
-
+import { motoreApp } from "@/lib/ai/motore";
 import { linguaAI } from "@/lib/ai/lingue";
+
 export const runtime = "nodejs";
 export const maxDuration = 60;
+
+const INTESTAZIONI_AUDIO = { "Content-Type": "audio/mpeg", "Cache-Control": "no-store" };
 
 export async function POST(req: Request) {
   const g = await guardia();
@@ -21,6 +24,30 @@ export async function POST(req: Request) {
   if (!testo) return errore(400, "richiesta_non_valida", "Testo mancante.");
   if (testo.length > 1500) return errore(413, "testo_troppo_lungo", "Massimo 1500 caratteri.");
 
+  // Strada del motore: ogni frase si paga una volta sola (cache dell'audio). Se è spento o dà errore si passa alla strada di sempre.
+  const m = motoreApp(imp);
+  if (m?.voce) {
+    try {
+      const r = await m.motore.parla({ testo, voce: m.voce.voce, modello: m.voce.modello, lingua, utente: userId });
+      // Il costo è quello vero: le frasi già in cache non costano e non contano caratteri.
+      await registraUso(
+        userId,
+        m.voce.fornitore,
+        m.voce.fornitore === "kittenml" ? MODELLO_KITTEN : imp.modelloTts,
+        "voce", 0, 0, r.caratteri_pagati, r.costo_usd,
+      );
+      return new Response(r.audio as unknown as BodyInit, { headers: INTESTAZIONI_AUDIO });
+    } catch (e) {
+      console.error("[ai] voce col motore, ripiego sulla strada di sempre:", e instanceof Error ? e.message : "errore");
+    }
+  }
+  return voceDiSempre(g.ctx, !!kitten, testo, lingua);
+}
+
+/** La strada di prima, senza motore: una sintesi per ogni richiesta. Resta come ripiego. */
+async function voceDiSempre(ctx: Contesto, kitten: boolean, testo: string, lingua: ReturnType<typeof linguaAI>): Promise<Response> {
+  const { userId, imp } = ctx;
+
   if (kitten && imp.kittenKey) {
     let audio: ArrayBuffer;
     try {
@@ -31,7 +58,7 @@ export async function POST(req: Request) {
       return errore(500, "errore_ai", "Voce non disponibile, riprova.");
     }
     await registraUso(userId, "kittenml", MODELLO_KITTEN, "voce", 0, 0, testo.length, costoTts(imp.prezzi, testo.length, "tts_kitten_per_milione_caratteri"));
-    return new Response(audio, { headers: { "Content-Type": "audio/mpeg", "Cache-Control": "no-store" } });
+    return new Response(audio, { headers: INTESTAZIONI_AUDIO });
   }
 
   const modello = imp.modelloTts;
@@ -59,5 +86,5 @@ export async function POST(req: Request) {
 
   const audio = await r.arrayBuffer();
   await registraUso(userId, "openai", modello, "voce", 0, 0, testo.length, costoTts(imp.prezzi, testo.length));
-  return new Response(audio, { headers: { "Content-Type": "audio/mpeg", "Cache-Control": "no-store" } });
+  return new Response(audio, { headers: INTESTAZIONI_AUDIO });
 }

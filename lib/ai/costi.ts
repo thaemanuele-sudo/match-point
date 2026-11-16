@@ -20,7 +20,7 @@ export async function registraUso(
   userId: string,
   provider: "anthropic" | "openai" | "kittenml",
   modello: string,
-  funzione: "chat" | "analisi" | "voce",
+  funzione: "chat" | "analisi" | "voce" | "riassunto",
   tin: number,
   tout: number,
   caratteri: number,

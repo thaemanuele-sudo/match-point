@@ -18,6 +18,7 @@ const SERIE = {
     { k: "chat", n: "Chat", c: "var(--blu)" },
     { k: "analisi", n: "Analisi", c: "var(--viola)" },
     { k: "voce", n: "Voce", c: "var(--verde)" },
+    { k: "riassunto", n: "Riassunto lezione", c: "var(--arancio)" },
   ],
 } as const;
 const ALTRO = { k: "altro", n: "Altro", c: "var(--fg3)" };

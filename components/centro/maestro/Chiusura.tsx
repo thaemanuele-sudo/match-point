@@ -154,6 +154,8 @@ export function Chiusura({ id }: { id: string }) {
     setLavoro(true); setMsg(null);
     const { error } = await sb.from("lezioni").update({ riassunto: riassunto.trim(), riassunto_ok: true }).eq("id", lez.id);
     if (error) { setMsg(fmt(t.errApprova, { e: error.message })); setLavoro(false); return; }
+    // Il motore AI impara da come il maestro ha trattato la bozza (approvata così com'era, o riscritta). Non si aspetta e non si mostra: un errore qui non conta.
+    void fetch("/api/centro/riassunto/esito", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ lezione_id: lez.id }) }).catch(() => {});
     // famiglie dei presenti (una query sola per tutti), avvisate con una notifica; se non si può scrivere, l'approvazione vale lo stesso
     const ids = presenti.map((a) => a.id);
     let n = 0;

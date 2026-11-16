@@ -16,6 +16,12 @@ export type Impostazioni = {
   voceTts: string;
   prezzi: Prezzi;
   budgetMensile: number; // USD per utente, 0 = illimitato
+  // Motore (lib/motore): come passano le chiamate AI. "spento" = strada di prima, senza motore.
+  motoreModo: "attivo" | "osserva" | "spento";
+  levantoKey: string | null; // chiave di Sage (Levanto): vale solo con sageUtenti acceso
+  sageUtenti: boolean; // consenso esplicito a mandare a Sage anche i messaggi degli utenti
+  centroUrl: string | null; // motore centrale: da qui arrivano i priori, qui vanno solo numeri
+  centroChiave: string | null;
 };
 
 const DEFAULT: Impostazioni = {
@@ -31,6 +37,11 @@ const DEFAULT: Impostazioni = {
   voceTts: "alloy",
   prezzi: {},
   budgetMensile: 0,
+  motoreModo: "attivo",
+  levantoKey: null,
+  sageUtenti: false,
+  centroUrl: null,
+  centroChiave: null,
 };
 
 // Cache in memoria di 60 s: evita una chiamata al database a ogni richiesta.
@@ -86,6 +97,11 @@ export async function leggiImpostazioni(): Promise<Impostazioni> {
     voceTts: m.openai_tts_voice || DEFAULT.voceTts,
     prezzi,
     budgetMensile: Number.isFinite(budget) && budget > 0 ? budget : 0,
+    motoreModo: m.motore_modo === "osserva" || m.motore_modo === "spento" ? m.motore_modo : "attivo",
+    levantoKey: process.env.LEVANTO_API_KEY || m.levanto_api_key || null,
+    sageUtenti: m.motore_sage_utenti === "1",
+    centroUrl: m.motore_centro_url || null,
+    centroChiave: m.motore_centro_chiave || null,
   };
   cache = { quando: ora, valori };
   return valori;

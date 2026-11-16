@@ -1,6 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { guardia, errore } from "@/lib/ai/guardia";
+import { guardia, errore, type Contesto } from "@/lib/ai/guardia";
 import { costoToken, registraUso } from "@/lib/ai/costi";
+import { ID_RIASSUNTO, SISTEMA_RIASSUNTO } from "@/lib/ai/compiti";
+import { motoreApp, registraUsoMotore } from "@/lib/ai/motore";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -9,13 +11,6 @@ export const maxDuration = 60;
 // Il testo viene salvato in lezioni.riassunto con riassunto_ok = false: lo approva il maestro, mai l'AI.
 // A Claude non si mandano nomi di bambini: il riassunto parla del gruppo, quindi basta il lavoro svolto
 // (così non serve nemmeno il consenso "ai" di ogni singola famiglia).
-
-const SISTEMA =
-  "Sei il Coach AI di un centro di tennis. Scrivi per le famiglie un breve riassunto della lezione appena svolta dal gruppo, " +
-  "in italiano, con tono caldo, concreto e positivo, in 3-4 frasi (massimo 70 parole), senza elenchi e senza emoji. " +
-  "Racconta su cosa ha lavorato il gruppo e come è andata, e chiudi con il compito per casa se c'è. " +
-  "Non nominare singoli bambini, non dare giudizi sul corpo o sul talento, non inventare fatti che non ti vengono dati. " +
-  "Rispondi solo con il testo del riassunto.";
 
 type Blocco = { titolo?: unknown; colpo?: unknown; minuti?: unknown; sostituto?: unknown; esercizio?: unknown };
 type Svolto = { indice?: unknown; minuti?: unknown; fatto?: unknown; saltato?: unknown; sostituito?: unknown };
@@ -79,22 +74,52 @@ export async function POST(req: Request) {
     lez.compito ? `Compito per casa: ${txt(lez.compito)}` : "Nessun compito per casa.",
   ].join("\n");
 
-  const client = new Anthropic({ apiKey: imp.anthropicKey });
-  const modello = imp.modelloChat;
+  // Strada del motore (cache sulla coppia lezione + lavoro svolto, modello meno caro che basta); se è spento o dà errore si passa alla strada di sempre.
   let riassunto = "";
-  try {
-    const r = await client.messages.create({ model: modello, max_tokens: 400, system: SISTEMA, messages: [{ role: "user", content: prompt }] });
-    riassunto = r.content.map((c) => (c.type === "text" ? c.text : "")).join("").trim();
-    await registraUso(userId, "anthropic", modello, "chat", r.usage.input_tokens, r.usage.output_tokens, 0, costoToken(imp.prezzi, modello, r.usage.input_tokens, r.usage.output_tokens));
-  } catch (e) {
-    console.error("[centro] riassunto:", e instanceof Error ? e.message : "errore");
-    return errore(502, "ai_non_disponibile", "Il Coach AI non risponde: riprova tra poco.");
+  let idChiamata: string | null = null;
+  const m = motoreApp(imp);
+  if (m) {
+    try {
+      const r = await m.motore.esegui(ID_RIASSUNTO, { lezione_id: id, prompt }, { utente: userId, segnale: req.signal });
+      await registraUsoMotore(userId, "riassunto", r);
+      riassunto = r.testo.trim();
+      // Serve a dare al motore l'esito del maestro (vedi /api/centro/riassunto/esito).
+      idChiamata = riassunto ? r.id_chiamata : null;
+    } catch (e) {
+      console.error("[centro] riassunto col motore, ripiego sulla strada di sempre:", e instanceof Error ? e.message : "errore");
+    }
+  }
+  if (!riassunto) {
+    try {
+      riassunto = await riassuntoDiSempre(g.ctx, prompt);
+      idChiamata = null;
+    } catch (e) {
+      console.error("[centro] riassunto:", e instanceof Error ? e.message : "errore");
+      return errore(502, "ai_non_disponibile", "Il Coach AI non risponde: riprova tra poco.");
+    }
   }
   if (!riassunto) return errore(502, "risposta_vuota", "Il Coach AI non ha scritto nulla: riprova.");
 
   // Sempre in bozza: l'invio alle famiglie è l'approvazione del maestro (riassunto_ok = true).
-  const { data: salvata, error: eUp } = await sb.from("lezioni").update({ riassunto, riassunto_ok: false }).eq("id", id).select("id");
+  // Con la bozza e l'id della chiamata il server potrà dire al motore se il maestro l'ha approvata così com'era o riscritta.
+  const { data: salvata, error: eUp } = await sb
+    .from("lezioni")
+    .update({ riassunto, riassunto_ok: false, riassunto_chiamata_id: idChiamata, riassunto_bozza: idChiamata ? riassunto : null })
+    .eq("id", id)
+    .select("id");
   if (eUp || !salvata?.length) return errore(403, "salvataggio_negato", "Non puoi salvare il riassunto di questa lezione.");
 
   return Response.json({ riassunto, riassunto_ok: false }, { headers: { "Cache-Control": "no-store" } });
+}
+
+/** La strada di prima, senza motore: chiamata diretta ad Anthropic. Resta come ripiego. */
+async function riassuntoDiSempre(ctx: Contesto, prompt: string): Promise<string> {
+  const { userId, imp } = ctx;
+  const client = new Anthropic({ apiKey: imp.anthropicKey ?? "" });
+  const modello = imp.modelloChat;
+  const r = await client.messages.create({ model: modello, max_tokens: 400, system: SISTEMA_RIASSUNTO, messages: [{ role: "user", content: prompt }] });
+  const testo = r.content.map((c) => (c.type === "text" ? c.text : "")).join("").trim();
+  // Il riassunto ha ora la sua voce nel registro dei costi (prima finiva sotto "chat").
+  await registraUso(userId, "anthropic", modello, "riassunto", r.usage.input_tokens, r.usage.output_tokens, 0, costoToken(imp.prezzi, modello, r.usage.input_tokens, r.usage.output_tokens));
+  return testo;
 }
