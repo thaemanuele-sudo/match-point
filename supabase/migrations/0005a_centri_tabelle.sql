@@ -1,11 +1,6 @@
--- 0005a_centri_tabelle: multi-centro (tenant) di Match Point. Enum, tabelle e indici.
--- Perché: ogni centro ha i suoi dati isolati da RLS tramite centro_id (le policy sono in 0005b).
--- Regola: solo aggiunte, nessuna tabella esistente viene toccata (compatibile con il codice già online).
-
 create type public.ruolo_centro as enum
   ('titolare', 'dt', 'responsabile_area', 'maestro', 'segreteria', 'genitore', 'allievo');
 
--- ───────── centri ─────────
 create table public.centri (
   id uuid primary key default gen_random_uuid(),
   slug text not null unique
@@ -21,14 +16,12 @@ create table public.centri (
   piano text not null default 'base',
   impostazioni jsonb not null default
     '{"silenzio_da":"21:00","silenzio_a":"08:00","chat_genitori_fino":18,"account_ragazzo_da":14,"assenza_entro_ore":2,"conservazione_mesi":24}'::jsonb,
-  -- extra rispetto al contratto: il modello Match Point non compare negli elenchi
   elencato boolean not null default true,
   creato_da uuid references auth.users (id) on delete set null,
   created_at timestamptz not null default now()
 );
 create index centri_creato_da_idx on public.centri (creato_da);
 
--- ───────── organizzazione ─────────
 create table public.aree (
   id uuid primary key default gen_random_uuid(),
   centro_id uuid not null references public.centri (id) on delete cascade,
@@ -43,20 +36,19 @@ create index aree_centro_idx on public.aree (centro_id);
 create table public.membri (
   id uuid primary key default gen_random_uuid(),
   centro_id uuid not null references public.centri (id) on delete cascade,
-  user_id uuid references auth.users (id) on delete set null,  -- null finché la persona non accetta l'invito
+  user_id uuid references auth.users (id) on delete set null,
   ruolo public.ruolo_centro not null,
   nome text not null default '',
   cognome text,
   email text,
   telefono text,
-  area_id uuid references public.aree (id) on delete set null,  -- per responsabile_area
+  area_id uuid references public.aree (id) on delete set null,
   stato text not null default 'attivo' check (stato in ('attivo', 'invitato', 'sospeso')),
   created_at timestamptz not null default now()
 );
 create index membri_centro_idx on public.membri (centro_id, ruolo);
 create index membri_user_centro_idx on public.membri (user_id, centro_id) where user_id is not null;
 create index membri_area_idx on public.membri (area_id);
--- Unique (centro, user, ruolo, area): parziale, perché le persone senza account (user_id null) possono ripetersi.
 create unique index membri_unico_idx on public.membri
   (centro_id, user_id, ruolo, coalesce(area_id, '00000000-0000-0000-0000-000000000000'::uuid))
   where user_id is not null;
@@ -71,12 +63,11 @@ create table public.campi (
   luci boolean not null default false,
   stato text not null default 'disponibile' check (stato in ('disponibile', 'manutenzione', 'chiuso')),
   note text,
-  x numeric, y numeric, w numeric, h numeric,  -- posizione nella mappa, 0-100
+  x numeric, y numeric, w numeric, h numeric,
   created_at timestamptz not null default now(),
   unique (centro_id, numero)
 );
 
--- ───────── Metodo (programmi prima dei gruppi: gruppi.programma_id) ─────────
 create table public.linee_guida (
   id uuid primary key default gen_random_uuid(),
   centro_id uuid not null references public.centri (id) on delete cascade,
@@ -114,7 +105,6 @@ create table public.modelli_lezione (
   centro_id uuid not null references public.centri (id) on delete cascade,
   nome text not null,
   durata_min int not null default 60,
-  -- [{titolo, colpo, minuti, esercizio_id, modo: bloccato|flessibile|libero, alternative: [id esercizi], tipo}]
   blocchi jsonb not null default '[]',
   created_at timestamptz not null default now()
 );
@@ -127,15 +117,13 @@ create table public.programmi (
   fascia text,
   schema text not null default 'mensile'
     check (schema in ('mensile', 'settimanale', 'blocchi', 'periodizzazione', 'libero')),
-  anno int,  -- anno di settembre (2026 per 2026-27)
-  -- [{mese, tema, colpo, colore, fase, carico, test, settimane:[{tema, colore, modello_id, test?, carico?}]}]
+  anno int,
   mesi jsonb not null default '[]',
   settimane_test text[] not null default '{ott-4,gen-4,mag-4}',
   created_at timestamptz not null default now()
 );
 create index programmi_centro_idx on public.programmi (centro_id);
 
--- ───────── gruppi, allievi, iscrizioni ─────────
 create table public.gruppi (
   id uuid primary key default gen_random_uuid(),
   centro_id uuid not null references public.centri (id) on delete cascade,
@@ -143,7 +131,7 @@ create table public.gruppi (
   nome text not null,
   fascia text,
   livello text,
-  giorni int[] not null default '{}' check (giorni <@ array[1, 2, 3, 4, 5, 6, 7]),  -- 1 = lunedì
+  giorni int[] not null default '{}' check (giorni <@ array[1, 2, 3, 4, 5, 6, 7]),
   ora time,
   durata_min int not null default 60,
   campo_id uuid references public.campi (id) on delete set null,
@@ -174,7 +162,7 @@ create table public.allievi (
   nome text not null,
   cognome text,
   data_nascita date,
-  membro_id uuid references public.membri (id) on delete set null,  -- account proprio, facoltativo
+  membro_id uuid references public.membri (id) on delete set null,
   note_mediche text,
   certificato_scade date,
   created_at timestamptz not null default now()
@@ -186,7 +174,7 @@ create table public.allievi_famiglie (
   id uuid primary key default gen_random_uuid(),
   centro_id uuid not null references public.centri (id) on delete cascade,
   allievo_id uuid not null references public.allievi (id) on delete cascade,
-  membro_id uuid not null references public.membri (id) on delete cascade,  -- genitore
+  membro_id uuid not null references public.membri (id) on delete cascade,
   relazione text,
   created_at timestamptz not null default now(),
   unique (allievo_id, membro_id)
@@ -245,7 +233,6 @@ create index cambi_campo_campo_da_idx on public.cambi_campo (campo_da);
 create index cambi_campo_campo_a_idx on public.cambi_campo (campo_a);
 create index cambi_campo_deciso_da_idx on public.cambi_campo (deciso_da);
 
--- ───────── lezioni e dati degli allievi ─────────
 create table public.lezioni (
   id uuid primary key default gen_random_uuid(),
   centro_id uuid not null references public.centri (id) on delete cascade,
@@ -255,13 +242,13 @@ create table public.lezioni (
   campo_id uuid references public.campi (id) on delete set null,
   maestro_id uuid references public.membri (id) on delete set null,
   modello_id uuid references public.modelli_lezione (id) on delete set null,
-  piano jsonb not null default '[]',   -- blocchi (stessa forma di modelli_lezione.blocchi)
-  svolto jsonb not null default '[]',  -- [{indice (0 = primo blocco), minuti, fatto, sostituito?, esercizio_id?, saltato?}]
+  piano jsonb not null default '[]',
+  svolto jsonb not null default '[]',
   stato text not null default 'programmata' check (stato in ('programmata', 'in_corso', 'chiusa')),
   riassunto text,
   riassunto_ok boolean not null default false,
   compito text,
-  motivi_scostamento jsonb not null default '{}',  -- {"indice": "motivo"}
+  motivi_scostamento jsonb not null default '{}',
   created_at timestamptz not null default now(),
   unique (gruppo_id, data)
 );
@@ -308,7 +295,7 @@ create table public.valutazioni (
   centro_id uuid not null references public.centri (id) on delete cascade,
   allievo_id uuid not null references public.allievi (id) on delete cascade,
   maestro_id uuid references public.membri (id) on delete set null,
-  test text not null,  -- es. 'nov-2026'
+  test text not null,
   colpo text not null,
   competenza text not null,
   voto int not null check (voto between 1 and 5),
@@ -323,14 +310,14 @@ create index valutazioni_maestro_idx on public.valutazioni (maestro_id);
 create table public.compiti (
   id uuid primary key default gen_random_uuid(),
   centro_id uuid not null references public.centri (id) on delete cascade,
-  allievo_id uuid references public.allievi (id) on delete cascade,  -- null se di gruppo
+  allievo_id uuid references public.allievi (id) on delete cascade,
   gruppo_id uuid references public.gruppi (id) on delete cascade,
   maestro_id uuid references public.membri (id) on delete set null,
   titolo text not null,
   durata_min int,
   esercizio_id uuid references public.esercizi (id) on delete set null,
   scadenza date,
-  lezione_id uuid references public.lezioni (id) on delete set null,  -- extra: evita doppioni in chiudi_lezione
+  lezione_id uuid references public.lezioni (id) on delete set null,
   created_at timestamptz not null default now()
 );
 create index compiti_centro_idx on public.compiti (centro_id);
@@ -365,14 +352,13 @@ create index note_private_centro_idx on public.note_private (centro_id);
 create index note_private_allievo_idx on public.note_private (allievo_id);
 create index note_private_maestro_idx on public.note_private (maestro_id);
 
--- ───────── osservazioni e formazione ─────────
 create table public.osservazioni (
   id uuid primary key default gen_random_uuid(),
   centro_id uuid not null references public.centri (id) on delete cascade,
   maestro_id uuid not null references public.membri (id) on delete cascade,
   osservatore_id uuid references public.membri (id) on delete set null,
   lezione_id uuid references public.lezioni (id) on delete set null,
-  voti jsonb not null default '{}',  -- {tempi, correzione, gruppo, sicurezza}
+  voti jsonb not null default '{}',
   voto int,
   consigli text[] not null default '{}',
   nota text,
@@ -407,14 +393,13 @@ create table public.formazione (
 create index formazione_centro_idx on public.formazione (centro_id);
 create index formazione_membro_idx on public.formazione (membro_id);
 
--- ───────── comunicazione ─────────
 create table public.conversazioni (
   id uuid primary key default gen_random_uuid(),
   centro_id uuid not null references public.centri (id) on delete cascade,
   tipo text not null check (tipo in ('allievo_maestro', 'famiglia_maestro', 'famiglia_segreteria', 'staff')),
   allievo_id uuid references public.allievi (id) on delete cascade,
   titolo text,
-  creata_da uuid references public.membri (id) on delete set null,  -- extra: serve alla RLS di partecipanti
+  creata_da uuid references public.membri (id) on delete set null,
   created_at timestamptz not null default now()
 );
 create index conversazioni_centro_idx on public.conversazioni (centro_id);
@@ -426,7 +411,7 @@ create table public.partecipanti (
   centro_id uuid not null references public.centri (id) on delete cascade,
   conversazione_id uuid not null references public.conversazioni (id) on delete cascade,
   membro_id uuid not null references public.membri (id) on delete cascade,
-  sola_lettura boolean not null default false,  -- genitori nella chat figlio-maestro
+  sola_lettura boolean not null default false,
   created_at timestamptz not null default now(),
   unique (conversazione_id, membro_id)
 );
@@ -439,7 +424,7 @@ create table public.messaggi (
   conversazione_id uuid not null references public.conversazioni (id) on delete cascade,
   autore_id uuid not null references public.membri (id) on delete cascade,
   testo text not null check (char_length(testo) between 1 and 4000),
-  consegna_il timestamptz not null default now(),  -- in silenzio (dopo le 21) si consegna alle 8:00
+  consegna_il timestamptz not null default now(),
   created_at timestamptz not null default now()
 );
 create index messaggi_centro_idx on public.messaggi (centro_id);
@@ -452,7 +437,7 @@ create table public.avvisi (
   autore_id uuid references public.membri (id) on delete set null,
   titolo text not null,
   testo text not null,
-  destinatari jsonb not null default '{"tipo":"centro","valori":[]}',  -- {tipo: centro|fascia|gruppo|area|maestro, valori: []}
+  destinatari jsonb not null default '{"tipo":"centro","valori":[]}',
   conferma boolean not null default false,
   promemoria boolean not null default false,
   consegna_il timestamptz not null default now(),
@@ -476,7 +461,7 @@ create index avvisi_letture_membro_idx on public.avvisi_letture (membro_id);
 create table public.segnalazioni (
   id uuid primary key default gen_random_uuid(),
   centro_id uuid not null references public.centri (id) on delete cascade,
-  autore_id uuid references public.membri (id) on delete set null,  -- null se anonima verso tutti
+  autore_id uuid references public.membri (id) on delete set null,
   anonima boolean not null default false,
   per_allievo_id uuid references public.allievi (id) on delete set null,
   categoria text not null,
@@ -512,9 +497,8 @@ create table public.notifiche (
   link text,
   mittente text,
   letta_il timestamptz,
-  -- extra: una notifica con consegna_il futura (silenzio, avviso programmato) resta invisibile al destinatario
   consegna_il timestamptz not null default now(),
-  rif_id uuid,  -- extra: id dell'oggetto collegato (avviso, conversazione, cambio campo...)
+  rif_id uuid,
   created_at timestamptz not null default now()
 );
 create index notifiche_centro_idx on public.notifiche (centro_id);
@@ -537,7 +521,7 @@ create index consensi_firmato_da_idx on public.consensi (firmato_da);
 create table public.permessi_ruolo (
   id uuid primary key default gen_random_uuid(),
   centro_id uuid not null references public.centri (id) on delete cascade,
-  area_id uuid references public.aree (id) on delete cascade,  -- null = permessi predefiniti del centro
+  area_id uuid references public.aree (id) on delete cascade,
   permessi jsonb not null default
     '{"gruppi":true,"campi":true,"maestri":true,"avvisi":true,"iscrizioni":true,"pagamenti":false,"metodo":"lettura","tutela":false}',
   created_at timestamptz not null default now()
@@ -559,13 +543,12 @@ create table public.registro (
 create index registro_centro_idx on public.registro (centro_id, created_at desc);
 create index registro_membro_idx on public.registro (membro_id);
 
--- ───────── corsi e quote (area pagamenti) ─────────
 create table public.corsi (
   id uuid primary key default gen_random_uuid(),
   centro_id uuid not null references public.centri (id) on delete cascade,
   nome text not null,
   gruppo_id uuid references public.gruppi (id) on delete set null,
-  quota_cent int check (quota_cent is null or quota_cent >= 0),  -- null finché non la mette il centro: niente prezzi inventati
+  quota_cent int check (quota_cent is null or quota_cent >= 0),
   sconto_fratelli_pct int check (sconto_fratelli_pct is null or sconto_fratelli_pct between 0 and 100),
   rate int,
   scadenze jsonb not null default '{}',
