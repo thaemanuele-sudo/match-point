@@ -1,0 +1,6 @@
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;padding:0;background:#000;color:#F3F6F1}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display",system-ui,"Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+img,video,svg{max-width:100%}
+button{font:inherit}
+:root{--font-barlow:"Barlow Condensed";--font-hanken:"Hanken Grotesk"}

@@ -1,0 +1,44 @@
+/* Sistema grafico dell'app Match Point (dai disegni: nero, giallo palla #D8F34A, verde campo).
+   Tutto vive sotto .mp, così il sito e l'admin non ne sono toccati. */
+.mp{
+  --mp-bg:#050505; --mp-fg:#F3F6F1; --mp-muted:#A1A1A6; --mp-dim:#8E8E93;
+  --mp-card:#161618; --mp-card2:#1C1C1E; --mp-line:rgba(255,255,255,.07); --mp-chip:#232326;
+  --mp-acc:#D8F34A; --mp-acc-h:#ECFF8A; --mp-bad:#FF8A6B; --mp-red:#F0454A; --mp-blue:#5AA9FF;
+  --mp-lawn1:#1E6A44; --mp-lawn2:#24764C;
+  --mp-tab-h:88px;
+  min-height:100dvh; background:#000; color:var(--mp-fg);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;
+}
+.mp a{color:var(--mp-acc)} .mp a:hover{color:var(--mp-acc-h)}
+/* lo "schermo": a tutta pagina sul telefono, colonna da 430px centrata sul computer */
+.mp-screen{position:relative;max-width:430px;margin:0 auto;min-height:100dvh;background:var(--mp-bg);overflow-x:hidden}
+@media (min-width:600px){.mp-screen{box-shadow:0 0 0 1px rgba(255,255,255,.06),0 30px 80px rgba(0,0,0,.6)}}
+.mp-scroll{padding:calc(env(safe-area-inset-top) + 16px) 20px calc(var(--mp-tab-h) + 24px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:22px}
+.mp-scroll.no-tab{padding-bottom:calc(32px + env(safe-area-inset-bottom))}
+.mp .disp{font-family:var(--font-barlow),"Barlow Condensed",sans-serif}
+.mp .brand{font-family:var(--font-hanken),"Hanken Grotesk",sans-serif}
+.mp .card{background:var(--mp-card);border:1px solid var(--mp-line);border-radius:22px}
+.mp .chip{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:999px;background:var(--mp-chip);color:#E5E5EA;font-size:13px;font-weight:600;border:1px solid rgba(255,255,255,.06);white-space:nowrap;font-family:inherit;cursor:pointer}
+.mp .chip.on{background:var(--mp-acc);color:#0B0B0C;border-color:transparent}
+.mp .lawn{background:repeating-linear-gradient(90deg,var(--mp-lawn1) 0 36px,var(--mp-lawn2) 36px 72px)}
+.mp .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:50px;padding:0 22px;border-radius:999px;background:var(--mp-acc);color:#0B0B0C;font-weight:700;font-size:16px;border:0;font-family:inherit;text-decoration:none;cursor:pointer}
+.mp .btn:hover{color:#0B0B0C;filter:brightness(1.05)}
+.mp .btn:disabled{opacity:.5;cursor:default}
+.mp .btn.ghost{background:var(--mp-chip);color:var(--mp-fg);border:1px solid var(--mp-line)}
+.mp .sec{display:flex;align-items:baseline;justify-content:space-between}
+.mp .sec h2{margin:0;font-size:20px;font-weight:700;letter-spacing:-.2px}
+.mp .sec a{font-size:14px;font-weight:600;text-decoration:none}
+.mp .muted{color:var(--mp-muted)}
+.mp .icon{width:44px;height:44px;border-radius:50%;background:var(--mp-card);border:1px solid var(--mp-line);display:flex;align-items:center;justify-content:center;color:var(--mp-fg);text-decoration:none;cursor:pointer;flex:none}
+.mp .field{width:100%;height:52px;border-radius:16px;background:var(--mp-card);border:1px solid var(--mp-line);color:var(--mp-fg);padding:0 16px;font:inherit;font-size:16px;outline:none}
+.mp .field:focus{border-color:var(--mp-acc)}
+.mp :focus-visible{outline:2px solid var(--mp-acc);outline-offset:2px}
+/* barra delle schede, in vetro */
+.mp-tabbar{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:100%;max-width:430px;height:calc(var(--mp-tab-h) + env(safe-area-inset-bottom));padding:6px 10px calc(24px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:start;background:rgba(12,12,14,.86);backdrop-filter:blur(20px) saturate(160%);-webkit-backdrop-filter:blur(20px) saturate(160%);border-top:1px solid rgba(255,255,255,.08);z-index:40}
+.mp-tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:52px;font-size:11px;font-weight:600;color:var(--mp-dim)!important;text-decoration:none}
+.mp-tab:hover{color:var(--mp-fg)!important}.mp-tab.on{color:var(--mp-acc)!important}
+.mp-plus{justify-self:center;margin-top:-28px;width:64px;height:64px;border-radius:50%;background:var(--mp-acc);color:#0B0B0C!important;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 26px rgba(216,243,74,.30),0 0 0 6px var(--mp-bg);text-decoration:none}
+/* intestazione con indietro */
+.mp-head{display:flex;align-items:center;gap:12px;min-height:44px}
+.mp-head h1{margin:0;font-size:22px;font-weight:700;letter-spacing:-.3px;flex:1;min-width:0}
+@media (prefers-reduced-motion:reduce){.mp *{animation:none!important;transition:none!important}}
