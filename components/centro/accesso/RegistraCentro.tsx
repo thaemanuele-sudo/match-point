@@ -171,7 +171,7 @@ export default function RegistraCentro() {
     <Schermo>
       <div className={`${s.q} ${s.fitto}`}>
         <header className={s.hdr}>
-          <Link href={passo === 1 ? "/app/profili" : "/app/profili"} className={s.indietro} aria-label={t.indietro}><IcoFrecciaIndietro /></Link>
+          <Link href="/app/profili" className={s.indietro} aria-label={t.indietro}><IcoFrecciaIndietro /></Link>
           <div className={s.grow}><div className={s.kick}>{t.kick}</div><h1 className={s.h1}>{t.titolo}</h1></div>
         </header>
 

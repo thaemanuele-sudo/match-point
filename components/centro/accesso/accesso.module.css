@@ -130,4 +130,4 @@
 /* riquadro "I miei centri" in /app */
 .mieiCentri{max-width:430px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 10px) 20px 0;background:#050505;box-sizing:border-box}
 .mieiCentriLink{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:18px;background:#161618;border:1px solid rgba(216,243,74,.35);text-decoration:none;color:#F3F6F1}
-.mp a.mieiCentriLink,.mp a.mieiCentriLink:hover{color:#F3F6F1}
+:global(.mp) a.mieiCentriLink,:global(.mp) a.mieiCentriLink:hover{color:#F3F6F1}

@@ -252,7 +252,7 @@ export default function CorsiQuote() {
             const per = periodo(imp.cadenza, imp.giorno_scadenza, offset);
             return generaQuote(sb, centro.id, corsi, per, {
               scontoAttivo: imp.sconto_attivo,
-              iscrizione: conIscrizione && imp.iscrizione_cent != null ? { codice: `iscrizione-${new Date(per.scade_il).getFullYear()}`, importo_cent: imp.iscrizione_cent } : null,
+              iscrizione: conIscrizione && imp.iscrizione_cent != null ? { codice: `iscrizione-${Number(per.scade_il.slice(0, 4))}`, importo_cent: imp.iscrizione_cent } : null,
             });
           }} />
       ) : null}

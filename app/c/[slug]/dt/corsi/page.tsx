@@ -1,6 +1,6 @@
-import { Segnaposto } from "@/components/centro/Segnaposto";
+"use client";
+import CorsiQuote from "@/components/centro/pagamenti/CorsiQuote";
 
-// Segnaposto: l'area responsabile sostituisce questo file con la schermata vera.
-export default function Page() {
-  return <Segnaposto codice="C16" ruolo="dt" tab="corsi" />;
+export default function Pagina() {
+  return <CorsiQuote />;
 }

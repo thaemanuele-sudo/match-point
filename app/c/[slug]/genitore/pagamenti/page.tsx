@@ -1,6 +1,6 @@
-import { Segnaposto } from "@/components/centro/Segnaposto";
+"use client";
+import PagamentiGenitore from "@/components/centro/pagamenti/PagamentiGenitore";
 
-// Segnaposto: l'area responsabile sostituisce questo file con la schermata vera.
-export default function Page() {
-  return <Segnaposto codice="G8" ruolo="genitore" tab="home" />;
+export default function Pagina() {
+  return <PagamentiGenitore />;
 }

@@ -11,7 +11,7 @@ export const COL = {
   arancio: "#FF9F43",
   rosso: "#FF5A5F",
   blu: "#3D8BFF",
-  palla: "#D8F34A",
+  palla: "var(--brand,#D8F34A)",
   muto: "#A1A1A6",
 } as const;
 
