@@ -14,6 +14,7 @@ import { Schemi } from "./Schemi";
 import { Atletica } from "./Atletica";
 import { Tecnica } from "./Tecnica";
 import { Impostazioni } from "./Impostazioni";
+import { Motore } from "./Motore";
 
 const TEMA_KEY = "matchpoint-admin-tema";
 const SCHEDE = [
@@ -22,6 +23,7 @@ const SCHEDE = [
   { id: "schemi", nome: "Schemi di gioco" },
   { id: "atletica", nome: "Atletica" },
   { id: "tecnica", nome: "Tecnica" },
+  { id: "motore", nome: "Motore" },
   { id: "impostazioni", nome: "Impostazioni" },
 ] as const;
 type Scheda = (typeof SCHEDE)[number]["id"];
@@ -107,6 +109,7 @@ export function Admin() {
           {scheda === "schemi" && <Schemi />}
           {scheda === "atletica" && <Atletica />}
           {scheda === "tecnica" && <Tecnica />}
+          {scheda === "motore" && <Motore />}
           {scheda === "impostazioni" && <Impostazioni />}
         </main>
         {avviso && <div className="db-avviso" role="status">{avviso}</div>}
