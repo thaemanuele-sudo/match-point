@@ -5,8 +5,7 @@ import { SchermoCentro } from "@/components/centro/Schermo";
 import { Caricamento, Chip, Chips, Errore, Nota, Sezione, Seg, Tile, Vuoto } from "@/components/centro/ui";
 import { rotta } from "@/lib/centro/rotte";
 import { useT } from "@/lib/i18n/lingua";
-import { allieviDelGruppo, leggiValutazioni, maestriDi, nomeCompleto, settimanaProgramma, sostituisci, useOrg } from "./dati";
-import type { ValutazioneL } from "./tipi";
+import { COLPI_DB, maestriDi, nomeCompleto, settimanaProgramma, sostituisci, useOrg } from "./dati";
 import "./org.css";
 
 const IT = {
@@ -20,58 +19,48 @@ const IT = {
 const T = { it: IT, en: { ...IT } };
 const COMP = ["dritto", "rovescio", "servizio", "volee", "gambe"] as const;
 type Comp = (typeof COMP)[number];
-const norm = (s: string | null | undefined) => (s ?? "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 const media = (v: number[]) => (v.length ? v.reduce((a, b) => a + b, 0) / v.length : null);
-const chiaveColpo: Record<Comp, string> = { dritto: "dritto", rovescio: "rovescio", servizio: "servizio", volee: "volee", gambe: "gamb" };
+
+/** Riga di `progressi_per_unita` (docs/RPC.md): livello 0-100 dell'ultimo test e punti rispetto al test precedente. */
+type RigaUnita = { unita_id: string; nome: string; n_allievi: number; livello: number | null; delta: number | null };
 
 export default function CentroProgressi() {
   const t = useT(T);
   const o = useOrg();
   const { centro, sb, dati: d } = o;
   const r = rotta(centro.slug);
-  // le valutazioni si leggono per competenza, solo quando la si sceglie, e si tengono per non rileggerle tornando indietro
-  const [cache, setCache] = useState<Partial<Record<Comp, ValutazioneL[]>>>({});
+  // il confronto lo calcola il database (`progressi_per_unita`); si tiene per vista e competenza per non rileggerlo tornando indietro
+  const [cache, setCache] = useState<Record<string, RigaUnita[]>>({});
   const [err, setErr] = useState<string | null>(null);
   const [vista, setVista] = useState<"gruppi" | "maestri">("gruppi");
   const [comp, setComp] = useState<Comp>("dritto");
 
-  const val = cache[comp] ?? null;
+  const chiave = `${vista}|${comp}|${o.ids?.join(",") ?? "*"}`;
+  const val = cache[chiave] ?? null;
   useEffect(() => {
-    if (cache[comp]) return;
+    if (cache[chiave]) return;
     let vivo = true;
-    void leggiValutazioni(sb, centro.id, chiaveColpo[comp]).then((x) => {
+    void sb.rpc("progressi_per_unita", { p_centro: centro.id, p_colpo: COLPI_DB[comp], p_vista: vista, p_aree: o.ids }).then((x: { data: unknown; error: { message: string } | null }) => {
       if (!vivo) return;
-      if (x.errore) setErr(x.errore); else setCache((c) => ({ ...c, [comp]: x.righe }));
+      if (x.error) setErr(x.error.message);
+      else setCache((c) => ({ ...c, [chiave]: ((x.data ?? []) as RigaUnita[]).map((u) => ({ ...u, livello: u.livello === null ? null : Number(u.livello), delta: u.delta === null ? null : Number(u.delta) })) }));
     });
     return () => { vivo = false; };
-  }, [sb, centro.id, comp, cache]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sb, centro.id, chiave, cache]);
 
   const schermo = (corpo: React.ReactNode, sopra?: string) => (
     <SchermoCentro ruolo={o.eResp ? "area" : "dt"} tab="progressi" titolo={t.titolo} sopra={sopra ?? centro.nome} indietro={o.eResp ? r.area.base : r.dt.base}>{corpo}</SchermoCentro>
   );
   if (!d || !val) return schermo(o.errore || err ? <Errore messaggio={o.errore ?? err} onRiprova={() => void o.carica()} /> : <Caricamento />);
 
-  const mie = val.filter((v) => v.voto != null && norm(v.colpo).includes(chiaveColpo[comp]));
-  // livello di un allievo: media dei voti (1-5) all'ultima data di test, in %; confronto con il test più vecchio
-  const livello = (id: string) => {
-    const x = mie.filter((v) => v.allievo_id === id);
-    const date = [...new Set(x.map((v) => v.data ?? v.test ?? ""))].sort();
-    if (!date.length) return null;
-    const a = (k: string) => (media(x.filter((v) => (v.data ?? v.test ?? "") === k).map((v) => v.voto as number)) as number) * 20;
-    const ora = a(date[date.length - 1]);
-    return { ora, delta: date.length > 1 ? ora - a(date[0]) : null };
-  };
-  const unita = vista === "gruppi"
-    ? o.gruppiVis.filter((g) => g.attivo).map((g) => ({ id: g.id, nome: g.nome, sub: sostituisci(t.subGruppo, { m: maestriDi(d, g.id).map((m) => nomeCompleto(m)).join(" · ") || t.nessunMaestro, n: allieviDelGruppo(o.iscrAttive, g.id).length }), allievi: allieviDelGruppo(o.iscrAttive, g.id) }))
-    : d.membri.filter((m) => m.ruolo === "maestro").map((m) => {
-        const gs = d.gm.filter((x) => x.membro_id === m.id).map((x) => x.gruppo_id).filter((id) => o.gruppiVis.some((g) => g.id === id));
-        const al = [...new Set(gs.flatMap((g) => allieviDelGruppo(o.iscrAttive, g)))];
-        return { id: m.id, nome: nomeCompleto(m), sub: sostituisci(t.subMaestro, { g: gs.map((id) => d.gruppi.find((g) => g.id === id)?.nome).join(" · "), n: al.length }), allievi: al };
-      }).filter((u) => u.allievi.length > 0);
-  const righe = unita.map((u) => {
-    const l = u.allievi.map(livello).filter((x): x is NonNullable<ReturnType<typeof livello>> => !!x);
-    return { ...u, v: media(l.map((x) => x.ora)), d: media(l.filter((x) => x.delta !== null).map((x) => x.delta as number)) };
+  const unita = (u: RigaUnita) => ({
+    id: u.unita_id, nome: u.nome,
+    sub: vista === "gruppi"
+      ? sostituisci(t.subGruppo, { m: maestriDi(d, u.unita_id).map((m) => nomeCompleto(m)).join(" · ") || t.nessunMaestro, n: u.n_allievi })
+      : sostituisci(t.subMaestro, { g: d.gm.filter((x) => x.membro_id === u.unita_id).map((x) => d.gruppi.find((g) => g.id === x.gruppo_id)).filter((g) => g && (!o.ids || o.gruppiVis.some((v) => v.id === g.id))).map((g) => g!.nome).join(" · "), n: u.n_allievi }),
   });
+  const righe = val.map((u) => ({ ...unita(u), v: u.livello, d: u.delta }));
   const con = righe.filter((x) => x.v !== null);
   const mediaTot = media(con.map((x) => x.v as number));
   const dTot = media(con.filter((x) => x.d !== null).map((x) => x.d as number));

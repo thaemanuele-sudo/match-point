@@ -182,19 +182,6 @@ export function nomeCampo(c: { numero: number; nome: string | null } | null | un
   return c.nome && c.nome.toLowerCase() !== base.toLowerCase() ? `${base} · ${c.nome}` : base;
 }
 
-/**
- * Le RPC del contratto sono elencate con i nomi dei parametri senza prefisso (es. avvisa_assenza(allievo, data, …)).
- * Se il database li chiama p_allievo, p_data… la prima chiamata fallisce con PGRST202: si riprova col prefisso.
- */
-export async function rpcTollerante(sb: SupabaseClient, nome: string, args: Record<string, unknown>) {
-  let r = await sb.rpc(nome, args);
-  if (r.error && (r.error.code === "PGRST202" || /could not find the function/i.test(r.error.message))) {
-    const conPrefisso = Object.fromEntries(Object.entries(args).map(([k, v]) => ["p_" + k, v]));
-    r = await sb.rpc(nome, conPrefisso);
-  }
-  return r;
-}
-
 /** Codice invito di 6 caratteri senza simboli che si confondono (0/O, 1/I). */
 export function codiceCasuale(): string {
   const alfabeto = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";

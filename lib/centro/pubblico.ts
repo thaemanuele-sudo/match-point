@@ -1,28 +1,24 @@
 import "server-only";
 import { cache } from "react";
-import { supabaseAnon, supabaseServer } from "@/lib/supabase/server";
-import type { MarchioCentro } from "./brand";
+import { createClient } from "@supabase/supabase-js";
+import { SUPABASE_URL, SUPABASE_KEY } from "@/lib/supabase/config";
+import type { CentroPubblico as RigaPubblica } from "./tipi";
 
-export type CentroPubblico = MarchioCentro & { slug: string; nome: string };
-const COLONNE = "slug,nome,nome_app,colore,colore_ink,logo_path";
+export type CentroPubblico = Pick<RigaPubblica, "slug" | "nome" | "nome_app" | "colore" | "colore_ink" | "logo_path">;
 
 /**
- * Dati di marchio del centro per metadata e manifest. Prima con la sessione dell'utente (RLS dei membri),
- * poi senza sessione: il manifest viene scaricato dal browser senza cookie, quindi la lettura anonima di questi
- * soli campi serve all'installazione della PWA. Se il database non la consente si usano i valori di Match Point.
+ * Dati di marchio del centro per metadata e manifest, tramite la RPC `centro_pubblico(slug)`: è eseguibile anche
+ * da anonimi (il browser scarica il manifest senza cookie) ed espone solo i campi di marchio, mai le tabelle.
+ * Si usa la chiave anonima del progetto, non la sessione né la service role: il risultato è identico per tutti.
+ * Se il centro non esiste o la lettura fallisce si torna null e si usano i valori di Match Point.
  * `cache` evita di leggere due volte nella stessa richiesta (layout + generateMetadata).
  */
 export const centroPubblico = cache(async (slug: string): Promise<CentroPubblico | null> => {
   try {
-    const sb = await supabaseServer();
-    const { data } = await sb.from("centri").select(COLONNE).eq("slug", slug).maybeSingle();
-    if (data) return data as CentroPubblico;
-  } catch {
-    /* nessuna sessione: si prova in anonimo */
-  }
-  try {
-    const { data } = await supabaseAnon().from("centri").select(COLONNE).eq("slug", slug).maybeSingle();
-    return (data as CentroPubblico | null) ?? null;
+    const sb = createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
+    const { data, error } = await sb.rpc("centro_pubblico", { slug });
+    if (error || !data) return null;
+    return data as CentroPubblico;
   } catch {
     return null;
   }

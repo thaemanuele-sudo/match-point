@@ -10,7 +10,7 @@ import { useCentro } from "@/lib/centro/contesto";
 import { rotta } from "@/lib/centro/rotte";
 import { fmtData, leggiData } from "@/lib/centro/date";
 import { nomeBreve, type Figlio } from "./dati";
-import { fmt, rpcTollerante } from "./util";
+import { fmt } from "./util";
 import { eVideo, urlFirmato } from "./media";
 
 const IT = {
@@ -145,7 +145,7 @@ export function FoglioAssenza({ figlio, data, ora, onChiudi, onFatto }: { figlio
   async function invia() {
     setInvio(true);
     setErrore(null);
-    const r = await rpcTollerante(sb, "avvisa_assenza", { allievo: figlio.allievo.id, data, motivo, testo: testo.trim() || null });
+    const r = await sb.rpc("avvisa_assenza", { allievo: figlio.allievo.id, data, motivo, testo: testo.trim() || null });
     setInvio(false);
     if (r.error) return setErrore(r.error.message || t.erroreGenerico);
     setFatto(true);

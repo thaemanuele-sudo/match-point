@@ -27,8 +27,6 @@ const IT = {
 };
 const T = { it: IT, en: { ...IT } };
 
-const norm = (s: string | null | undefined) => (s ?? "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-
 /** Riga di `allievi_stato_lista` (docs/RPC.md): anagrafica più lo stato calcolato dal database sugli ultimi 30 giorni. */
 type RigaStato = AllievoL & { gruppi: string[]; maestri: string[]; perc: number | null; assenti: number; su: number; ritardo: boolean; ripetute: boolean; totale: number };
 type Pagina = { righe: RigaStato[]; altri: boolean; errore: string | null };

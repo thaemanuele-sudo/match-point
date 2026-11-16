@@ -1,8 +1,8 @@
 "use client";
 // Invio di un messaggio dalla famiglia: trova (o apre) la conversazione giusta e poi usa invia_messaggio,
 // che applica da solo silenzio dopo le 21, sola lettura e notifiche. Qui non si scrive mai direttamente in `messaggi`.
+// `creata_da` è obbligatorio per la RLS di `conversazioni` (insert ammesso solo se creata_da è un mio membro).
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { rpcTollerante } from "./util";
 
 type Tipo = "famiglia_segreteria" | "famiglia_maestro";
 
@@ -14,7 +14,7 @@ export async function inviaMessaggioFamiglia(
   if (esiste.error) return esiste.error.message;
   let id: string | undefined = (esiste.data ?? [])[0]?.id;
   if (!id) {
-    const nuova = await sb.from("conversazioni").insert({ centro_id: centroId, tipo, allievo_id: allievoId, titolo }).select("id").single();
+    const nuova = await sb.from("conversazioni").insert({ centro_id: centroId, tipo, allievo_id: allievoId, titolo, creata_da: membroId }).select("id").single();
     if (nuova.error || !nuova.data) return nuova.error?.message ?? "Conversazione non creata";
     id = nuova.data.id as string;
     const io = await sb.from("partecipanti").insert({ centro_id: centroId, conversazione_id: id, membro_id: membroId, sola_lettura: false });
@@ -27,6 +27,6 @@ export async function inviaMessaggioFamiglia(
       if (righe.length) await sb.from("partecipanti").insert(righe);
     }
   }
-  const r = await rpcTollerante(sb, "invia_messaggio", { conversazione: id, testo });
+  const r = await sb.rpc("invia_messaggio", { conversazione: id, testo });
   return r.error ? r.error.message : null;
 }
