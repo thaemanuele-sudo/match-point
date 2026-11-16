@@ -11,7 +11,7 @@
 -- Oggi è lunedì 16/11/2026: le lezioni fino al 15/11 sono chiuse (6 settimane), da oggi al 29/11 sono programmate (2 settimane).
 -- Il Metodo (esercizi, modelli, programmi, linee guida, formazione) è clonato dal centro matchpoint-modello, che resta intatto.
 -- Idempotente: il centro si crea una volta sola e ogni inserimento controlla l'esistenza della riga.
--- Nessun delete/truncate. I valori "casuali" derivano da hashtext, quindi sono ripetibili.
+-- Nessuna cancellazione di dati. I valori "casuali" derivano da hashtext, quindi sono ripetibili.
 
 -- ============ A. Centro, aree, campi, corsi, staff, gruppi, allievi, famiglie, iscrizioni, consensi ============
 do $seed$
@@ -120,10 +120,11 @@ begin
 
   -- 12 maestri (i nomi di fantasia tranne Alan Fiordelmonte e Marco Campanella, indicati dal cliente, responsabili dell'area Adulti)
   create temp table if not exists _qm (idx int, nome text, cognome text);
-  insert into _qm values
+  insert into _qm select * from (values
     (1, 'Andrea', 'Vallarino'), (2, 'Silvia', 'Montecresto'), (3, 'Alan', 'Fiordelmonte'), (4, 'Chiara', 'Belcorvo'),
     (5, 'Davide', 'Torresani'), (6, 'Marco', 'Campanella'), (7, 'Elena', 'Rovescalli'), (8, 'Paolo', 'Sandrelli'),
-    (9, 'Giulia', 'Ferranova'), (10, 'Stefano', 'Laurenzi'), (11, 'Irene', 'Caldarola'), (12, 'Luca', 'Dorigatti');
+    (9, 'Giulia', 'Ferranova'), (10, 'Stefano', 'Laurenzi'), (11, 'Irene', 'Caldarola'), (12, 'Luca', 'Dorigatti')) v(idx, nome, cognome)
+  where not exists (select 1 from _qm);
   insert into public.membri (centro_id, ruolo, nome, cognome, email, stato)
   select b, 'maestro'::public.ruolo_centro, q.nome, q.cognome, lower(q.nome || '.' || q.cognome) || '@quanta-demo.example', 'attivo'
   from _qm q
@@ -148,7 +149,7 @@ begin
   -- ord, nome, area, fascia, livello, giorni (1 = lun), ora, minuti, campo, maestro principale (idx), secondo maestro, n allievi, anni di nascita da-a, programma annuale
   create temp table if not exists _qg (ord int, nome text, area text, fascia text, livello text, giorni int[], ora time, durata int, campo int,
                          m1 int, m2 int, n int, a0 int, a1 int, prog text);
-  insert into _qg values
+  insert into _qg select * from (values
     -- Scuola Tennis (4-16 anni): gruppi omogenei, sessioni da 80 minuti con preparazione atletica, pomeriggio 16:30-19:30 e sabato mattina
     (1,  'Mini 4-7 · Lun-Mer',       'Scuola Tennis', 'U8',  'Mini',       array[1,3], '16:30', 80, 12, 1, null, 12, 2019, 2022, 'U10'),
     (2,  'Mini 4-7 · Mar-Gio',       'Scuola Tennis', 'U8',  'Mini',       array[2,4], '16:30', 80, 12, 1, null, 12, 2019, 2022, 'U10'),
@@ -184,7 +185,9 @@ begin
     (28, 'Academy B', 'Tennis Academy', 'U18', 'Academy', array[1,2,3,4,5], '16:00', 90, 6, 12, null, 8, 2007, 2010, 'U14'),
     -- Lezioni private e One Shot (gruppi da 3-4 persone, 60 minuti)
     (29, 'Lezioni private', 'Lezioni private', 'Tutte', 'Individuale',        array[1,2,3,4,5], '15:00', 60, 7, 10, null, 8, 1990, 2012, null),
-    (30, 'One Shot',        'One Shot',         'Tutte', 'Gruppi da 3-4 persone', array[3,6],       '11:00', 60, 8, 11, null, 4, 1985, 2010, null);
+    (30, 'One Shot',        'One Shot',         'Tutte', 'Gruppi da 3-4 persone', array[3,6],       '11:00', 60, 8, 11, null, 4, 1985, 2010, null)
+  ) v(ord, nome, area, fascia, livello, giorni, ora, durata, campo, m1, m2, n, a0, a1, prog)
+  where not exists (select 1 from _qg);
 
   insert into public.gruppi (centro_id, area_id, nome, fascia, livello, giorni, ora, durata_min, campo_id, programma_id, attivo)
   select b, (select a.id from public.aree a where a.centro_id = b and a.nome = g.area), g.nome, g.fascia, g.livello, g.giorni, g.ora, g.durata,
@@ -429,9 +432,11 @@ begin
     and not exists (select 1 from public.conversazioni c where c.centro_id = b and c.allievo_id = a.id and c.tipo = 'famiglia_maestro');
 
   insert into public.conversazioni (id, centro_id, tipo, allievo_id, titolo, creata_da, created_at)
-  select cid, b, 'famiglia_maestro', allievo, titolo, genitore, timestamptz '2026-11-09 17:00+01' from _qc;
+  select cid, b, 'famiglia_maestro', allievo, titolo, genitore, timestamptz '2026-11-09 17:00+01' from _qc
+  on conflict (id) do nothing;
   insert into public.partecipanti (centro_id, conversazione_id, membro_id, sola_lettura)
-  select b, q.cid, x.membro, false from _qc q cross join lateral (values (q.genitore), (q.maestro)) x(membro);
+  select b, q.cid, x.membro, false from _qc q cross join lateral (values (q.genitore), (q.maestro)) x(membro)
+  where not exists (select 1 from public.partecipanti p where p.conversazione_id = q.cid and p.membro_id = x.membro);
   -- h=0: la famiglia scrive e nessuno risponde; h=1: risposta del maestro; h=2: scambio completo; h=3: risposta del maestro
   insert into public.messaggi (centro_id, conversazione_id, autore_id, testo, consegna_il, created_at)
   select b, q.cid, case s.n when 2 then q.maestro else q.genitore end,
@@ -447,7 +452,8 @@ begin
   cross join (values (1), (2), (3)) s(n)
   cross join lateral (select abs(hashtext(q.cid::text)) % 4 as h) hh
   cross join lateral (select timestamptz '2026-11-09 17:30+01' + (abs(hashtext(q.cid::text)) % 5) * interval '1 day' + (s.n - 1) * interval '35 minutes' as t) ts
-  where s.n = 1 or (s.n = 2 and hh.h <> 0) or (s.n = 3 and hh.h = 2);
+  where (s.n = 1 or (s.n = 2 and hh.h <> 0) or (s.n = 3 and hh.h = 2))
+    and not exists (select 1 from public.messaggi x where x.conversazione_id = q.cid);
 
   -- due conversazioni famiglia-segreteria e una chat dello staff
   insert into public.conversazioni (centro_id, tipo, allievo_id, titolo, creata_da, created_at)
@@ -544,7 +550,8 @@ begin
   from _dest d
   join public.avvisi av on av.id = d.avviso_id
   join public.membri m on m.id = d.membro_id
-  left join public.avvisi_letture l on l.avviso_id = d.avviso_id and l.membro_id = d.membro_id;
+  left join public.avvisi_letture l on l.avviso_id = d.avviso_id and l.membro_id = d.membro_id
+  where not exists (select 1 from public.notifiche n where n.membro_id = d.membro_id and n.tipo = 'avviso' and n.rif_id = d.avviso_id);
 
   -- notifica ai maestri per le assenze già avvisate (da oggi in poi)
   insert into public.notifiche (centro_id, membro_id, tipo, titolo, testo, link, mittente, rif_id, created_at)
