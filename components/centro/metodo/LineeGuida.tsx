@@ -248,6 +248,7 @@ export default function LineeGuida() {
       ruolo="dt"
       tab="metodo"
       titolo={t.titolo}
+      sopra={kickMattone(t, 1, centro.nome)}
       largo
       azioni={
         puoModificare ? (
@@ -258,10 +259,6 @@ export default function LineeGuida() {
       }
     >
       <div className="mm">
-        <div>
-          <div className="mm-k" style={{ textTransform: "none", fontSize: 12 }}>{kickMattone(t, 1, centro.nome)}</div>
-          <h1 className="mm-h1">{t.titolo}</h1>
-        </div>
         <BarraMattoni slug={centro.slug} attiva="lg" />
         {carica ? <div className="mm-load">{t.caricamento}</div> : null}
         {ko ? <div className="mm-err">{t.errore_lettura}</div> : null}

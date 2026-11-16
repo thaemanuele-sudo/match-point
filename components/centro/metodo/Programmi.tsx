@@ -8,7 +8,7 @@ import { Pannello, useToast } from "./Pannello";
 import { Ico } from "./ico";
 import { comune, fmt } from "./testi";
 import { annoCorrente, etichettaGruppo, FASCE, leggiGruppo, ordFascia, type Gruppo } from "./dati";
-import { GRIGIO, generaMesi, leggiMesi, leggiTest, SCHEMA_PER_FASCIA, SCHEMI, settimanaCorrente, statoSett, TH, TH_ORDINE, type Mese, type Schema } from "./programmaLogica";
+import { generaMesi, leggiMesi, leggiTest, SCHEMA_PER_FASCIA, SCHEMI, settimanaCorrente, statoSett, TH, TH_ORDINE, type Mese, type Schema } from "./programmaLogica";
 import { useMetodo } from "./useMetodo";
 import "./metodo.css";
 
@@ -315,12 +315,8 @@ export default function Programmi() {
   };
 
   return (
-    <SchermoCentro ruolo="dt" tab="metodo" titolo={t.titolo} largo>
+    <SchermoCentro ruolo="dt" tab="metodo" titolo={t.titolo} sopra={`${kickMattone(t, 4, centro.nome)} · ${fmt(t.anno_lab, { a: anno, b: anno + 1 })}`} largo>
       <div className="mm">
-        <div>
-          <div className="mm-k" style={{ textTransform: "none", fontSize: 12 }}>{kickMattone(t, 4, centro.nome)} · {fmt(t.anno_lab, { a: anno, b: anno + 1 })}</div>
-          <h1 className="mm-h1">{t.titolo}</h1>
-        </div>
         <BarraMattoni slug={centro.slug} attiva="prog" />
         <div className="mm-scroll" role="group" aria-label={t.fascia_aria.replace("{f}", "")}>
           {fasce.map((f) => (
@@ -460,4 +456,3 @@ export default function Programmi() {
     </SchermoCentro>
   );
 }
-void GRIGIO;

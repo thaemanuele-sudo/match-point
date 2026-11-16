@@ -1,6 +1,6 @@
-import { Segnaposto } from "@/components/centro/Segnaposto";
+"use client";
+import Libreria from "@/components/centro/metodo/Libreria";
 
-// Segnaposto: l'area responsabile sostituisce questo file con la schermata vera.
-export default function Page() {
-  return <Segnaposto codice="C6" ruolo="dt" tab="metodo" />;
+export default function Pagina() {
+  return <Libreria />;
 }

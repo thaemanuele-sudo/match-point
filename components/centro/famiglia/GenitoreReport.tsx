@@ -9,9 +9,9 @@ import { SchermoCentro } from "@/components/centro/Schermo";
 import { useCentro } from "@/lib/centro/contesto";
 import { rotta } from "@/lib/centro/rotte";
 import { useT } from "@/lib/i18n/lingua";
-import { aggiungiGiorni, fmtData, isoGiorno, leggiData } from "@/lib/centro/date";
+import { aggiungiGiorni, fmtData, isoGiorno } from "@/lib/centro/date";
 import { nomeCompleto, useFigli, type RLezione } from "./dati";
-import { chiaveMese, fineMese, fmt, fmtOre, frasiProssimaVolta, inizioMese, nomeColpo, nomeMese, type RValutazione } from "./util";
+import { chiaveMese, fmt, fmtOre, frasiProssimaVolta, inizioMese, nomeColpo, nomeMese, type RValutazione } from "./util";
 import { Caricamento, ErroreBox, Icona, SelettoreFigli, SenzaFigli } from "./piccoli";
 
 const IT = {

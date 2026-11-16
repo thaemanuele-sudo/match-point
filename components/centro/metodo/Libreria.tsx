@@ -213,6 +213,7 @@ export default function Libreria() {
       ruolo="dt"
       tab="metodo"
       titolo={t.titolo}
+      sopra={kickMattone(t, 2, centro.nome)}
       largo
       azioni={
         puoModificare ? (
@@ -223,10 +224,6 @@ export default function Libreria() {
       }
     >
       <div className="mm">
-        <div>
-          <div className="mm-k" style={{ textTransform: "none", fontSize: 12 }}>{kickMattone(t, 2, centro.nome)}</div>
-          <h1 className="mm-h1">{t.titolo}</h1>
-        </div>
         <BarraMattoni slug={centro.slug} attiva="lib" />
         <label style={{ position: "relative", display: "block" }}>
           <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "#A1A1A6", display: "flex" }}><Ico n="search" /></span>

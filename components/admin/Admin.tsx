@@ -9,6 +9,7 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import { AdminCtx, I, Ico, Logo } from "./comuni";
 import { Accesso } from "./Accesso";
 import { Utenti } from "./Utenti";
+import { Centri } from "./Centri";
 import { Schemi } from "./Schemi";
 import { Atletica } from "./Atletica";
 import { Tecnica } from "./Tecnica";
@@ -17,6 +18,7 @@ import { Impostazioni } from "./Impostazioni";
 const TEMA_KEY = "matchpoint-admin-tema";
 const SCHEDE = [
   { id: "utenti", nome: "Utenti e costi AI" },
+  { id: "centri", nome: "Centri" },
   { id: "schemi", nome: "Schemi di gioco" },
   { id: "atletica", nome: "Atletica" },
   { id: "tecnica", nome: "Tecnica" },
@@ -101,6 +103,7 @@ export function Admin() {
         </nav>
         <main className="db-main">
           {scheda === "utenti" && <Utenti />}
+          {scheda === "centri" && <Centri />}
           {scheda === "schemi" && <Schemi />}
           {scheda === "atletica" && <Atletica />}
           {scheda === "tecnica" && <Tecnica />}

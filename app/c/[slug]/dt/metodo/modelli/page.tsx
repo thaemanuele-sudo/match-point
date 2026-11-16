@@ -1,6 +1,6 @@
-import { Segnaposto } from "@/components/centro/Segnaposto";
+"use client";
+import Modelli from "@/components/centro/metodo/Modelli";
 
-// Segnaposto: l'area responsabile sostituisce questo file con la schermata vera.
-export default function Page() {
-  return <Segnaposto codice="C7" ruolo="dt" tab="metodo" />;
+export default function Pagina() {
+  return <Modelli />;
 }

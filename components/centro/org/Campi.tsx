@@ -7,7 +7,7 @@ import { rotta } from "@/lib/centro/rotte";
 import { fmtDataLunga, fmtGiorni, fmtOra } from "@/lib/centro/date";
 import { useT } from "@/lib/i18n/lingua";
 import { maestriDi, nomeCompleto, sostituisci, useOrg, type DatiOrg, type Org } from "./dati";
-import { COLORI_FONDO, MappaCampi, rettangoli } from "./MappaCampi";
+import { COLORI_FONDO, MappaCampi } from "./MappaCampi";
 import type { CampoR, Copertura, StatoCampo, Superficie } from "./tipi";
 import "./org.css";
 
@@ -150,7 +150,6 @@ function FoglioCampo({ o, d, campo, onChiudi, onFatto }: { o: Org; d: DatiOrg; c
     onChiudi();
   };
   const scelte = <V extends string>(valori: V[], v: V, set: (x: V) => void) => <Chips>{valori.map((x) => <Chip key={x} on={x === v} onClick={() => set(x)}>{t[x as keyof typeof IT]}</Chip>)}</Chips>;
-  void rettangoli;
   return (
     <Foglio aperto onChiudi={onChiudi} titolo={campo ? t.modT : t.nuovoT}>
       <div className="og-form">

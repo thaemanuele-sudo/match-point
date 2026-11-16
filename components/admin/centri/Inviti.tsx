@@ -48,19 +48,21 @@ export function Inviti({ centro, aree }: { centro: CentroConConteggi; aree: Area
 
   const usaGruppo = ruolo === "maestro" || ruolo === "allievo";
   const usaArea = ruolo === "responsabile_area";
+  // l'area mostrata nel menu (la prima, se non si è scelto nulla) è quella che si salva
+  const areaEff = areaId || aree[0]?.id || "";
 
   const crea = async () => {
     setErrore(null);
     const g = Number(giorni), u = Number(usiMax);
     if (!Number.isInteger(g) || g < 1 || g > 365) return setErrore("La validità va da 1 a 365 giorni.");
     if (!Number.isInteger(u) || u < 1 || u > 10000) return setErrore("Il numero di usi va da 1 a 10000.");
-    if (usaArea && !areaId) return setErrore("Scegli l'area del responsabile (il centro non ne ha ancora: crea prima un'area).");
+    if (usaArea && !areaEff) return setErrore("Scegli l'area del responsabile (il centro non ne ha ancora: crea prima un'area).");
     setOcc(true);
     const scade = new Date(Date.now() + g * 864e5).toISOString();
     for (let i = 0; i < 5; i++) {
       const riga: Record<string, unknown> = {
         centro_id: centro.id, codice: generaCodice(), ruolo, scade_il: scade, usi_max: u,
-        area_id: usaArea ? areaId : null, gruppo_id: usaGruppo && gruppoId ? gruppoId : null,
+        area_id: usaArea ? areaEff : null, gruppo_id: usaGruppo && gruppoId ? gruppoId : null,
       };
       if (io) riga.creato_da = io;
       const { data: nuovo, error } = await sb.from("inviti").insert(riga).select("*").maybeSingle();
@@ -100,13 +102,13 @@ export function Inviti({ centro, aree }: { centro: CentroConConteggi; aree: Area
         <div className="db-card-testa"><h2 className="db-h2">Nuovo invito</h2><span className="db-nota">Il codice si dà a voce o si manda in un messaggio.</span></div>
         <div className="db-form">
           <Campo lab="Ruolo che riceve">
-            <select value={ruolo} onChange={(e) => { setRuolo(e.target.value as RuoloCentro); setAreaId((a) => a || aree[0]?.id || ""); }}>
+            <select value={ruolo} onChange={(e) => setRuolo(e.target.value as RuoloCentro)}>
               {RUOLI.map((r) => <option key={r} value={r}>{NOME_RUOLO[r]}</option>)}
             </select>
           </Campo>
           {usaArea && (
             <Campo lab="Area">
-              <select value={areaId || aree[0]?.id || ""} onChange={(e) => setAreaId(e.target.value)}>
+              <select value={areaEff} onChange={(e) => setAreaId(e.target.value)}>
                 {!aree.length && <option value="">Nessuna area</option>}
                 {aree.map((a) => <option key={a.id} value={a.id}>{a.sigla || a.nome}</option>)}
               </select>

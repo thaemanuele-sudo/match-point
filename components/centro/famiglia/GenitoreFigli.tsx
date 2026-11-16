@@ -9,7 +9,7 @@ import { useCentro } from "@/lib/centro/contesto";
 import { rotta, ROTTE_APP } from "@/lib/centro/rotte";
 import { useT } from "@/lib/i18n/lingua";
 import { fmtGiorni, fmtOra, isoGiorno, leggiData, aggiungiGiorni } from "@/lib/centro/date";
-import { nomeCompleto, useFigli, type Figlio } from "./dati";
+import { nomeBreve, nomeCompleto, useFigli, type Figlio } from "./dati";
 import { caricaMedia } from "./media";
 import { codiceCasuale, eta, fmt, MESI_LUNGHI } from "./util";
 import { Caricamento, ErroreBox, Foglio, Icona, SelettoreFigli, SenzaFigli } from "./piccoli";
@@ -60,7 +60,7 @@ const IT = {
   certFile: "FOTO O PDF DEL CERTIFICATO", certData: "VALIDO FINO AL",
   certSalva: "Salva certificato", certInvio: "Caricamento…",
   certObbligo: "Scegli il file e la data di scadenza.",
-  minorenne: "Finché {nome} è minorenne puoi leggere la sua chat con il maestro, in sola lettura.",
+  minorenne: "Finché {nome} ha meno di {anni} anni puoi leggere la sua chat con il maestro, in sola lettura.",
   erroreGenerico: "Qualcosa non ha funzionato. Riprova tra poco.",
   consensoNome: "Consenso",
 };
@@ -160,7 +160,7 @@ export default function GenitoreFigli() {
                 {figlio.allievo.nome.charAt(0).toUpperCase()}
               </span>
               <div className="fam-grow">
-                <div className="t" style={{ fontWeight: 700, fontSize: 16 }}>{nomeCompleto({ nome: figlio.allievo.nome, cognome: figlio.allievo.cognome ? `${figlio.allievo.cognome.charAt(0)}.` : null })}</div>
+                <div className="t" style={{ fontWeight: 700, fontSize: 16 }}>{nomeBreve(figlio.allievo)}</div>
                 {ETI !== null && figlio.allievo.data_nascita && (
                   <div className="muted" style={{ fontSize: 12.5, marginTop: 2 }}>{fmt(t.anni, { n: ETI })} · {fmt(t.annoNato, { anno: leggiData(figlio.allievo.data_nascita).getFullYear() })}</div>
                 )}
@@ -211,7 +211,7 @@ export default function GenitoreFigli() {
               <span className="fam-grow"><div className="t" style={{ fontSize: 14 }}>{t.certificato}</div><div className="s" style={{ fontSize: 12 }}>{certTesto}</div></span>
               <button type="button" className="chip on" style={{ height: 30, fontSize: 12 }} onClick={() => setCertificato(true)}>{certData ? t.aggiorna : t.carica}</button>
             </div>
-            <div className="note" style={{ fontSize: 11.5, padding: "8px 12px" }}>{fmt(t.minorenne, { nome: figlio.allievo.nome })} ({fino})</div>
+            <div className="note" style={{ fontSize: 11.5, padding: "8px 12px" }}>{fmt(t.minorenne, { nome: figlio.allievo.nome, anni: fino })}</div>
           </>
         )}
       </div>

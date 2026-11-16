@@ -133,7 +133,9 @@ function NuovoMembro({ centro, aree, fatto }: { centro: CentroConConteggi; aree:
   const [cognome, setCognome] = useState("");
   const [email, setEmail] = useState("");
   const [ruolo, setRuolo] = useState<RuoloCentro>("maestro");
-  const [area, setArea] = useState(aree[0]?.id ?? "");
+  const [areaScelta, setArea] = useState("");
+  // l'area mostrata nel menu (la prima, se non si è scelto nulla) è quella che si salva
+  const area = areaScelta || aree[0]?.id || "";
   const [errore, setErrore] = useState<string | null>(null);
   const [occ, setOcc] = useState(false);
 
