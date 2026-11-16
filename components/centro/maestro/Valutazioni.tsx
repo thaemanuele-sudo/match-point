@@ -122,20 +122,15 @@ export function Valutazioni() {
     if (!ma || !gruppo) return;
     setLavoro(true); setErr(null);
     const oggi = isoGiorno();
-    const aggiorna: Record<string, unknown>[] = [];
-    const nuove: Record<string, unknown>[] = [];
-    for (const [k, c] of Object.entries(mod)) {
-      const base = { centro_id: centro.id, allievo_id: c.a, maestro_id: ma.id, test, colpo: c.colpo, competenza: c.comp, voto: c.v, data: oggi };
-      const es = attuali.get(k);
-      if (es) aggiorna.push({ ...base, id: es.id }); else nuove.push(base);
+    const righeVoti: Record<string, unknown>[] = [];
+    for (const c of Object.values(mod)) {
+      righeVoti.push({ centro_id: centro.id, allievo_id: c.a, maestro_id: ma.id, test, colpo: c.colpo, competenza: c.comp, voto: c.v, data: oggi });
     }
-    // due scritture in tutto, non una per cella
-    const [u, n] = await Promise.all([
-      aggiorna.length ? sb.from("valutazioni").upsert(aggiorna, { onConflict: "id" }) : Promise.resolve({ error: null }),
-      nuove.length ? sb.from("valutazioni").insert(nuove) : Promise.resolve({ error: null }),
-    ]);
+    // una sola scrittura sulla chiave naturale della tabella (allievo, test, colpo, competenza): niente doppioni se la cella
+    // esisteva già ma non era nella lista letta
+    const u = righeVoti.length ? await sb.from("valutazioni").upsert(righeVoti, { onConflict: "allievo_id,test,colpo,competenza" }) : { error: null };
     setLavoro(false);
-    const e = u.error ?? n.error;
+    const e = u.error;
     if (e) { setErr(fmt(t.errSalva, { e: e.message })); return; }
     setMod({}); setSalvato(true);
     // rilegge i voti per avere gli id delle righe nuove

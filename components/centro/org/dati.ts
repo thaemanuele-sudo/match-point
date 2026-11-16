@@ -7,7 +7,7 @@ import { useCentro, type SB } from "@/lib/centro/contesto";
 import type { Membro } from "@/lib/centro/tipi-base";
 import { aggiungiGiorni, fmtOra, giornoSettimana, isoGiorno } from "@/lib/centro/date";
 import type {
-  AreaR, CambioCampoR, CampoR, GruppoMaestroR, GruppoR, IscrizioneR, PermessiArea, PermessoRuoloR, PresenzaL, ProgrammaR, ValutazioneL,
+  AreaR, CambioCampoR, CampoR, GruppoMaestroR, GruppoR, IscrizioneR, PermessiArea, PermessoRuoloR, ProgrammaR,
 } from "./tipi";
 
 // ───────── colori e nomi ─────────

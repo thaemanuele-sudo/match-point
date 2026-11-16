@@ -134,21 +134,10 @@ export function Chiusura({ id }: { id: string }) {
     piano.forEach((b, i) => { if (scost(b, i)) motiviOut[String(i)] = (motivi[String(i)] ?? "").trim(); });
     const presenze = pres.map((p) => ({ allievo_id: p.allievo_id, presente: !!p.presente, voto_rapido: p.presente ? p.voto_rapido : null, nota: p.nota }));
     try {
-      const m = await sb.from("lezioni").update({ motivi_scostamento: motiviOut }).eq("id", lez.id);
-      if (m.error) throw m.error;
-      const rpc = await sb.rpc("chiudi_lezione", { lezione: lez.id, svolto, presenze, compito });
-      if (rpc.error) {
-        // la funzione non c'è ancora o ha un'altra firma: stesse scritture, una per tabella, perché la lezione si chiuda comunque
-        if (!/PGRST202|42883|Could not find the function/i.test(`${rpc.error.code ?? ""} ${rpc.error.message}`)) throw rpc.error;
-        const u = await sb.from("lezioni").update({ svolto, stato: "chiusa", compito: compito?.titolo ?? null }).eq("id", lez.id);
-        if (u.error) throw u.error;
-        const up = await sb.from("presenze").upsert(pres.map((p) => ({ id: p.id, centro_id: centro.id, lezione_id: lez.id, allievo_id: p.allievo_id, presente: !!p.presente, voto_rapido: p.presente ? p.voto_rapido : null })), { onConflict: "id" });
-        if (up.error) throw up.error;
-        if (compito && ma) {
-          const c = await sb.from("compiti").insert({ centro_id: centro.id, gruppo_id: lez.gruppo_id, maestro_id: ma.id, titolo: compito.titolo, durata_min: compito.durata_min, esercizio_id: compito.esercizio_id, scadenza: compito.scadenza });
-          if (c.error) throw c.error;
-        }
-      }
+      // Una sola chiamata atomica: chiudi_lezione(lezione, svolto, presenze, compito, motivi) scrive stato, svolto, motivi,
+      // presenze e compito (con le notifiche alle famiglie) nella stessa transazione.
+      const rpc = await sb.rpc("chiudi_lezione", { lezione: lez.id, svolto, presenze, compito, motivi: motiviOut });
+      if (rpc.error) throw rpc.error;
       try { localStorage.removeItem(`mp-lezione-timer-${lez.id}`); } catch { /* niente da togliere */ }
       setChiusa(true);
       setLavoro(false);

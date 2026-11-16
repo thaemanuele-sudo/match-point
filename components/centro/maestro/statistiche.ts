@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useCentro } from "@/lib/centro/contesto";
 import { aggiungiGiorni, isoGiorno } from "@/lib/centro/date";
 import { COL, leggiPagine, messaggioErrore, type DatiMaestro } from "./dati";
-import { leggiPiano, leggiSvolto, ordineTest, pctDaVoto, type RValutazione } from "./util";
+import { ordineTest, pctDaVoto, type RValutazione } from "./util";
 
 export type StatAllievo = {
   /** Media dell'ultimo test, 0-100; null se non ha ancora voti. */
@@ -45,83 +45,99 @@ export function calcolaStat(val: RValutazione[], assenze30: number, presenze30: 
   };
 }
 
-/** Statistiche di tutti gli allievi dei gruppi del maestro. */
+/** Riga di `allievi_stato_lista` (docs/RPC.md): presenze degli ultimi 30 giorni e bandierine "in ritardo" / "assenze ripetute". */
+type RigaStato = { id: string; perc: number | null; assenti: number | null; su: number | null; ritardo: boolean | null; ripetute: boolean | null };
+/** Riga di `statistiche_allievi_maestro`. */
+type RigaMedia = { allievo_id: string; presenze_30g_pct: number | null; media_ultimo_test: number | string | null };
+
+/**
+ * Statistiche di tutti gli allievi dei gruppi del maestro.
+ * Presenze, "in ritardo" e "assenze ripetute" li calcola il database (`allievi_stato_lista`) e la media dell'ultimo test
+ * anche (`statistiche_allievi_maestro`); restano nel browser solo i voti, che servono per l'errore principale e il
+ * confronto con il test precedente di ogni allievo.
+ */
 export function useStatAllievi(dati: DatiMaestro | null) {
-  const { sb } = useCentro();
+  const { sb, centro, membroAttivo: ma } = useCentro();
+  const maId = ma?.id ?? null;
   const [stat, setStat] = useState<Map<string, StatAllievo> | null>(null);
   const [errore, setErrore] = useState<string | null>(null);
 
   useEffect(() => {
     if (!dati) return;
     const ids = [...dati.allievi.keys()];
-    if (!ids.length) { setStat(new Map()); return; }
+    if (!ids.length || !maId) { setStat(new Map()); return; }
     let vivo = true;
     (async () => {
       try {
-        const da = isoGiorno(aggiungiGiorni(new Date(), -30));
         const daVal = isoGiorno(aggiungiGiorni(new Date(), -400));
-        // a pagine di 1000 righe, con intervallo di date: i voti più vecchi di un anno non servono al confronto fra test
-        const [v, p] = await Promise.all([
+        // `allievi_stato_lista` è "invoker": la RLS lascia vedere solo gli allievi dei gruppi del maestro. Si legge a pagine da 1000.
+        const stato: RigaStato[] = [];
+        for (let off = 0; off < 25000; off += 1000) {
+          const r = await sb.rpc("allievi_stato_lista", { p_centro: centro.id, p_filtro: "tutti", p_limit: 1000, p_offset: off });
+          if (r.error) throw new Error(`allievi_stato_lista: ${r.error.message}`);
+          const righe = (r.data ?? []) as RigaStato[];
+          stato.push(...righe);
+          if (righe.length < 1000) break;
+        }
+        const [medie, v] = await Promise.all([
+          sb.rpc("statistiche_allievi_maestro", { p_membro: maId }),
+          // a pagine di 1000 righe, con intervallo di date: i voti più vecchi di un anno non servono al confronto fra test
           leggiPagine<RValutazione>((a, b) => sb.from("valutazioni").select(COL.valutazioni).in("allievo_id", ids).gte("data", daVal).order("data", { ascending: false }).range(a, b)),
-          // lezioni!inner: solo le presenze di lezioni degli ultimi 30 giorni
-          leggiPagine<{ allievo_id: string; presente: boolean | null }>((a, b) => sb.from("presenze").select("allievo_id,presente,lezioni!inner(data)").in("allievo_id", ids).gte("lezioni.data", da).range(a, b)),
         ]);
+        if (medie.error) throw new Error(`statistiche_allievi_maestro: ${medie.error.message}`);
+        const mediaDi = new Map(((medie.data ?? []) as RigaMedia[]).map((m) => [m.allievo_id, m.media_ultimo_test == null ? null : Number(m.media_ultimo_test)]));
+        const statoDi = new Map(stato.map((x) => [x.id, x]));
         const val = new Map<string, RValutazione[]>();
         for (const x of v) val.set(x.allievo_id, [...(val.get(x.allievo_id) ?? []), x]);
-        const as = new Map<string, number>();
-        const pr = new Map<string, number>();
-        for (const x of p) {
-          if (x.presente === false) as.set(x.allievo_id, (as.get(x.allievo_id) ?? 0) + 1);
-          if (x.presente) pr.set(x.allievo_id, (pr.get(x.allievo_id) ?? 0) + 1);
-        }
         if (!vivo) return;
-        setStat(new Map(ids.map((id) => [id, calcolaStat(val.get(id) ?? [], as.get(id) ?? 0, pr.get(id) ?? 0)])));
+        setStat(new Map(ids.map((id) => {
+          const st = statoDi.get(id);
+          const su = st?.su ?? 0;
+          const assenti = st?.assenti ?? 0;
+          const base = calcolaStat(val.get(id) ?? [], assenti, su - assenti);
+          const media = mediaDi.get(id);
+          return [id, {
+            ...base,
+            // la media dell'ultimo test e le due bandierine sono quelle del database
+            pct: media != null ? pctDaVoto(media) : base.pct,
+            inRitardo: st ? !!st.ritardo : base.inRitardo,
+            assenzeRipetute: st ? !!st.ripetute : base.assenzeRipetute,
+          }];
+        })));
         setErrore(null);
       } catch (e) {
         if (vivo) setErrore(messaggioErrore(e));
       }
     })();
     return () => { vivo = false; };
-  }, [dati, sb]);
+  }, [dati, sb, centro.id, maId]);
 
   return { stat, errore };
 }
 
 /**
- * Aderenza al Metodo di ogni gruppo: dei blocchi bloccati delle lezioni chiuse nelle ultime sei settimane,
- * quanti sono stati fatti come da piano (fatti e non sostituiti). Stessa regola di aderenza_maestro, ma per gruppo.
+ * Aderenza al Metodo di ogni gruppo del maestro (RPC `aderenza_gruppi`): dei blocchi bloccati delle lezioni chiuse
+ * nell'ultimo anno, quanti sono stati fatti come da piano (fatti e non sostituiti). Stessa regola di aderenza_maestro, ma per gruppo.
  */
 export function useAderenza(dati: DatiMaestro | null) {
-  const { sb } = useCentro();
+  const { sb, membroAttivo: ma } = useCentro();
+  const maId = ma?.id ?? null;
   const [ad, setAd] = useState<Map<string, number | null> | null>(null);
 
   useEffect(() => {
     if (!dati) return;
     const gIds = dati.gruppi.map((g) => g.id);
-    if (!gIds.length) { setAd(new Map()); return; }
+    if (!gIds.length || !maId) { setAd(new Map()); return; }
     let vivo = true;
     (async () => {
-      const da = isoGiorno(aggiungiGiorni(new Date(), -42));
-      const r = await sb.from("lezioni").select("gruppo_id,piano,svolto").in("gruppo_id", gIds).eq("stato", "chiusa").gte("data", da);
-      const conta = new Map<string, { tot: number; ok: number }>();
-      for (const l of (r.data ?? []) as { gruppo_id: string; piano: unknown; svolto: unknown }[]) {
-        const piano = leggiPiano(l.piano);
-        const svolto = leggiSvolto(l.svolto);
-        const c = conta.get(l.gruppo_id) ?? { tot: 0, ok: 0 };
-        piano.forEach((b, i) => {
-          if (b.modo !== "bloccato") return;
-          c.tot++;
-          const s = svolto.find((x) => x.indice === i);
-          if (s && s.fatto && !s.sostituito && !s.saltato) c.ok++;
-        });
-        conta.set(l.gruppo_id, c);
-      }
+      const r = await sb.rpc("aderenza_gruppi", { p_membro: maId });
+      if (r.error) throw r.error;
+      const perGruppo = new Map(((r.data ?? []) as { gruppo_id: string; aderenza: number | string | null }[]).map((x) => [x.gruppo_id, x.aderenza == null ? null : Math.round(Number(x.aderenza))]));
       if (!vivo) return;
-      // errore di rete: l'aderenza è un'informazione in più, la pagina funziona anche senza
-      setAd(new Map(gIds.map((id) => { const c = conta.get(id); return [id, c && c.tot ? Math.round((c.ok / c.tot) * 100) : null]; })));
-    })().catch(() => { if (vivo) setAd(new Map()); });
+      setAd(new Map(gIds.map((id) => [id, perGruppo.get(id) ?? null])));
+    })().catch(() => { if (vivo) setAd(new Map()); }); // errore di rete: l'aderenza è un'informazione in più, la pagina funziona anche senza
     return () => { vivo = false; };
-  }, [dati, sb]);
+  }, [dati, sb, maId]);
 
   return ad;
 }

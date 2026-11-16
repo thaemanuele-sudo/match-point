@@ -198,7 +198,7 @@ function FoglioCambio({ o, d, ultimo, onChiudi, onFatto }: { o: Org; d: DatiOrg;
   const conferma = async () => {
     if (!g || !valido) return;
     setLavoro(true); setErrore(null);
-    const r = await o.sb.rpc("cambia_campo", { p_gruppo: g.id, p_data: iso, p_campo_a: campoId, p_motivo: motivo, p_avvisa: avvisa });
+    const r = await o.sb.rpc("cambia_campo", { gruppo: g.id, data: iso, campo_a: campoId, motivo, avvisa });
     if (r.error) { setErrore(r.error.message); setLavoro(false); return; }
     await o.carica();
     setLavoro(false);
