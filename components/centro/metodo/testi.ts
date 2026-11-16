@@ -1,0 +1,94 @@
+/** Testi comuni a tutte le schermate del Metodo. Ogni componente li unisce al suo dizionario T.
+ *  Solo italiano per ora: `en` è una copia di `it`, le traduzioni arriveranno dopo. */
+export const comune = {
+  kick_mattone: "Mattone {n} di 4 · {centro}",
+  mat_lg: "Linee guida",
+  mat_lib: "Libreria",
+  mat_mod: "Modelli",
+  mat_prog: "Programmi",
+  mattoni_aria: "Mattoni del Metodo",
+  caricamento: "Caricamento…",
+  errore: "Non sono riuscito a salvare. Controlla la connessione e riprova.",
+  errore_lettura: "Non riesco a leggere i dati del Metodo. Riprova tra poco.",
+  salva: "Salva",
+  salvato: "Salvato",
+  annulla: "Annulla",
+  chiudi: "Chiudi",
+  elimina: "Elimina",
+  modifica: "Modifica",
+  si: "Sì",
+  no: "No",
+  sola_lettura: "Solo il direttore tecnico modifica il Metodo.",
+  // colpi
+  colpo_dritto: "Dritto",
+  colpo_rovescio: "Rovescio",
+  colpo_servizio: "Servizio",
+  colpo_risposta: "Risposta",
+  colpo_volee: "Volée",
+  colpo_smash: "Smash",
+  colpo_palleggio: "Palleggio",
+  colpo_gambe: "Gioco di gambe",
+  colpo_tattica: "Tattica",
+  colpo_atletica: "Atletica",
+  colpo_gambe_c: "Gambe",
+  ab_dritto: "DR",
+  ab_rovescio: "RV",
+  ab_servizio: "SE",
+  ab_risposta: "RI",
+  ab_volee: "VO",
+  ab_smash: "SM",
+  ab_palleggio: "PA",
+  ab_gambe: "GG",
+  ab_tattica: "TA",
+  ab_atletica: "AT",
+  // fasce
+  fascia_U8: "Under 8",
+  fascia_U10: "Under 10",
+  fascia_U12: "Under 12",
+  fascia_U14: "Under 14",
+  fascia_U16: "Under 16",
+  fascia_U18: "Under 18",
+  fascia_Adulti: "Adulti",
+  fascia_Agonisti: "Agonisti",
+  fascia_aria: "Fascia {f}",
+  // giorni
+  gs1: "lun",
+  gs2: "mar",
+  gs3: "mer",
+  gs4: "gio",
+  gs5: "ven",
+  gs6: "sab",
+  gs7: "dom",
+  // mesi (da settembre ad agosto)
+  m0: "Set", m1: "Ott", m2: "Nov", m3: "Dic", m4: "Gen", m5: "Feb", m6: "Mar", m7: "Apr", m8: "Mag", m9: "Giu", m10: "Lug", m11: "Ago",
+  mf0: "Settembre", mf1: "Ottobre", mf2: "Novembre", mf3: "Dicembre", mf4: "Gennaio", mf5: "Febbraio", mf6: "Marzo", mf7: "Aprile", mf8: "Maggio", mf9: "Giugno", mf10: "Luglio", mf11: "Agosto",
+  // scala di valutazione di partenza
+  scala_1: "Provo",
+  scala_2: "Quasi",
+  scala_3: "Ci sono",
+  scala_4: "Sicuro",
+  // tipi di blocco
+  tipo_a: "Attivazione",
+  tipo_t: "Tecnica",
+  tipo_g: "Gioco",
+  tipo_r: "Recupero",
+  // modi del blocco
+  modo_bloccato: "Bloccato",
+  modo_flessibile: "Flessibile",
+  modo_libero: "Libero",
+  // fonti
+  fonte_matchpoint: "Match Point",
+  fonte_centro: "Centro",
+  fonte_da_approvare: "Da approvare",
+  fonte_maestro: "Proposto da maestro",
+  tutti: "Tutti",
+  video: "Video",
+  video_sel: "Video {t}",
+  min_ab: "{n}'",
+};
+export type Comune = typeof comune;
+
+/** Sostituisce i segnaposto {nome} nei testi del dizionario. */
+export function fmt(s: string, v: Record<string, string | number> = {}): string {
+  return s.replace(/\{(\w+)\}/g, (_, k: string) => (k in v ? String(v[k]) : `{${k}}`));
+}
