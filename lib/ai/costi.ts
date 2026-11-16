@@ -9,16 +9,16 @@ export function costoToken(prezzi: Prezzi, modello: string, tin: number, tout: n
   return (tin * p.in + tout * p.out) / 1e6;
 }
 
-/** Costo in USD del TTS: caratteri × prezzo per milione di caratteri. */
-export function costoTts(prezzi: Prezzi, caratteri: number): number {
-  const p = prezzi["tts_per_milione_caratteri"];
+/** Costo in USD del TTS: caratteri × prezzo per milione di caratteri (OpenAI o, con `chiave`, KittenML; prezzo non impostato → 0). */
+export function costoTts(prezzi: Prezzi, caratteri: number, chiave: "tts_per_milione_caratteri" | "tts_kitten_per_milione_caratteri" = "tts_per_milione_caratteri"): number {
+  const p = prezzi[chiave];
   return typeof p === "number" ? (caratteri * p) / 1e6 : 0;
 }
 
 /** Registra l'uso in ai_usage. Non lancia mai: la risposta all'utente non dipende dal log. */
 export async function registraUso(
   userId: string,
-  provider: "anthropic" | "openai",
+  provider: "anthropic" | "openai" | "kittenml",
   modello: string,
   funzione: "chat" | "analisi" | "voce",
   tin: number,

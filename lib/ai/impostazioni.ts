@@ -6,6 +6,10 @@ export type Prezzi = Record<string, { in: number; out: number } | number>;
 export type Impostazioni = {
   anthropicKey: string | null;
   openaiKey: string | null;
+  kittenKey: string | null;
+  voceMotore: "kittenml" | "openai" | null; // null = non scelto: si usa quello che ha la chiave
+  kittenVoceId: string | null;
+  kittenVoceNome: string | null;
   modelloChat: string;
   modelloAnalisi: string;
   modelloTts: string;
@@ -17,6 +21,10 @@ export type Impostazioni = {
 const DEFAULT: Impostazioni = {
   anthropicKey: null,
   openaiKey: null,
+  kittenKey: null,
+  voceMotore: null,
+  kittenVoceId: null,
+  kittenVoceNome: null,
   modelloChat: "claude-sonnet-5-5",
   modelloAnalisi: "claude-sonnet-5-5",
   modelloTts: "gpt-4o-mini-tts",
@@ -68,6 +76,10 @@ export async function leggiImpostazioni(): Promise<Impostazioni> {
   const valori: Impostazioni = {
     anthropicKey: process.env.ANTHROPIC_API_KEY || m.anthropic_api_key || null,
     openaiKey: process.env.OPENAI_API_KEY || m.openai_api_key || null,
+    kittenKey: process.env.KITTENML_API_KEY || m.kittenml_api_key || null,
+    voceMotore: m.voce_motore === "kittenml" || m.voce_motore === "openai" ? m.voce_motore : null,
+    kittenVoceId: m.kitten_voce_id || null,
+    kittenVoceNome: m.kitten_voce_nome || null,
     modelloChat: m.anthropic_model_chat || DEFAULT.modelloChat,
     modelloAnalisi: m.anthropic_model_analisi || DEFAULT.modelloAnalisi,
     modelloTts: m.openai_tts_model || DEFAULT.modelloTts,
