@@ -31,7 +31,9 @@ export async function middleware(req: NextRequest) {
   if (p.startsWith("/app") && !data.user && !LIBERE.some((l) => p.startsWith(l))) {
     const url = req.nextUrl.clone();
     url.pathname = "/app/benvenuto";
-    url.searchParams.set("dopo", p);
+    // la query va conservata: /app/unisciti?c=CODICE non deve perdere il codice dell'invito dopo l'accesso
+    url.search = "";
+    url.searchParams.set("dopo", p + req.nextUrl.search);
     return NextResponse.redirect(url);
   }
   return res;
