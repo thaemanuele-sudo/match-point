@@ -13,7 +13,7 @@ export const LINGUE_SITO: readonly { lang: LinguaSito; percorso: string; sigla: 
 ];
 
 /** Lingua del video/poster da mostrare: per ora il tedesco usa quello inglese (togliere "de" quando presentazione-de.mp4 è nel build). */
-export const VIDEO_LINGUA: Partial<Record<LinguaSito, LinguaSito>> = { de: "en" };
+export const VIDEO_LINGUA: Partial<Record<LinguaSito, LinguaSito>> = {};
 export const linguaVideo = (l: LinguaSito): LinguaSito => VIDEO_LINGUA[l] ?? l;
 
 export type TestoFunzione = {
