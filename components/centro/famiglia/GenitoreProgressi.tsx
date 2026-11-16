@@ -11,8 +11,7 @@ import { fmtData } from "@/lib/centro/date";
 import { useFigli } from "./dati";
 import { useCompiti } from "./compiti";
 import { calcolaColpi, etichettaPeriodo, fmt, maiuscola, nomeColpo, nomeMese, temaDelMese, type RValutazione } from "./util";
-import { eVideo, urlFirmato } from "./media";
-import { Caricamento, ErroreBox, Foglio, Icona, SelettoreFigli, SenzaFigli, Tratto } from "./piccoli";
+import { Caricamento, ErroreBox, Icona, SelettoreFigli, SenzaFigli, Tratto, VisoreMedia } from "./piccoli";
 
 const IT = {
   titolo: "Progressi",
@@ -42,9 +41,6 @@ const IT = {
   voto: "{voto} su 5",
   mediaCompetenza: "{nome}: {voto} su 5",
   mediaCompetenzaPrima: "{nome}: {voto} su 5 (prima {prima})",
-  videoNonDisp: "Il file non è disponibile in questo momento.",
-  aperturaFile: "Apertura…",
-  chiudi: "Chiudi",
   espandi: "Mostra le competenze di {colpo}",
 };
 export const T = { it: IT, en: { ...IT } };
@@ -214,24 +210,5 @@ export default function GenitoreProgressi() {
       </div>
       {media && <VisoreMedia titolo={media.titolo} path={media.path} onChiudi={() => setMedia(null)} />}
     </SchermoCentro>
-  );
-}
-
-/** Mostra un video o una foto del bucket privato con un link firmato a tempo. */
-export function VisoreMedia({ titolo, path, onChiudi }: { titolo: string; path: string; onChiudi: () => void }) {
-  const t = useT(T);
-  const { sb } = useCentro();
-  const [url, setUrl] = useState<string | null | undefined>(undefined);
-  useEffect(() => {
-    let vivo = true;
-    urlFirmato(sb, path).then((u) => vivo && setUrl(u));
-    return () => { vivo = false; };
-  }, [sb, path]);
-  return (
-    <Foglio titolo={titolo || t.guarda} onChiudi={onChiudi}>
-      {url === undefined && <div className="note">{t.aperturaFile}</div>}
-      {url === null && <div className="fam-err">{t.videoNonDisp}</div>}
-      {url && (eVideo(path) ? <video src={url} controls playsInline preload="metadata" /> : /* eslint-disable-next-line @next/next/no-img-element */ <img className="fam-media" src={url} alt={titolo} />)}
-    </Foglio>
   );
 }

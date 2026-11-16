@@ -11,6 +11,7 @@ import { rotta } from "@/lib/centro/rotte";
 import { fmtData, leggiData } from "@/lib/centro/date";
 import { nomeBreve, type Figlio } from "./dati";
 import { fmt, rpcTollerante } from "./util";
+import { eVideo, urlFirmato } from "./media";
 
 const IT = {
   chiudi: "Chiudi", caricamento: "Caricamento…", riprova: "Riprova", erroreGenerico: "Qualcosa non ha funzionato. Riprova tra poco.",
@@ -32,6 +33,9 @@ const IT = {
   assScrivi: "Scrivi al maestro",
   assFatto: "Assenza segnalata. {maestro} e la famiglia ricevono l'avviso.",
   assMaestro: "Il maestro",
+  guarda: "Guarda",
+  videoNonDisp: "Il file non è disponibile in questo momento.",
+  aperturaFile: "Apertura…",
 };
 export const T_PICCOLI = { it: IT, en: { ...IT } };
 
@@ -177,6 +181,25 @@ export function FoglioAssenza({ figlio, data, ora, onChiudi, onFatto }: { figlio
           <button type="button" className="btn" disabled={invio || troppoTardi} onClick={invia}>{invio ? t.assInvio : t.assInvia}</button>
         </>
       )}
+    </Foglio>
+  );
+}
+
+/** Mostra un video o una foto del bucket privato con un link firmato a tempo. */
+export function VisoreMedia({ titolo, path, onChiudi }: { titolo: string; path: string; onChiudi: () => void }) {
+  const t = useT(T_PICCOLI);
+  const { sb } = useCentro();
+  const [url, setUrl] = useState<string | null | undefined>(undefined);
+  useEffect(() => {
+    let vivo = true;
+    urlFirmato(sb, path).then((u) => vivo && setUrl(u));
+    return () => { vivo = false; };
+  }, [sb, path]);
+  return (
+    <Foglio titolo={titolo || t.guarda} onChiudi={onChiudi}>
+      {url === undefined && <div className="note">{t.aperturaFile}</div>}
+      {url === null && <div className="fam-err">{t.videoNonDisp}</div>}
+      {url && (eVideo(path) ? <video src={url} controls playsInline preload="metadata" /> : /* eslint-disable-next-line @next/next/no-img-element */ <img className="fam-media" src={url} alt={titolo} />)}
     </Foglio>
   );
 }
