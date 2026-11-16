@@ -19,6 +19,8 @@ export type AllievoR = {
   id: string; centro_id: string; nome: string; cognome: string | null; data_nascita: string | null; membro_id: string | null;
   note_mediche: string | null; certificato_scade: string | null;
 };
+/** Allievo come serve alle liste: solo le colonne mostrate (niente note mediche, niente account). */
+export type AllievoL = Pick<AllievoR, "id" | "nome" | "cognome" | "data_nascita" | "certificato_scade">;
 export type FamigliaR = { id: string; centro_id: string; allievo_id: string; membro_id: string; relazione: string | null };
 export type IscrizioneR = { id: string; centro_id: string; allievo_id: string; gruppo_id: string; dal: string | null; al: string | null };
 export type CambioCampoR = {
@@ -38,7 +40,11 @@ export type InvitoR = {
 export type ValutazioneR = {
   id: string; allievo_id: string; maestro_id: string | null; test: string | null; colpo: string | null; competenza: string | null; voto: number | null; data: string | null;
 };
+/** Valutazione ridotta alle colonne che servono ai calcoli di livello e progresso. */
+export type ValutazioneL = Pick<ValutazioneR, "id" | "allievo_id" | "colpo" | "voto" | "data" | "test">;
 export type LezioneR = { id: string; gruppo_id: string; data: string; stato: string };
+/** Presenza con data e gruppo della sua lezione (letta con un solo join, senza una richiesta per blocco di lezioni). */
+export type PresenzaL = { allievo_id: string; presente: boolean; lezione_id: string; data: string; gruppo_id: string };
 export type PresenzaR = { id: string; lezione_id: string; allievo_id: string; presente: boolean };
 export type AssenzaR = { id: string; allievo_id: string; data: string; gruppo_id: string | null; motivo: string | null; testo: string | null };
 export type RegistroR = { id: string; membro_id: string | null; azione: string; oggetto: string | null; dettagli: Record<string, unknown> | null; created_at: string };

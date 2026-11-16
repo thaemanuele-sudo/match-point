@@ -1,15 +1,15 @@
 "use client";
 // R1 · Area, panoramica: la vista del responsabile d'area, limitata alla sua area (gruppi, allievi, cambi di campo
 // della settimana, assenze avvisate oggi). La direzione può aprirla scegliendo l'area.
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { SchermoCentro } from "@/components/centro/Schermo";
 import { Avatar, Btn, Caricamento, Chip, Chips, Errore, Ico, Sezione, Tag, Tile, Vuoto } from "@/components/centro/ui";
 import { rotta, ROTTE_APP } from "@/lib/centro/rotte";
 import { aggiungiGiorni, fmtData, fmtGiorni, fmtOra, inizioSettimana, isoGiorno } from "@/lib/centro/date";
 import { useT } from "@/lib/i18n/lingua";
-import { allieviDelGruppo, colorePerArea, maestriDi, nomeAllievo, nomeCompleto, sostituisci, useOrg } from "./dati";
-import type { AssenzaR, LezioneR, PresenzaR } from "./tipi";
+import { allieviDelGruppo, colorePerArea, leggiPresenze, maestriDi, nomeAllievo, nomeCompleto, sostituisci, useOrg } from "./dati";
+import type { AllievoL, AssenzaR, PresenzaL } from "./tipi";
 import "./org.css";
 
 const IT = {
@@ -28,30 +28,52 @@ export default function AreaPanoramica() {
   const { centro, sb, dati: d } = o;
   const r = rotta(centro.slug);
   const [areaSel, setAreaSel] = useState<string | null>(null);
-  const [extra, setExtra] = useState<{ lez: LezioneR[]; pres: PresenzaR[]; ass: AssenzaR[] } | null>(null);
+  // presenze del mese dell'area scelta: la chiave dice di quale area sono, così non si mostrano numeri di un'altra
+  const [pres, setPres] = useState<{ chiave: string; righe: PresenzaL[] } | null>(null);
+  const [assenzeOggi, setAssenzeOggi] = useState<AssenzaR[] | null>(null);
+  const [nomi, setNomi] = useState<Map<string, AllievoL>>(new Map());
   const [err, setErr] = useState<string | null>(null);
 
+  const scelte = d ? (o.ids ?? d.aree.map((a) => a.id)) : [];
+  const areaId = areaSel ?? scelte[0] ?? null;
+  const idGruppiArea = useMemo(() => (d && areaId ? d.gruppi.filter((g) => g.area_id === areaId && g.attivo).map((g) => g.id) : []), [d, areaId]);
+  const chiaveArea = idGruppiArea.join(",");
+
+  // assenze avvisate oggi: poche righe (solo oggi), colonne ridotte
   useEffect(() => {
     let vivo = true;
-    (async () => {
-      const mese = isoGiorno().slice(0, 7);
-      const [l, a] = await Promise.all([
-        sb.from("lezioni").select("id,gruppo_id,data,stato").eq("centro_id", centro.id).gte("data", `${mese}-01`).eq("stato", "chiusa"),
-        sb.from("assenze").select("*").eq("centro_id", centro.id).eq("data", isoGiorno()),
-      ]);
+    void sb.from("assenze").select("id,allievo_id,data,gruppo_id,motivo,testo").eq("centro_id", centro.id).eq("data", isoGiorno()).then((a: { data: unknown; error: { message: string } | null }) => {
       if (!vivo) return;
-      if (l.error || a.error) { setErr((l.error ?? a.error)?.message ?? "?"); return; }
-      const lez = (l.data ?? []) as LezioneR[];
-      let pres: PresenzaR[] = [];
-      for (let i = 0; i < lez.length; i += 60) {
-        const p = await sb.from("presenze").select("id,lezione_id,allievo_id,presente").in("lezione_id", lez.slice(i, i + 60).map((x) => x.id));
-        if (p.error) { if (vivo) setErr(p.error.message); return; }
-        pres = pres.concat((p.data ?? []) as PresenzaR[]);
-      }
-      if (vivo) setExtra({ lez, pres, ass: (a.data ?? []) as AssenzaR[] });
-    })();
+      if (a.error) setErr(a.error.message); else setAssenzeOggi((a.data ?? []) as AssenzaR[]);
+    });
     return () => { vivo = false; };
   }, [sb, centro.id]);
+
+  // presenze del mese solo dei gruppi dell'area scelta (una lettura con join, non una per blocco di lezioni)
+  useEffect(() => {
+    if (!chiaveArea) { setPres({ chiave: chiaveArea, righe: [] }); return; }
+    let vivo = true;
+    void leggiPresenze(sb, centro.id, `${isoGiorno().slice(0, 7)}-01`, idGruppiArea).then((p) => {
+      if (!vivo) return;
+      if (p.errore) setErr(p.errore); else setPres({ chiave: chiaveArea, righe: p.righe });
+    });
+    return () => { vivo = false; };
+  }, [sb, centro.id, chiaveArea, idGruppiArea]);
+
+  // allievi dell'area con un'assenza oggi: un'unica lettura per id, mai una per riga
+  const idAssenti = useMemo(() => {
+    if (!d || !assenzeOggi) return "";
+    const alunniArea = new Set(idGruppiArea.flatMap((g) => allieviDelGruppo(d.iscrizioni, g)));
+    return [...new Set(assenzeOggi.filter((a) => alunniArea.has(a.allievo_id)).map((a) => a.allievo_id))].join(",");
+  }, [d, assenzeOggi, idGruppiArea]);
+  useEffect(() => {
+    if (!idAssenti) return;
+    let vivo = true;
+    void sb.from("allievi").select("id,nome,cognome,data_nascita,certificato_scade").in("id", idAssenti.split(",")).then((x: { data: unknown }) => {
+      if (vivo) setNomi(new Map(((x.data ?? []) as AllievoL[]).map((a) => [a.id, a])));
+    });
+    return () => { vivo = false; };
+  }, [sb, idAssenti]);
 
   const persona = o.membroAttivo ? nomeCompleto(o.membroAttivo) : "";
   const schermo = (corpo: React.ReactNode, titolo?: string, sopra?: string) => (
@@ -60,24 +82,23 @@ export default function AreaPanoramica() {
       {corpo}
     </SchermoCentro>
   );
-  if (!d || !extra) return schermo(o.errore || err ? <Errore messaggio={o.errore ?? err} onRiprova={() => void o.carica()} /> : <Caricamento />);
+  if (!d || !assenzeOggi || !pres) return schermo(o.errore || err ? <Errore messaggio={o.errore ?? err} onRiprova={() => void o.carica()} /> : <Caricamento />);
 
-  const scelte = o.ids ?? d.aree.map((a) => a.id);
-  const area = d.aree.find((a) => a.id === (areaSel ?? scelte[0]));
+  const area = d.aree.find((a) => a.id === areaId);
   if (!area) return schermo(<Vuoto titolo={t.vuotoT} testo={t.vuotoS} icona="star" />);
 
   const gruppi = d.gruppi.filter((g) => g.area_id === area.id && g.attivo);
   const idG = new Set(gruppi.map((g) => g.id));
-  const alunni = new Set(gruppi.flatMap((g) => allieviDelGruppo(o.iscrAttive.length ? o.iscrAttive : d.iscrizioni.filter((i) => !i.al || i.al >= o.oggi), g.id)));
+  // `d.iscrizioni` contiene già solo le iscrizioni in corso
+  const alunni = new Set(gruppi.flatMap((g) => allieviDelGruppo(d.iscrizioni, g.id)));
   const maestri = new Set(d.gm.filter((x) => idG.has(x.gruppo_id)).map((x) => x.membro_id));
-  const lezMese = new Set(extra.lez.filter((l) => idG.has(l.gruppo_id)).map((l) => l.id));
-  const pm = extra.pres.filter((p) => lezMese.has(p.lezione_id));
+  const pm = pres.chiave === chiaveArea ? pres.righe.filter((p) => idG.has(p.gruppo_id)) : [];
   const perc = pm.length ? Math.round((pm.filter((p) => p.presente).length / pm.length) * 100) : null;
 
   const lun = inizioSettimana(), dom = isoGiorno(aggiungiGiorni(lun, 6)), l0 = isoGiorno(lun);
   const cambi = d.cambi.filter((c) => idG.has(c.gruppo_id) && c.data >= l0 && c.data <= dom).sort((a, b) => (a.data > b.data ? 1 : -1));
   const num = (id: string | null) => d.campi.find((c) => c.id === id)?.numero ?? "?";
-  const assenze = extra.ass.filter((a) => alunni.has(a.allievo_id));
+  const assenze = assenzeOggi.filter((a) => alunni.has(a.allievo_id));
 
   return schermo(
     <div className="og-pagina">
@@ -97,7 +118,7 @@ export default function AreaPanoramica() {
               <div key={g.id} className="li" style={{ padding: "9px 12px" }}>
                 <span className="dot" style={{ background: colorePerArea(d, g.area_id) }} />
                 <span className="grow"><span className="t" style={{ display: "block", fontSize: 14.5 }}>{g.nome} · {fmtGiorni(g.giorni)} {fmtOra(g.ora)}</span>
-                  <span className="s" style={{ display: "block" }}>{sostituisci(t.sub, { m: m.length ? m.map(nomeCompleto).join(" · ") : t.nessunMaestro, n: allieviDelGruppo(d.iscrizioni.filter((i) => !i.al || i.al >= o.oggi), g.id).length })}</span></span>
+                  <span className="s" style={{ display: "block" }}>{sostituisci(t.sub, { m: m.length ? m.map(nomeCompleto).join(" · ") : t.nessunMaestro, n: allieviDelGruppo(d.iscrizioni, g.id).length })}</span></span>
                 <Tag>{c ? sostituisci(t.campo, { n: c.numero }) : t.senzaCampo}</Tag>
               </div>
             );
@@ -117,7 +138,7 @@ export default function AreaPanoramica() {
           <Sezione titolo={t.assT} azione={<span className="muted">{fmtData(o.oggi)}</span>} />
           {assenze.length === 0 && <div className="og-s">{t.nessunaAss}</div>}
           {assenze.map((a) => {
-            const al = d.allievi.find((x) => x.id === a.allievo_id);
+            const al = nomi.get(a.allievo_id);
             const g = d.gruppi.find((x) => x.id === a.gruppo_id) ?? gruppi.find((x) => allieviDelGruppo(d.iscrizioni, x.id).includes(a.allievo_id));
             if (!al) return null;
             return (

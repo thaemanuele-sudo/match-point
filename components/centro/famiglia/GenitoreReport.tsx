@@ -10,7 +10,7 @@ import { useCentro } from "@/lib/centro/contesto";
 import { rotta } from "@/lib/centro/rotte";
 import { useT } from "@/lib/i18n/lingua";
 import { aggiungiGiorni, fmtData, isoGiorno } from "@/lib/centro/date";
-import { nomeCompleto, useFigli, type RLezione } from "./dati";
+import { COL_LEZIONE, nomeCompleto, useFigli, type RLezione } from "./dati";
 import { chiaveMese, fmt, fmtOre, frasiProssimaVolta, inizioMese, nomeColpo, nomeMese, type RValutazione } from "./util";
 import { Caricamento, ErroreBox, Icona, SelettoreFigli, SenzaFigli } from "./piccoli";
 
@@ -71,13 +71,13 @@ export default function GenitoreReport() {
       const dal = new Date(inizioCorrente.getFullYear(), inizioCorrente.getMonth() - 12, 1);
       const al = aggiungiGiorni(inizioCorrente, -1);
       // il mese corrente non è chiuso: il report esiste solo per i mesi finiti
-      const l = await sb.from("lezioni").select("*").eq("centro_id", centro.id).eq("gruppo_id", idGr).eq("stato", "chiusa").gte("data", isoGiorno(dal)).lte("data", isoGiorno(al)).order("data");
+      const l = await sb.from("lezioni").select(COL_LEZIONE).eq("centro_id", centro.id).eq("gruppo_id", idGr).eq("stato", "chiusa").gte("data", isoGiorno(dal)).lte("data", isoGiorno(al)).order("data");
       if (l.error) return void (vivo && (setErrDati(l.error.message), setMesi([])));
       const lez = (l.data ?? []) as RLezione[];
       const [p, v, c] = await Promise.all([
         lez.length ? sb.from("presenze").select("lezione_id,presente").eq("centro_id", centro.id).eq("allievo_id", idAll).in("lezione_id", lez.map((x) => x.id)) : Promise.resolve({ data: [] }),
         sb.from("valutazioni").select("colpo,competenza,voto,test,data").eq("centro_id", centro.id).eq("allievo_id", idAll).gte("data", isoGiorno(dal)).lte("data", isoGiorno(al)),
-        sb.from("compiti").select("titolo,created_at").eq("centro_id", centro.id).or(`allievo_id.eq.${idAll},and(allievo_id.is.null,gruppo_id.eq.${idGr})`).gte("created_at", isoGiorno(dal)).order("created_at"),
+        sb.from("compiti").select("titolo,created_at").eq("centro_id", centro.id).or(`allievo_id.eq.${idAll},and(allievo_id.is.null,gruppo_id.eq.${idGr})`).gte("created_at", isoGiorno(dal)).lt("created_at", isoGiorno(inizioCorrente)).order("created_at"),
       ]);
       if (!vivo) return;
       const pr: Record<string, boolean> = {};

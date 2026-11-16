@@ -4,7 +4,7 @@ import SchermoCentro from "./Sch";
 import { useT } from "@/lib/i18n/lingua";
 import { Ic } from "./icone";
 import { Caric, ErroreC, Interr, VuotoC } from "./stati";
-import { etichettaDest, inviaAvviso, risolviDestinatari, useAvvisiInviati, useNomi, type AvvisoConLetture, type Dest, type Risolti, type TipoDest } from "./avvisi";
+import { etichettaDest, inviaAvviso, contaDestinatari, ricordaAvviso, useAvvisiInviati, useNomi, type AvvisoConLetture, type Dest, type Risolti, type TipoDest } from "./avvisi";
 import { dataBreve, f, hhmm, inSilenzio, messaggioErrore, nomeMembro, oraIt, prossimaConsegna, useMio } from "./comuni";
 import "./comunicazione.css";
 
@@ -36,6 +36,8 @@ const it = {
   delMese: "avvisi del mese",
   daRicordare: "da ricordare",
   hannoLetto: "{l} di {t} hanno letto",
+  hannoLetto1: "{l} hanno letto",
+  altri: "Carica altri avvisi",
   ricorda: "Ricorda a chi non ha letto",
   ricordato: "Promemoria inviato a {n} persone.",
   vuoto: "Non ci sono ancora avvisi inviati.",
@@ -58,7 +60,7 @@ export function AvvisiPagina({ modo }: { modo: "centro" | "area" }) {
   const t = useT(T);
   const { sb, me, centro, ruolo, imp } = useMio();
   const nomi = useNomi();
-  const inv = useAvvisiInviati(modo === "area" ? "tutti" : "tutti", 30);
+  const inv = useAvvisiInviati("tutti", 20);
   const [vista, setVista] = useState<"nuovo" | "inviati">("nuovo");
   const [tipo, setTipo] = useState<TipoDest>(modo === "area" ? "area" : "centro");
   const [valori, setValori] = useState<string[]>([]);
@@ -98,7 +100,7 @@ export function AvvisiPagina({ modo }: { modo: "centro" | "area" }) {
   useEffect(() => {
     if (!sb || !centro || !pronto) return setRis(null);
     let vivo = true;
-    risolviDestinatari(sb, centro.id, dest).then((r) => vivo && setRis(r));
+    contaDestinatari(sb, centro.id, dest).then((r) => vivo && setRis(r));
     return () => {
       vivo = false;
     };
@@ -124,7 +126,7 @@ export function AvvisiPagina({ modo }: { modo: "centro" | "area" }) {
     setOk(null);
     try {
       const r = await inviaAvviso(sb, imp, { titolo: titolo.trim(), testo: testo.trim(), destinatari: dest, conferma, promemoria: conferma });
-      setOk(r.consegna_il ? f(t.programmato, { ora: ORA(new Date(r.consegna_il)) }) : f(t.inviato, { n: ris ? ris.membri.length || ris.allievi : 0 }));
+      setOk(r.consegna_il ? f(t.programmato, { ora: ORA(new Date(r.consegna_il)) }) : f(t.inviato, { n: r.destinatari }));
       setTitolo("");
       setTesto("");
       inv.ricarica();
@@ -147,15 +149,8 @@ export function AvvisiPagina({ modo }: { modo: "centro" | "area" }) {
     if (!sb || !centro) return;
     setRicMsg(null);
     try {
-      const r = await risolviDestinatari(sb, centro.id, a.destinatari);
-      const { data: l } = await sb.from("avvisi_letture").select("membro_id").eq("avviso_id", a.id);
-      const lette = new Set(((l ?? []) as { membro_id: string }[]).map((x) => x.membro_id));
-      const da = r.membri.filter((m) => !lette.has(m));
-      if (da.length) {
-        const { error } = await sb.from("notifiche").insert(da.map((m) => ({ centro_id: centro.id, membro_id: m, tipo: "avviso", titolo: a.titolo, testo: a.testo, mittente: nomeMembro(me) })));
-        if (error) throw error;
-      }
-      setRicMsg(f(t.ricordato, { n: da.length }));
+      const n = await ricordaAvviso(sb, a.id);
+      setRicMsg(f(t.ricordato, { n }));
     } catch (e) {
       setRicMsg(messaggioErrore(e));
     }
@@ -251,10 +246,10 @@ export function AvvisiPagina({ modo }: { modo: "centro" | "area" }) {
                       </div>
                       <div style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 12.5 }}>
                         <span className="muted">{etichettaDest(a.destinatari, nomi, { centro: t.tCentro, famiglieDi: t.famiglieDi, area: t.area, tutti: t.tutti })}</span>
-                        <b style={{ whiteSpace: "nowrap" }}>{f(t.hannoLetto, { l: a.letti, t: a.tot })}</b>
+                        <b style={{ whiteSpace: "nowrap" }}>{a.tot > 0 ? f(t.hannoLetto, { l: a.letti, t: a.tot }) : f(t.hannoLetto1, { l: a.letti })}</b>
                       </div>
                       <div className="bar"><i style={{ width: `${p}%`, background: a.letti === a.tot && a.tot > 0 ? "#4CD07D" : "#D8F34A" }} /></div>
-                      {a.conferma && a.letti < a.tot && (
+                      {a.conferma && (a.tot === 0 || a.letti < a.tot) && (
                         <button type="button" className="cm-bt2" style={{ height: 34, fontSize: 12.5, alignSelf: "flex-start" }} onClick={() => ricorda(a)}>
                           <Ic n="bell" size={14} />
                           {t.ricorda}
@@ -263,6 +258,11 @@ export function AvvisiPagina({ modo }: { modo: "centro" | "area" }) {
                     </div>
                   );
                 })
+              )}
+              {inv.ancora && (
+                <button type="button" className="cm-bt2" onClick={inv.altri}>
+                  {t.altri}
+                </button>
               )}
             </section>
           </div>

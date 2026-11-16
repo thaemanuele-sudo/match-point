@@ -8,8 +8,8 @@ import { SchermoCentro } from "@/components/centro/Schermo";
 import { useCentro } from "@/lib/centro/contesto";
 import { rotta } from "@/lib/centro/rotte";
 import { useT } from "@/lib/i18n/lingua";
-import { fmtData, fmtDataLunga, isoGiorno } from "@/lib/centro/date";
-import { agendaLezioni, nomeCompleto, type RCambio, type RLezione, type VoceLezione } from "./dati";
+import { aggiungiGiorni, fmtData, fmtDataLunga, isoGiorno } from "@/lib/centro/date";
+import { COL_CAMBIO, COL_LEZIONE, agendaLezioni, nomeCompleto, valutazioniAllievo, type RCambio, type RLezione, type VoceLezione } from "./dati";
 import { useFigli } from "./dati";
 import { calcolaColpi, fmt, maiuscola, nomeColpo, nomeMese, nomeCampo, temaDelMese, type RValutazione } from "./util";
 import { Caricamento, ErroreBox, FoglioAssenza, Icona, SelettoreFigli, SenzaFigli } from "./piccoli";
@@ -74,22 +74,25 @@ export default function GenitoreHome() {
     (async () => {
       setErrDati(null);
       const oggi = isoGiorno();
+      // la Home mostra novità recenti: avviso e messaggio si cercano negli ultimi 90 giorni, l'ultimo riassunto nell'ultima stagione (365)
+      const dal90 = isoGiorno(aggiungiGiorni(new Date(), -90));
+      const dal365 = isoGiorno(aggiungiGiorni(new Date(), -365));
       // senza gruppo le tre ricerche per gruppo non trovano nulla: un uuid nullo evita un errore di tipo nel database
       const g = idGr ?? "00000000-0000-0000-0000-000000000000";
       const [cambi, righe, ultima, vals, conv, notif, ass] = await Promise.all([
-        sb.from("cambi_campo").select("*").eq("centro_id", centro.id).eq("gruppo_id", g).gte("data", oggi).order("data").limit(10),
-        sb.from("lezioni").select("*").eq("centro_id", centro.id).eq("gruppo_id", g).gte("data", oggi).neq("stato", "chiusa").order("data").limit(10),
-        sb.from("lezioni").select("*").eq("centro_id", centro.id).eq("gruppo_id", g).eq("stato", "chiusa").eq("riassunto_ok", true).not("riassunto", "is", null).order("data", { ascending: false }).limit(1),
-        sb.from("valutazioni").select("colpo,competenza,voto,test,data").eq("centro_id", centro.id).eq("allievo_id", idAll).order("data", { ascending: false }).limit(300),
+        sb.from("cambi_campo").select(COL_CAMBIO).eq("centro_id", centro.id).eq("gruppo_id", g).gte("data", oggi).order("data").limit(10),
+        sb.from("lezioni").select(COL_LEZIONE).eq("centro_id", centro.id).eq("gruppo_id", g).gte("data", oggi).neq("stato", "chiusa").order("data").limit(10),
+        sb.from("lezioni").select(COL_LEZIONE).eq("centro_id", centro.id).eq("gruppo_id", g).eq("stato", "chiusa").eq("riassunto_ok", true).not("riassunto", "is", null).gte("data", dal365).order("data", { ascending: false }).limit(1),
+        valutazioniAllievo(sb, centro.id, idAll).then((data) => ({ data, error: undefined as { message: string } | undefined }), (e: Error) => ({ data: [] as RValutazione[], error: { message: e.message } })),
         sb.from("conversazioni").select("id").eq("centro_id", centro.id).eq("allievo_id", idAll).in("tipo", ["famiglia_maestro", "famiglia_segreteria"]),
-        sb.from("notifiche").select("tipo,titolo,testo,letta_il,created_at").eq("membro_id", ma.id).in("tipo", ["avviso", "messaggio"]).order("created_at", { ascending: false }).limit(20),
+        sb.from("notifiche").select("tipo,titolo,testo,letta_il,created_at").eq("membro_id", ma.id).in("tipo", ["avviso", "messaggio"]).gte("created_at", dal90).order("created_at", { ascending: false }).limit(20),
         sb.from("assenze").select("data").eq("centro_id", centro.id).eq("allievo_id", idAll).gte("data", oggi),
       ]);
       // ultimo messaggio ricevuto (non scritto da me) tra le conversazioni del figlio
       let msg: Dati["msg"] = null;
       const ids = ((conv.data ?? []) as { id: string }[]).map((c) => c.id);
       if (ids.length) {
-        const m = await sb.from("messaggi").select("autore_id,testo,created_at").in("conversazione_id", ids).order("created_at", { ascending: false }).limit(5);
+        const m = await sb.from("messaggi").select("autore_id,testo,created_at").in("conversazione_id", ids).gte("created_at", dal90).order("created_at", { ascending: false }).limit(5);
         const ultimo = ((m.data ?? []) as { autore_id: string; testo: string }[]).find((x) => x.autore_id !== ma.id) ?? null;
         if (ultimo) {
           const a = await sb.from("membri").select("nome,cognome,ruolo").eq("id", ultimo.autore_id).maybeSingle();

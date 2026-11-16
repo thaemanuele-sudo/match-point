@@ -1,11 +1,13 @@
 "use client";
 /**
  * Avvisi: tabelle `avvisi` e `avvisi_letture`, RPC `invia_avviso`.
- * Il conteggio dei destinatari si risolve qui (anteprima e "letti X su Y"): il server fa lo stesso lavoro quando crea le notifiche.
+ * Regola "Scala" di docs/CENTRI.md: i conteggi (destinatari e letture) li calcola il database con RPC
+ * (`conta_destinatari`, `letture_avvisi`, `ricorda_avviso`); se una RPC manca si ripiega su conteggi `head: true`,
+ * mai sul download delle righe e mai su una query dentro un ciclo.
  */
 import { useCallback, useEffect, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { inSilenzio, prossimaConsegna, messaggioErrore, useMio, useRealtime, type Imp } from "./comuni";
+import { inSilenzio, prossimaConsegna, messaggioErrore, useMio, type Imp } from "./comuni";
 
 export type TipoDest = "centro" | "fascia" | "gruppo" | "area" | "maestro";
 export type Dest = { tipo: TipoDest; valori: string[] };
@@ -20,49 +22,45 @@ export type Avviso = {
   consegna_il: string | null;
   created_at: string;
 };
-export type Risolti = { allievi: number; famiglie: number; maestri: number; membri: string[] };
+export type Risolti = { allievi: number; famiglie: number; maestri: number };
 
 const oggi = () => new Date().toISOString().slice(0, 10);
+const num = (v: unknown) => (typeof v === "number" ? v : parseInt(String(v ?? 0), 10) || 0);
+const prima = (d: unknown) => (Array.isArray(d) ? d[0] : d) as Record<string, unknown> | null;
 
-/** Chi riceve un avviso: allievi (con le loro famiglie) e, per "tutto il centro", anche i maestri in copia. */
-export async function risolviDestinatari(sb: SupabaseClient, centroId: string, d: Dest): Promise<Risolti> {
-  let gruppoIds: string[] | null = null; // null = tutto il centro
-  if (d.tipo === "fascia" && d.valori.length) {
-    const { data } = await sb.from("gruppi").select("id").eq("centro_id", centroId).in("fascia", d.valori);
-    gruppoIds = ((data ?? []) as { id: string }[]).map((g) => g.id);
-  } else if (d.tipo === "gruppo") {
-    gruppoIds = d.valori;
-  } else if (d.tipo === "area" && d.valori.length) {
-    const { data } = await sb.from("gruppi").select("id").eq("centro_id", centroId).in("area_id", d.valori);
-    gruppoIds = ((data ?? []) as { id: string }[]).map((g) => g.id);
-  } else if (d.tipo === "maestro" && d.valori.length) {
+/** Quanti allievi, famiglie e maestri ricevono un avviso (anteprima prima dell'invio). */
+export async function contaDestinatari(sb: SupabaseClient, centroId: string, d: Dest): Promise<Risolti> {
+  const r = await sb.rpc("conta_destinatari", { centro: centroId, destinatari: d });
+  const x = !r.error ? prima(r.data) : null;
+  if (x) return { allievi: num(x.allievi), famiglie: num(x.famiglie), maestri: num(x.maestri) };
+
+  // ripiego: solo conteggi
+  if (d.tipo === "centro") {
+    const [a, g, m] = await Promise.all([
+      sb.from("allievi").select("id", { count: "exact", head: true }).eq("centro_id", centroId),
+      sb.from("membri").select("id", { count: "exact", head: true }).eq("centro_id", centroId).eq("ruolo", "genitore"),
+      sb.from("membri").select("id", { count: "exact", head: true }).eq("centro_id", centroId).eq("ruolo", "maestro"),
+    ]);
+    return { allievi: a.count ?? 0, famiglie: g.count ?? 0, maestri: m.count ?? 0 };
+  }
+  let gruppoIds: string[] = [];
+  if (d.tipo === "gruppo") gruppoIds = d.valori;
+  else if (d.tipo === "fascia") gruppoIds = ((await sb.from("gruppi").select("id").eq("centro_id", centroId).in("fascia", d.valori)).data ?? []).map((g: { id: string }) => g.id);
+  else if (d.tipo === "area") gruppoIds = ((await sb.from("gruppi").select("id").eq("centro_id", centroId).in("area_id", d.valori)).data ?? []).map((g: { id: string }) => g.id);
+  else if (d.tipo === "maestro") {
     const { data } = await sb.from("gruppi_maestri").select("gruppo_id").in("membro_id", d.valori);
     gruppoIds = Array.from(new Set(((data ?? []) as { gruppo_id: string }[]).map((g) => g.gruppo_id)));
   }
-  let allievoIds: string[] = [];
-  if (gruppoIds === null) {
-    const { data } = await sb.from("allievi").select("id").eq("centro_id", centroId);
-    allievoIds = ((data ?? []) as { id: string }[]).map((a) => a.id);
-  } else if (gruppoIds.length) {
-    const { data } = await sb.from("iscrizioni").select("allievo_id,al").in("gruppo_id", gruppoIds);
-    allievoIds = Array.from(new Set(((data ?? []) as { allievo_id: string; al: string | null }[]).filter((r) => !r.al || r.al >= oggi()).map((r) => r.allievo_id)));
+  if (!gruppoIds.length) return { allievi: 0, famiglie: 0, maestri: 0 };
+  const { data } = await sb.from("iscrizioni").select("allievo_id,al").in("gruppo_id", gruppoIds).limit(2000);
+  const ids = Array.from(new Set(((data ?? []) as { allievo_id: string; al: string | null }[]).filter((x) => !x.al || x.al >= oggi()).map((x) => x.allievo_id)));
+  // con tanti allievi l'elenco nell'indirizzo diventerebbe troppo lungo: si stima una famiglia per allievo
+  let famiglie = ids.length;
+  if (ids.length > 0 && ids.length <= 150) {
+    const f = await sb.from("allievi_famiglie").select("membro_id", { count: "exact", head: true }).in("allievo_id", ids);
+    famiglie = f.count ?? ids.length;
   }
-  const membri = new Set<string>();
-  let famiglie = 0;
-  if (allievoIds.length) {
-    const { data: fam } = await sb.from("allievi_famiglie").select("membro_id").in("allievo_id", allievoIds);
-    const set = new Set(((fam ?? []) as { membro_id: string }[]).map((x) => x.membro_id));
-    famiglie = set.size;
-    set.forEach((m) => membri.add(m));
-    const { data: acc } = await sb.from("allievi").select("membro_id").in("id", allievoIds);
-    ((acc ?? []) as { membro_id: string | null }[]).forEach((a) => a.membro_id && membri.add(a.membro_id));
-  }
-  let maestri = 0;
-  if (d.tipo === "centro") {
-    const { data } = await sb.from("membri").select("id").eq("centro_id", centroId).eq("ruolo", "maestro");
-    maestri = (data ?? []).length;
-  }
-  return { allievi: allievoIds.length, famiglie, maestri, membri: Array.from(membri) };
+  return { allievi: ids.length, famiglie, maestri: 0 };
 }
 
 export type InvioAvviso = { titolo: string; testo: string; destinatari: Dest; conferma: boolean; promemoria: boolean; consegna_il: string | null };
@@ -71,53 +69,78 @@ export async function inviaAvviso(sb: SupabaseClient, imp: Imp, v: Omit<InvioAvv
   const consegna_il = inSilenzio(imp) ? prossimaConsegna(imp).toISOString() : null;
   const { data, error } = await sb.rpc("invia_avviso", { ...v, consegna_il });
   if (error) throw error;
-  return { risposta: data as unknown, consegna_il };
+  const x = prima(data);
+  return { destinatari: x ? num(x.destinatari ?? x.n ?? x.conteggio) : typeof data === "number" ? data : 0, consegna_il };
+}
+
+/** Promemoria a chi non ha ancora letto: lo fa il database (può essere una platea di migliaia di persone). */
+export async function ricordaAvviso(sb: SupabaseClient, avviso: string): Promise<number> {
+  const { data, error } = await sb.rpc("ricorda_avviso", { avviso });
+  if (error) throw error;
+  const x = prima(data);
+  return x ? num(x.n ?? x.destinatari) : typeof data === "number" ? data : 0;
 }
 
 export type AvvisoConLetture = Avviso & { letti: number; tot: number; letti24: number };
 
-/** Avvisi inviati (miei o di tutto il centro) con le conferme di lettura. */
-export function useAvvisiInviati(solo: "miei" | "tutti", limite = 20) {
+/** Avvisi inviati (miei o di tutto il centro) a blocchi di 20, con le conferme di lettura calcolate dal database. */
+export function useAvvisiInviati(solo: "miei" | "tutti", blocco = 20) {
   const { sb, centro, me } = useMio();
   const [lista, setLista] = useState<AvvisoConLetture[] | null>(null);
   const [errore, setErrore] = useState<string | null>(null);
-  const carica = useCallback(async () => {
-    if (!sb || !centro || !me) return;
-    try {
-      let q = sb.from("avvisi").select("id,autore_id,titolo,testo,destinatari,conferma,promemoria,consegna_il,created_at").eq("centro_id", centro.id).order("created_at", { ascending: false }).limit(limite);
+  const [ancora, setAncora] = useState(false);
+
+  const leggi = useCallback(
+    async (da: number, a: number): Promise<AvvisoConLetture[]> => {
+      if (!sb || !centro || !me) return [];
+      let q = sb.from("avvisi").select("id,autore_id,titolo,testo,destinatari,conferma,promemoria,consegna_il,created_at").eq("centro_id", centro.id).order("created_at", { ascending: false }).range(da, a);
       if (solo === "miei") q = q.eq("autore_id", me.id);
       const { data, error } = await q;
       if (error) throw error;
       const av = (data ?? []) as Avviso[];
-      const ids = av.map((a) => a.id);
-      const letture: Record<string, { membro_id: string; letto_il: string }[]> = {};
-      if (ids.length) {
-        const { data: l } = await sb.from("avvisi_letture").select("avviso_id,membro_id,letto_il").in("avviso_id", ids);
-        ((l ?? []) as { avviso_id: string; membro_id: string; letto_il: string }[]).forEach((r) => (letture[r.avviso_id] ||= []).push(r));
+      if (!av.length) return [];
+      const ids = av.map((x) => x.id);
+      const conta: Record<string, { letti: number; tot: number; letti24: number }> = {};
+      const r = await sb.rpc("letture_avvisi", { avvisi: ids });
+      if (!r.error && Array.isArray(r.data)) {
+        (r.data as Record<string, unknown>[]).forEach((x) => (conta[String(x.avviso_id)] = { letti: num(x.letti), tot: num(x.totale), letti24: num(x.letti_24h) }));
+      } else {
+        // ripiego: un conteggio `head: true` per avviso, tutti insieme (al massimo un blocco)
+        const cs = await Promise.all(ids.map((id) => sb.from("avvisi_letture").select("avviso_id", { count: "exact", head: true }).eq("avviso_id", id)));
+        cs.forEach((c, i) => (conta[ids[i]] = { letti: c.count ?? 0, tot: 0, letti24: c.count ?? 0 }));
       }
-      const cache: Record<string, Risolti> = {};
-      const out: AvvisoConLetture[] = [];
-      for (const a of av) {
-        const chiave = JSON.stringify(a.destinatari);
-        cache[chiave] ||= await risolviDestinatari(sb, centro.id, a.destinatari);
-        const r = cache[chiave];
-        const dest = new Set(r.membri);
-        const l = (letture[a.id] ?? []).filter((x) => dest.size === 0 || dest.has(x.membro_id));
-        const t0 = new Date(a.consegna_il ?? a.created_at).getTime();
-        out.push({ ...a, tot: Math.max(r.membri.length, l.length), letti: l.length, letti24: l.filter((x) => new Date(x.letto_il).getTime() - t0 < 86400000).length });
-      }
-      setLista(out);
+      return av.map((x) => ({ ...x, letti: conta[x.id]?.letti ?? 0, tot: conta[x.id]?.tot ?? 0, letti24: conta[x.id]?.letti24 ?? 0 }));
+    },
+    [sb, centro, me, solo]
+  );
+
+  const carica = useCallback(async () => {
+    try {
+      const n = Math.max(blocco, lista?.length ?? 0);
+      const r = await leggi(0, n - 1);
+      setLista(r);
+      setAncora(r.length === n);
       setErrore(null);
     } catch (e) {
       setErrore(messaggioErrore(e));
       setLista((l) => l ?? []);
     }
-  }, [sb, centro, me, solo, limite]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leggi, blocco]);
+  const altri = useCallback(async () => {
+    try {
+      const da = lista?.length ?? 0;
+      const r = await leggi(da, da + blocco - 1);
+      setLista((l) => [...(l ?? []), ...r]);
+      setAncora(r.length === blocco);
+    } catch (e) {
+      setErrore(messaggioErrore(e));
+    }
+  }, [leggi, lista, blocco]);
   useEffect(() => {
     carica();
   }, [carica]);
-  useRealtime(sb, `cm-avvisi-${solo}-${me?.id ?? "x"}`, "avvisi_letture", null, "INSERT", carica);
-  return { lista, errore, ricarica: carica };
+  return { lista, errore, ricarica: carica, altri, ancora };
 }
 
 export type Nomi = { gruppi: Record<string, string>; aree: Record<string, string>; maestri: Record<string, string> };

@@ -31,8 +31,8 @@ const T = { it, en: { ...it } };
 export default function AllievoChat() {
   const t = useT(T);
   const { sb, me, centro, imp } = useMio();
-  const { conv, errore, ricarica } = useConversazioni();
   const { figlio } = useFigli("allievo");
+  const { conv, errore, ricarica } = useConversazioni({ tipi: ["allievo_maestro"], allievoId: figlio?.id ?? null, attivo: !!figlio });
   const [maestro, setMaestro] = useState<{ id: string; nome: string } | null>(null);
   const [famiglia, setFamiglia] = useState<string[]>([]);
   const [err, setErr] = useState<string | null>(null);
@@ -67,7 +67,7 @@ export default function AllievoChat() {
           <span style={{ fontWeight: 800 }}>{t.banner}</span>
         </div>
         <ErroreC testo={err ?? errore} />
-        {conv === null || !me ? (
+        {!me || !figlio || conv === null ? (
           <Caric testo={t.caricamento} />
         ) : chat ? (
           <>

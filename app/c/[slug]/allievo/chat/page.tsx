@@ -1,6 +1,6 @@
-import { Segnaposto } from "@/components/centro/Segnaposto";
+"use client";
+import AllievoChat from "@/components/centro/comunicazione/AllievoChat";
 
-// Segnaposto: l'area responsabile sostituisce questo file con la schermata vera.
 export default function Page() {
-  return <Segnaposto codice="A3" ruolo="allievo" tab="maestro" />;
+  return <AllievoChat />;
 }

@@ -10,7 +10,7 @@ import { fmtData, fmtGiornoMese, fmtOra, leggiData } from "@/lib/centro/date";
 import { useT } from "@/lib/i18n/lingua";
 import { SchermoCentro } from "../../Schermo";
 import { Ic } from "./Ic";
-import { useDatiMaestri, type MaestroStat } from "./dati";
+import { useDatiMaestri, type Dati, type MaestroStat } from "./dati";
 import {
   COL, coloreAderenza, coloreAvatar, corsoCompletato, fmtOre, iniziali, mediaVoti, motivoScostamento, nomeCompleto,
   percentualeCorso, rimpiazza, virgola, type Riga,
@@ -47,12 +47,25 @@ const tagStile = (c: string) => ({ fontSize: 11, fontWeight: 800, padding: "3px 
 const abbrevia = (a: Riga) => `${a.nome ?? ""} ${a.cognome ? a.cognome[0] + "." : ""}`.trim();
 const chiaveTest = (k: string) => k.replace("-", " ");
 
+/** Allievi del maestro con il voto medio nel test corrente, dal più indietro al più avanti. */
+function ordineAllievi(dati: Dati, m: MaestroStat): [string, number][] {
+  const mie = new Set(m.allieviIds);
+  const somme = new Map<string, [number, number]>();
+  for (const v of dati.valutazioni) {
+    if (!mie.has(v.allievo_id) || v.voto == null || v.test !== dati.testCorrente) continue;
+    const c = somme.get(v.allievo_id) ?? [0, 0];
+    somme.set(v.allievo_id, [c[0] + Number(v.voto), c[1] + 1]);
+  }
+  return [...somme.entries()].map(([id, [s, n]]): [string, number] => [id, s / n]).sort((a, b) => a[1] - b[1]);
+}
+
 export default function BSchedaMaestro() {
   const t = useT(T);
   const { id } = useParams<{ id: string }>();
   const { centro, sb } = useCentro();
   const R = rotta(centro.slug);
-  const { dati, carica, errore, ricarica } = useDatiMaestri();
+  // solo i dati di questo maestro, non quelli di tutto il centro
+  const { dati, carica, errore, ricarica } = useDatiMaestri({ maestroId: id });
   const [tab, setTab] = useState<Tab>("programma");
   const [allievi, setAllievi] = useState<Riga[]>([]);
   const [presenze, setPresenze] = useState<Riga[]>([]);
@@ -60,14 +73,17 @@ export default function BSchedaMaestro() {
 
   const m: MaestroStat | undefined = dati?.maestri.find((x) => x.m.id === id);
 
-  // Dettagli che servono solo a questa scheda: nomi degli allievi, voti rapidi delle ultime lezioni, osservazioni ricevute
+  // Dettagli che servono solo a questa scheda: nomi dei due allievi mostrati (il più indietro e il più avanti, non tutti),
+  // voti rapidi delle ultime lezioni, osservazioni ricevute
   useEffect(() => {
-    if (!m) return;
+    if (!m || !dati) return;
     let vivo = true;
     (async () => {
       const idsL = m.ultime.map((u) => u.l.id);
+      const ord = ordineAllievi(dati, m);
+      const idsA = ord.length > 1 ? [ord[0][0], ord[ord.length - 1][0]] : [];
       const [a, p, o] = await Promise.all([
-        m.allieviIds.length ? sb.from("allievi").select("id,nome,cognome").eq("centro_id", centro.id).in("id", m.allieviIds) : Promise.resolve({ data: [] as Riga[] }),
+        idsA.length ? sb.from("allievi").select("id,nome,cognome").eq("centro_id", centro.id).in("id", idsA) : Promise.resolve({ data: [] as Riga[] }),
         idsL.length ? sb.from("presenze").select("lezione_id,presente,voto_rapido").eq("centro_id", centro.id).in("lezione_id", idsL) : Promise.resolve({ data: [] as Riga[] }),
         sb.from("osservazioni").select("id,osservatore_id,lezione_id,voti,voto,consigli,nota,created_at").eq("centro_id", centro.id).eq("maestro_id", id).order("created_at", { ascending: false }).limit(10),
       ]);
@@ -77,7 +93,7 @@ export default function BSchedaMaestro() {
       setOsserv((o.data as Riga[]) ?? []);
     })();
     return () => { vivo = false; };
-  }, [m, sb, centro.id, id]);
+  }, [m, dati, sb, centro.id, id]);
 
   const prossima = useMemo(() => {
     if (!dati) return undefined;
@@ -130,9 +146,7 @@ export default function BSchedaMaestro() {
       const complete = m.ultime.filter((u) => { const pp = (idsPres.get(u.l.id) ?? []).filter((p) => p.presente); return pp.length > 0 && pp.every((p) => p.voto_rapido != null); }).length;
       out.push({ c: complete === m.ultime.length ? COL.verde : COL.giallo, t: t.dopoLezione, s: rimpiazza(t.dopoLezioneSub, { a: complete, b: m.ultime.length }), r: complete === m.ultime.length ? t.zeroMancanti : rimpiazza(t.nMancanti, { n: m.ultime.length - complete }) });
       // l'allievo più indietro e quello più avanti nel test corrente
-      const perAllievo = new Map<string, number>();
-      for (const id2 of new Set(corr.map((v) => v.allievo_id))) perAllievo.set(id2, media(corr.filter((v) => v.allievo_id === id2))!);
-      const ord = [...perAllievo.entries()].sort((a, b) => a[1] - b[1]);
+      const ord = ordineAllievi(dati, m);
       const nome = (aid: string) => abbrevia(allievi.find((a) => a.id === aid) ?? {});
       if (ord.length > 1) {
         out.push({ c: COL.giallo, t: nome(ord[0][0]), s: rimpiazza(t.allievoSub, { m: virgola(ord[0][1]), t: chiaveTest(dati.testCorrente ?? "") }), r: t.daSeguire });

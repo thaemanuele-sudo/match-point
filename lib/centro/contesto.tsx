@@ -82,6 +82,46 @@ function ultimaSezione(slug: string): string {
 
 type Carico = { centro: Centro; miei: Membro[]; userId: string; eAdmin: boolean };
 
+// Colonne esplicite: `centri` e `membri` si leggono a ogni apertura dell'app, niente select('*')
+const COLONNE_CENTRO = "id,slug,nome,nome_app,citta,logo_path,colore,colore_ink,stato,prova_fino,piano,impostazioni,creato_da,created_at";
+const COLONNE_MEMBRO = "id,centro_id,user_id,ruolo,nome,cognome,email,telefono,area_id,stato,created_at";
+
+// Cache di modulo: centro e membri si leggono una volta sola per centro e utente, non a ogni montaggio del provider.
+// Oltre FRESCO_MS si mostra subito il dato in cache e lo si riallinea in sottofondo (un nuovo ruolo, un cambio di marchio).
+const FRESCO_MS = 60_000;
+const cacheCentro = new Map<string, { dati: Carico; quando: number }>();
+const inVolo = new Map<string, Promise<Carico | { errore: string } | "nonTrovato">>();
+const chiaveCache = (slug: string, userId: string) => `${slug}|${userId}`;
+
+/** Dopo un cambio di ruoli o di marchio fatto fuori dal provider: la prossima apertura rilegge dal database. */
+export function invalidaContestoCentro(slug?: string): void {
+  if (!slug) { cacheCentro.clear(); return; }
+  for (const k of cacheCentro.keys()) if (k.startsWith(`${slug}|`)) cacheCentro.delete(k);
+}
+
+/** Una sola richiesta per centro e utente anche se più componenti chiedono insieme; centro e miei membri vengono in un solo giro. */
+function leggiCentro(sb: SB, slug: string, userId: string): Promise<Carico | { errore: string } | "nonTrovato"> {
+  const k = chiaveCache(slug, userId);
+  const gia = inVolo.get(k);
+  if (gia) return gia;
+  const p = (async () => {
+    // centro, i miei membri (filtro sulla tabella incorporata, solo i non sospesi) e super admin: tre letture in un giro solo
+    const [centroR, adminR] = await Promise.all([
+      sb.from("centri").select(`${COLONNE_CENTRO},membri(${COLONNE_MEMBRO})`).eq("slug", slug).eq("membri.user_id", userId).neq("membri.stato", "sospeso").maybeSingle(),
+      sb.rpc("is_admin"),
+    ]);
+    if (centroR.error) return { errore: centroR.error.message };
+    const riga = centroR.data as (Centro & { membri?: Membro[] }) | null;
+    if (!riga) return "nonTrovato" as const;
+    const { membri, ...centro } = riga;
+    const dati: Carico = { centro: centro as Centro, miei: membri ?? [], userId, eAdmin: adminR.data === true };
+    cacheCentro.set(k, { dati, quando: Date.now() });
+    return dati;
+  })().finally(() => { inVolo.delete(k); });
+  inVolo.set(k, p);
+  return p;
+}
+
 export function CentroProvider({ slug, brandIniziale, children }: { slug: string; brandIniziale?: MarchioCentro | null; children: ReactNode }) {
   return (
     <LinguaProvider>
@@ -104,38 +144,44 @@ function Dentro({ slug, brandIniziale, children }: { slug: string; brandIniziale
   const [errore, setErrore] = useState<string | null>(null);
   const [comeId, setComeId] = useState<string | null>(null);
   const [vista, setVista] = useState<Membro | null>(null);
+  const messaggioErrore = t.errore;
 
-  const carica = useCallback(async () => {
+  const carica = useCallback(async (forza = false) => {
     setErrore(null);
-    // tre letture indipendenti in parallelo: sessione, centro (con i miei membri) e super admin
-    const [{ data: ses }, centroR, adminR] = await Promise.all([
-      sb.auth.getSession(),
-      sb.from("centri").select("*").eq("slug", slug).maybeSingle(),
-      sb.rpc("is_admin"),
-    ]);
+    // la sessione è in locale (cookie): nessuna richiesta di rete finché il token è valido
+    const { data: ses } = await sb.auth.getSession();
     const userId = ses.session?.user.id;
-    if (!userId) { setErrore(t.errore); return; }
-    if (centroR.error) { setErrore(centroR.error.message); return; }
-    const centro = centroR.data as Centro | null;
-    if (!centro) { setDati(null); setErrore("nonTrovato"); return; }
-    const mR = await sb.from("membri").select("*").eq("centro_id", centro.id).eq("user_id", userId).neq("stato", "sospeso");
-    if (mR.error) { setErrore(mR.error.message); return; }
-    setDati({ centro, miei: (mR.data ?? []) as Membro[], userId, eAdmin: adminR.data === true });
-  }, [sb, slug, t.errore]);
+    if (!userId) { setErrore(messaggioErrore); return; }
+    const inCache = cacheCentro.get(chiaveCache(slug, userId));
+    if (inCache && !forza) {
+      setDati((att) => (att === inCache.dati ? att : inCache.dati));
+      if (Date.now() - inCache.quando < FRESCO_MS) return;
+      // dato non più fresco: lo si mostra e lo si riallinea in sottofondo, senza schermata di caricamento né errori
+      const nuovo = await leggiCentro(sb, slug, userId);
+      if (typeof nuovo === "object" && "centro" in nuovo) setDati(nuovo);
+      return;
+    }
+    const r = await leggiCentro(sb, slug, userId);
+    if (r === "nonTrovato") { setDati(null); setErrore("nonTrovato"); return; }
+    if ("errore" in r) { setErrore(r.errore); return; }
+    setDati(r);
+  }, [sb, slug, messaggioErrore]);
+  const ricaricaForzata = useCallback(() => carica(true), [carica]);
 
   useEffect(() => { void carica(); }, [carica]);
 
   // ?come=<membro_id>: letto una volta e tenuto in sessionStorage; vale solo per super admin e titolare/dt
   useEffect(() => { setComeId(leggiCome(slug)); }, [slug, pathname]);
   const puoVedereCome = !!dati && (dati.eAdmin || dati.miei.some((m) => m.ruolo === "titolare" || m.ruolo === "dt"));
+  const centroId = dati?.centro.id ?? null;
   useEffect(() => {
-    if (!comeId || !dati || !puoVedereCome) { setVista(null); return; }
+    if (!comeId || !centroId || !puoVedereCome) { setVista(null); return; }
     let vivo = true;
-    sb.from("membri").select("*").eq("id", comeId).eq("centro_id", dati.centro.id).maybeSingle().then(({ data }: { data: unknown }) => {
+    sb.from("membri").select(COLONNE_MEMBRO).eq("id", comeId).eq("centro_id", centroId).maybeSingle().then(({ data }: { data: unknown }) => {
       if (vivo) setVista((data as Membro | null) ?? null);
     });
     return () => { vivo = false; };
-  }, [comeId, dati, puoVedereCome, sb]);
+  }, [comeId, centroId, puoVedereCome, sb]);
 
   const esciVista = useCallback(() => {
     try { sessionStorage.removeItem(chiaveCome(slug)); } catch { /* niente da togliere */ }
@@ -164,8 +210,8 @@ function Dentro({ slug, brandIniziale, children }: { slug: string; brandIniziale
       membro = (ordine && ordine.map((r) => miei.find((m) => m.ruolo === r)).find(Boolean)) || (ordine ? null : miei[0]) || null;
       ruolo = membro?.ruolo ?? RUOLO_DA_SEZIONE[sez] ?? miei[0]?.ruolo ?? "dt";
     }
-    return { centro, membro, miei, ruolo, vistaCome: vista, membroAttivo: vista ?? membro, userId, eAdmin, sb, ricarica: carica, esciVista };
-  }, [dati, vista, sezione, slug, sb, carica, esciVista]);
+    return { centro, membro, miei, ruolo, vistaCome: vista, membroAttivo: vista ?? membro, userId, eAdmin, sb, ricarica: ricaricaForzata, esciVista };
+  }, [dati, vista, sezione, slug, sb, ricaricaForzata, esciVista]);
 
   const stile = stileMarchio(dati?.centro ?? brandIniziale);
 
@@ -187,7 +233,7 @@ function Dentro({ slug, brandIniziale, children }: { slug: string; brandIniziale
           <div className="card pad" style={{ display: "grid", gap: 10, maxWidth: 360 }}>
             <h1 className="h1">{t.errore}</h1>
             <p className="muted" style={{ margin: 0 }}>{errore}</p>
-            <button type="button" className="btn" onClick={() => void carica()}>{t.riprova}</button>
+            <button type="button" className="btn" onClick={() => void ricaricaForzata()}>{t.riprova}</button>
           </div>
         </div>
       ) : (

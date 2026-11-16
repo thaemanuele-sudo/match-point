@@ -1,6 +1,6 @@
-import { Segnaposto } from "@/components/centro/Segnaposto";
+"use client";
+import CentroSegnalazioni from "@/components/centro/comunicazione/CentroSegnalazioni";
 
-// Segnaposto: l'area responsabile sostituisce questo file con la schermata vera.
 export default function Page() {
-  return <Segnaposto codice="C13" ruolo="dt" tab="tutela" />;
+  return <CentroSegnalazioni />;
 }

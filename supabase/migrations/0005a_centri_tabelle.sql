@@ -53,7 +53,7 @@ create table public.membri (
   stato text not null default 'attivo' check (stato in ('attivo', 'invitato', 'sospeso')),
   created_at timestamptz not null default now()
 );
-create index membri_centro_idx on public.membri (centro_id);
+create index membri_centro_idx on public.membri (centro_id, ruolo);
 create index membri_user_centro_idx on public.membri (user_id, centro_id) where user_id is not null;
 create index membri_area_idx on public.membri (area_id);
 -- Unique (centro, user, ruolo, area): parziale, perché le persone senza account (user_id null) possono ripetersi.
@@ -266,7 +266,7 @@ create table public.lezioni (
   unique (gruppo_id, data)
 );
 create index lezioni_centro_data_idx on public.lezioni (centro_id, data);
-create index lezioni_maestro_idx on public.lezioni (maestro_id);
+create index lezioni_maestro_idx on public.lezioni (maestro_id, data);
 create index lezioni_campo_idx on public.lezioni (campo_id);
 create index lezioni_modello_idx on public.lezioni (modello_id);
 
@@ -317,7 +317,7 @@ create table public.valutazioni (
   unique (allievo_id, test, colpo, competenza)
 );
 create index valutazioni_centro_idx on public.valutazioni (centro_id);
-create index valutazioni_allievo_idx on public.valutazioni (allievo_id);
+create index valutazioni_allievo_idx on public.valutazioni (allievo_id, test);
 create index valutazioni_maestro_idx on public.valutazioni (maestro_id);
 
 create table public.compiti (
@@ -518,7 +518,7 @@ create table public.notifiche (
   created_at timestamptz not null default now()
 );
 create index notifiche_centro_idx on public.notifiche (centro_id);
-create index notifiche_membro_idx on public.notifiche (membro_id, created_at desc);
+create index notifiche_membro_idx on public.notifiche (membro_id, letta_il, created_at desc);
 
 create table public.consensi (
   id uuid primary key default gen_random_uuid(),
@@ -543,6 +543,7 @@ create table public.permessi_ruolo (
   created_at timestamptz not null default now()
 );
 create index permessi_ruolo_centro_idx on public.permessi_ruolo (centro_id);
+create index permessi_ruolo_area_idx on public.permessi_ruolo (area_id);
 create unique index permessi_ruolo_unico_idx on public.permessi_ruolo
   (centro_id, coalesce(area_id, '00000000-0000-0000-0000-000000000000'::uuid));
 
@@ -587,6 +588,6 @@ create table public.quote (
   stripe_id text,
   created_at timestamptz not null default now()
 );
-create index quote_centro_idx on public.quote (centro_id);
+create index quote_centro_idx on public.quote (centro_id, periodo, stato);
 create index quote_allievo_idx on public.quote (allievo_id);
 create index quote_corso_idx on public.quote (corso_id);

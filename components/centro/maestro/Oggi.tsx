@@ -10,7 +10,7 @@ import { fmtDataLunga, fmtOra, giornoSettimana, isoGiorno, tempoFa } from "@/lib
 import { useNotifiche } from "@/lib/centro/notifiche";
 import { rotta } from "@/lib/centro/rotte";
 import { useT } from "@/lib/i18n/lingua";
-import { assicuraLezione, messaggioErrore, useMaestroDati } from "./dati";
+import { assicuraLezione, COL, messaggioErrore, useMaestroDati } from "./dati";
 import { Badge, StatoPagina, stileIconaTonda } from "./piccoli";
 import {
   campoEffettivo, chiaveTest, etichettaProgramma, fmt, leggiPiano, minutiA, nomeBreve, nomeCampo, situazioneProgramma,
@@ -59,8 +59,8 @@ export function Oggi() {
         const gIds = dati.gruppi.map((g) => g.id);
         // lezioni di oggi dei miei gruppi, più quelle in cui sono il maestro (anche individuali)
         const [perGruppo, perMaestro] = await Promise.all([
-          gIds.length ? sb.from("lezioni").select("*").eq("data", oggi).in("gruppo_id", gIds) : Promise.resolve({ data: [], error: null }),
-          sb.from("lezioni").select("*").eq("data", oggi).eq("maestro_id", ma.id),
+          gIds.length ? sb.from("lezioni").select(COL.lezioni).eq("data", oggi).in("gruppo_id", gIds) : Promise.resolve({ data: [], error: null }),
+          sb.from("lezioni").select(COL.lezioni).eq("data", oggi).eq("maestro_id", ma.id),
         ]);
         if (perGruppo.error) throw perGruppo.error;
         if (perMaestro.error) throw perMaestro.error;
@@ -73,7 +73,7 @@ export function Oggi() {
         if (soloIds.length) {
           const pr = await sb.from("presenze").select("lezione_id,allievo_id").in("lezione_id", soloIds);
           const aIds = [...new Set((pr.data ?? []).map((p: { allievo_id: string }) => p.allievo_id))];
-          const al = aIds.length ? await sb.from("allievi").select("*").in("id", aIds) : { data: [] };
+          const al = aIds.length ? await sb.from("allievi").select(COL.allievi).in("id", aIds) : { data: [] };
           const am = new Map(((al.data ?? []) as RAllievo[]).map((a) => [a.id, a]));
           for (const p of (pr.data ?? []) as { lezione_id: string; allievo_id: string }[]) { const a = am.get(p.allievo_id); if (a) ind.set(p.lezione_id, a); }
         }

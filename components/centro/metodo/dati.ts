@@ -31,6 +31,25 @@ export function colpoK(s: string | null | undefined): ColpoK | null {
 export const nomeColpo = (k: ColpoK) => COLPI.find((c) => c.k === k)!.nome;
 
 export type Sb = SupabaseClient;
+
+/** Colonne della libreria esercizi (mai `select('*')`: la tabella cresce con i video e le descrizioni). */
+export const COLONNE_ESERCIZIO = "id,titolo,colpo,fasce,durata_min,materiale,descrizione,video_path,fonte,stato,proposto_da,created_at";
+/** Stesse colonne senza la descrizione lunga: per gli elenchi in cui serve solo il titolo. */
+export const COLONNE_ESERCIZIO_BREVI = "id,titolo,colpo,fasce,durata_min,materiale,video_path,fonte,stato,proposto_da,created_at";
+/** Righe per volta negli elenchi lunghi ("Carica altri"). */
+export const PAGINA = 50;
+
+/**
+ * Filtro `or(...)` del database per un colpo, con le stesse varianti che riconosce `colpoK` ("Volée", "volee", "Gambe"…),
+ * così il filtro per colpo lo fa il server e non il browser.
+ */
+export function filtroColpo(k: ColpoK): string {
+  if (k === "gambe") return "colpo.ilike.%gamb%";
+  return `colpo.ilike.${k}%,colpo.ilike.${nomeColpo(k)}%`;
+}
+
+/** Toglie dal testo cercato i caratteri che hanno un significato nei filtri del database (virgole, parentesi, %, *). */
+export const ricercaSicura = (s: string) => s.replace(/[,()%*\\]/g, " ").replace(/\s+/g, " ").trim();
 export type Righe = Record<string, unknown>[];
 
 export const ordFascia = (f: string) => {

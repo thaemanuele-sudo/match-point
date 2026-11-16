@@ -68,6 +68,7 @@ export const T = { it: IT, en: { ...IT } };
 
 type Tipo = "privacy" | "foto_video" | "ai";
 type RConsenso = { id: string; allievo_id: string; tipo: Tipo; valore: boolean; firmato_da: string | null; firmato_il: string | null };
+const COL_CONSENSO = "id,allievo_id,tipo,valore,firmato_da,firmato_il";
 type RInvito = { id: string; codice: string; scade_il: string | null };
 
 const fmtLunga = (d: string | Date) => {
@@ -97,7 +98,7 @@ export default function GenitoreFigli() {
     (async () => {
       setErrDati(null);
       const [c, i] = await Promise.all([
-        sb.from("consensi").select("*").eq("centro_id", centro.id).eq("allievo_id", idAll),
+        sb.from("consensi").select(COL_CONSENSO).eq("centro_id", centro.id).eq("allievo_id", idAll),
         // se la RLS non lascia leggere gli inviti, il genitore potrà solo crearne uno nuovo
         sb.from("inviti").select("id,codice,scade_il,usi,usi_max").eq("centro_id", centro.id).eq("allievo_id", idAll).eq("ruolo", "allievo").order("created_at", { ascending: false }).limit(3),
       ]);
@@ -257,8 +258,8 @@ function FoglioConsenso({ figlio, tipo, attiva, nomeConsenso, esistente, onChiud
     const ora = new Date().toISOString();
     const corpo = { valore: attiva, firmato_da: ma.id, firmato_il: ora };
     const q = esistente
-      ? sb.from("consensi").update(corpo).eq("id", esistente.id).select("*").single()
-      : sb.from("consensi").insert({ centro_id: centro.id, allievo_id: figlio.allievo.id, tipo, ...corpo }).select("*").single();
+      ? sb.from("consensi").update(corpo).eq("id", esistente.id).select(COL_CONSENSO).single()
+      : sb.from("consensi").insert({ centro_id: centro.id, allievo_id: figlio.allievo.id, tipo, ...corpo }).select(COL_CONSENSO).single();
     const r = await q;
     setInvio(false);
     if (r.error || !r.data) return setErrore(r.error?.message ?? t.erroreGenerico);

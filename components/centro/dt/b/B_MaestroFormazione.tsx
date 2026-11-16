@@ -50,7 +50,8 @@ export default function BMaestroFormazione() {
       sb.from("corsi_formazione").select("id,titolo,obbligatorio,moduli").eq("centro_id", centro.id).order("created_at", { ascending: true }),
       sb.from("formazione").select("id,corso_id,membro_id,moduli_fatti,certificato_il,scadenza").eq("centro_id", centro.id).eq("membro_id", me),
       sb.from("osservazioni").select("id,osservatore_id,lezione_id,voti,voto,consigli,nota,created_at").eq("centro_id", centro.id).eq("maestro_id", me).order("created_at", { ascending: false }).limit(10),
-      sb.from("registro").select("oggetto,dettagli,created_at").eq("centro_id", centro.id).eq("membro_id", me).eq("azione", "obiettivo").order("created_at", { ascending: true }),
+      // il registro cresce a ogni tocco: bastano le righe più recenti (poi lette dalla più vecchia, l'ultima per oggetto vale)
+      sb.from("registro").select("oggetto,dettagli,created_at").eq("centro_id", centro.id).eq("membro_id", me).eq("azione", "obiettivo").order("created_at", { ascending: false }).limit(300),
     ]);
     const e = c.error ?? f.error ?? o.error ?? r.error;
     setErr(e ? e.message : "");
@@ -60,20 +61,18 @@ export default function BMaestroFormazione() {
     setOss(osservazioni);
     // l'ultima riga del registro per ogni obiettivo dice se è raggiunto: il registro è solo in aggiunta, quindi niente cancellazioni
     const mappa: Record<string, boolean> = {};
-    for (const x of (r.data as Riga[]) ?? []) mappa[x.oggetto] = !!x.dettagli?.raggiunto;
+    for (const x of [...((r.data as Riga[]) ?? [])].reverse()) mappa[x.oggetto] = !!x.dettagli?.raggiunto;
     setRaggiunti(mappa);
     // nomi di chi ha osservato e gruppi delle lezioni osservate
     const idO = Array.from(new Set(osservazioni.map((x) => x.osservatore_id).filter(Boolean)));
     const idL = Array.from(new Set(osservazioni.map((x) => x.lezione_id).filter(Boolean)));
     const [mm, ll] = await Promise.all([
       idO.length ? sb.from("membri").select("id,nome,cognome").in("id", idO) : Promise.resolve({ data: [] as Riga[] }),
-      idL.length ? sb.from("lezioni").select("id,gruppo_id").in("id", idL) : Promise.resolve({ data: [] as Riga[] }),
+      // il nome del gruppo arriva con la stessa richiesta (join), senza una seconda query in cascata
+      idL.length ? sb.from("lezioni").select("id,gruppi(nome)").in("id", idL) : Promise.resolve({ data: [] as Riga[] }),
     ]);
     setNomi(Object.fromEntries(((mm.data as Riga[]) ?? []).map((x) => [x.id, nomeCompleto(x as { nome: string; cognome: string | null })])));
-    const idG = Array.from(new Set(((ll.data as Riga[]) ?? []).map((x) => x.gruppo_id).filter(Boolean)));
-    const gg = idG.length ? await sb.from("gruppi").select("id,nome").in("id", idG) : { data: [] as Riga[] };
-    const nomeG = Object.fromEntries(((gg.data as Riga[]) ?? []).map((x) => [x.id, x.nome as string]));
-    setGruppiL(Object.fromEntries(((ll.data as Riga[]) ?? []).map((x) => [x.id, nomeG[x.gruppo_id] ?? ""])));
+    setGruppiL(Object.fromEntries(((ll.data as Riga[]) ?? []).map((x) => [x.id, String((Array.isArray(x.gruppi) ? x.gruppi[0]?.nome : x.gruppi?.nome) ?? "")])));
     setCarica(false);
   }, [sb, centro.id, me]);
   useEffect(() => { void leggi(); }, [leggi]);

@@ -122,16 +122,23 @@ export function prossimeLezioni<G extends GruppoOrario>(
   const { da = new Date(), giorniAvanti = 14, max = 50, includiOggiPassato = false } = opzioni;
   const out: ProssimaLezione<G>[] = [];
   const base = leggiData(isoGiorno(da));
+  // ora e minuti di ogni gruppo si leggono una volta sola, non a ogni giorno del ciclo (con 80 gruppi e 400 giorni sono decine di migliaia di analisi di testo)
+  const attivi = gruppi
+    .filter((g) => g.attivo !== false && g.ora && g.giorni?.length)
+    .map((g) => {
+      const ora = fmtOra(g.ora);
+      const [h, m] = ora.split(":").map(Number);
+      return { g, ora, h, m, giorni: new Set(g.giorni) };
+    });
   for (let i = 0; i < giorniAvanti; i++) {
     const giorno = aggiungiGiorni(base, i);
     const gs = giornoSettimana(giorno);
-    for (const g of gruppi) {
-      if (g.attivo === false || !g.ora || !g.giorni?.includes(gs)) continue;
-      const ora = fmtOra(g.ora);
-      const [h, m] = ora.split(":").map(Number);
+    const iso = isoGiorno(giorno);
+    for (const { g, ora, h, m, giorni } of attivi) {
+      if (!giorni.has(gs)) continue;
       const quando = new Date(giorno.getFullYear(), giorno.getMonth(), giorno.getDate(), h, m);
       if (!includiOggiPassato && quando < da) continue;
-      out.push({ gruppo: g, data: isoGiorno(giorno), ora, quando });
+      out.push({ gruppo: g, data: iso, ora, quando });
     }
   }
   out.sort((a, b) => +a.quando - +b.quando);

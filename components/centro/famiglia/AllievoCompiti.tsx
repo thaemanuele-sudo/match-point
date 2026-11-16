@@ -8,7 +8,7 @@ import { useCentro } from "@/lib/centro/contesto";
 import { useT } from "@/lib/i18n/lingua";
 import { fmtDataLunga, isoGiorno, aggiungiGiorni } from "@/lib/centro/date";
 import { useFigli } from "./dati";
-import { useCompiti, type RCompito, type RFatto } from "./compiti";
+import { COL_FATTO, useCompiti, type RCompito, type RFatto } from "./compiti";
 import { caricaMedia } from "./media";
 import { fmt } from "./util";
 import { Caricamento, ErroreBox, Icona, SelettoreFigli, VisoreMedia } from "./piccoli";
@@ -85,7 +85,7 @@ export default function AllievoCompiti() {
       if (r.error) setErr(r.error.message || t.salvataggio);
       else setFatti((l) => l.filter((x) => x.id !== f.id));
     } else {
-      const r = await sb.from("compiti_fatti").insert({ centro_id: centro.id, compito_id: c.id, allievo_id: idAll, fatto_il: new Date().toISOString() }).select("*").single();
+      const r = await sb.from("compiti_fatti").insert({ centro_id: centro.id, compito_id: c.id, allievo_id: idAll, fatto_il: new Date().toISOString() }).select(COL_FATTO).single();
       if (r.error || !r.data) setErr(r.error?.message ?? t.salvataggio);
       else setFatti((l) => [...l, r.data as RFatto]);
     }
@@ -101,8 +101,8 @@ export default function AllievoCompiti() {
     const f = fatti.find((x) => x.compito_id === c.id);
     // mandare il video vale anche come "fatto": se il compito era già segnato si aggiorna solo il file
     const r = f
-      ? await sb.from("compiti_fatti").update({ media_path: up.path }).eq("id", f.id).select("*").single()
-      : await sb.from("compiti_fatti").insert({ centro_id: centro.id, compito_id: c.id, allievo_id: idAll, fatto_il: new Date().toISOString(), media_path: up.path }).select("*").single();
+      ? await sb.from("compiti_fatti").update({ media_path: up.path }).eq("id", f.id).select(COL_FATTO).single()
+      : await sb.from("compiti_fatti").insert({ centro_id: centro.id, compito_id: c.id, allievo_id: idAll, fatto_il: new Date().toISOString(), media_path: up.path }).select(COL_FATTO).single();
     if (r.error || !r.data) setErr(r.error?.message ?? t.salvataggio);
     else setFatti((l) => [...l.filter((x) => x.compito_id !== c.id), r.data as RFatto]);
     setLavoro(null);

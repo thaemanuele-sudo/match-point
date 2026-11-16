@@ -5,10 +5,20 @@ import { estensione } from "./util";
 
 const BUCKET = "centri";
 
+// Il link dura un'ora: si riusa per 50 minuti, così riaprire lo stesso video non chiede un nuovo link ogni volta.
+// I link si chiedono solo quando servono (all'apertura del file), mai in anticipo per tutta la lista.
+const DURATA_S = 3600;
+const RIUSO_MS = 50 * 60_000;
+const firmati = new Map<string, { url: string; quando: number }>();
+
 /** Link a tempo (1 ora) per guardare un file privato; null se il file non c'è o non si può leggere. */
 export async function urlFirmato(sb: SupabaseClient, path: string): Promise<string | null> {
-  const r = await sb.storage.from(BUCKET).createSignedUrl(path, 3600);
-  return r.error ? null : r.data.signedUrl;
+  const c = firmati.get(path);
+  if (c && Date.now() - c.quando < RIUSO_MS) return c.url;
+  const r = await sb.storage.from(BUCKET).createSignedUrl(path, DURATA_S);
+  if (r.error) return null;
+  firmati.set(path, { url: r.data.signedUrl, quando: Date.now() });
+  return r.data.signedUrl;
 }
 
 export const eVideo = (path: string) => /\.(mp4|mov|m4v|webm|3gp)$/i.test(path);

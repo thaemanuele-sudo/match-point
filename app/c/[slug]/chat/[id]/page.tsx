@@ -1,6 +1,6 @@
-import { Segnaposto } from "@/components/centro/Segnaposto";
+"use client";
+import ChatConversazione from "@/components/centro/comunicazione/ChatConversazione";
 
-// Segnaposto: l'area responsabile sostituisce questo file con la schermata vera.
 export default function Page() {
-  return <Segnaposto codice="CHAT" />;
+  return <ChatConversazione />;
 }

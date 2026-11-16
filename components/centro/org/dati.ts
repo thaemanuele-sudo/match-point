@@ -3,11 +3,11 @@
 // e funzioni pure per orari, conflitti e programma. Le usano tutte le schermate dell'area D.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { useCentro } from "@/lib/centro/contesto";
+import { useCentro, type SB } from "@/lib/centro/contesto";
 import type { Membro } from "@/lib/centro/tipi-base";
 import { aggiungiGiorni, fmtOra, giornoSettimana, isoGiorno } from "@/lib/centro/date";
 import type {
-  AllievoR, AreaR, CambioCampoR, CampoR, FamigliaR, GruppoMaestroR, GruppoR, IscrizioneR, PermessiArea, PermessoRuoloR, ProgrammaR,
+  AreaR, CambioCampoR, CampoR, GruppoMaestroR, GruppoR, IscrizioneR, PermessiArea, PermessoRuoloR, PresenzaL, ProgrammaR, ValutazioneL,
 } from "./tipi";
 
 // ───────── colori e nomi ─────────
@@ -126,10 +126,104 @@ export function permessiDi(righe: PermessoRuoloR[], areaId: string): PermessiAre
   return { ...PERMESSI_BASE, metodo: "lettura", tutela: false, ...(r?.permessi ?? {}) };
 }
 
+// ───────── lettura a blocchi, ricerca e colonne ─────────
+// Regole di docs/CENTRI.md, sezione "Scala": colonne esplicite, liste a blocchi di 50, ricerca sul server con debounce di 300 ms.
+/** Righe per pagina nelle liste lunghe ("carica altri"). */
+export const PAGINA = 50;
+/** Attesa prima di interrogare il database mentre si scrive nella ricerca. */
+export const DEBOUNCE_MS = 300;
+/** Il database risponde con al massimo 1000 righe per richiesta, in silenzio: oltre si legge a blocchi. */
+const BLOCCO = 1000;
+
+export const COL_AREA = "id,centro_id,nome,sigla,fasce,ordine";
+export const COL_CAMPO = "id,centro_id,numero,nome,superficie,copertura,luci,stato,note,x,y,w,h";
+export const COL_GRUPPO = "id,centro_id,area_id,nome,fascia,livello,giorni,ora,durata_min,campo_id,programma_id,attivo";
+export const COL_GRUPPO_MAESTRO = "id,centro_id,gruppo_id,membro_id,principale";
+export const COL_MEMBRO = "id,centro_id,user_id,ruolo,nome,cognome,email,telefono,area_id,stato,created_at";
+export const COL_ISCRIZIONE = "id,centro_id,allievo_id,gruppo_id,dal,al";
+export const COL_CAMBIO = "id,centro_id,gruppo_id,data,campo_da,campo_a,motivo,deciso_da,avvisa,created_at";
+export const COL_PERMESSI = "id,centro_id,area_id,permessi";
+export const COL_PROGRAMMA = "id,centro_id,nome,fascia,schema,anno,mesi";
+export const COL_ALLIEVO_LISTA = "id,nome,cognome,data_nascita,certificato_scade";
+export const COL_INVITO = "id,centro_id,codice,ruolo,gruppo_id,area_id,allievo_id,scade_il,usi_max,usi,created_at";
+/** Ruoli che l'organizzazione usa davvero: i genitori (migliaia) si leggono solo nella scheda dell'allievo. */
+export const RUOLI_STAFF = ["titolare", "dt", "responsabile_area", "maestro", "segreteria"];
+
+type Risposta = { data: unknown; error: { message: string } | null; count?: number | null };
+
+/**
+ * Legge tutte le righe di una query a blocchi di 1000. Il primo blocco chiede anche il totale: gli altri partono insieme,
+ * così 18.000 presenze costano due viaggi e non diciotto uno dopo l'altro.
+ */
+export async function tuttePagine<T>(pagina: (da: number, a: number, conta: boolean) => PromiseLike<Risposta>): Promise<{ righe: T[]; errore: string | null }> {
+  const primo = await pagina(0, BLOCCO - 1, true);
+  if (primo.error) return { righe: [], errore: primo.error.message };
+  const righe = [...((primo.data ?? []) as T[])];
+  const totale = primo.count ?? righe.length;
+  if (righe.length < BLOCCO || totale <= BLOCCO) return { righe, errore: null };
+  const altri = await Promise.all(
+    Array.from({ length: Math.ceil(totale / BLOCCO) - 1 }, (_, i) => pagina((i + 1) * BLOCCO, (i + 2) * BLOCCO - 1, false)),
+  );
+  for (const r of altri) {
+    if (r.error) return { righe: [], errore: r.error.message };
+    righe.push(...((r.data ?? []) as T[]));
+  }
+  return { righe, errore: null };
+}
+
+/** Il testo scritto nella ricerca senza i caratteri che nei filtri del database hanno un significato (virgole, parentesi, %). */
+export const pulisciRicerca = (s: string) => s.replace(/[%_,()\\*"]/g, " ").replace(/\s+/g, " ").trim();
+
+/** Valore che arriva alla ricerca solo dopo 300 ms senza altri tasti. */
+export function useDebounce<T>(valore: T, ms: number = DEBOUNCE_MS): T {
+  const [v, setV] = useState(valore);
+  useEffect(() => {
+    const id = window.setTimeout(() => setV(valore), ms);
+    return () => window.clearTimeout(id);
+  }, [valore, ms]);
+  return v;
+}
+
+/** Inizio del nome del colpo usato come filtro sul server: tollera accenti e plurali, il confronto preciso resta nel client. */
+const prefissoColpo = (chiave: string) => chiave.slice(0, 3);
+
+/** Valutazioni di un solo colpo (non di tutte le competenze), a colonne ridotte. */
+export function leggiValutazioni(sb: SB, centroId: string, chiave: string) {
+  return tuttePagine<ValutazioneL>((da, a, conta) =>
+    sb.from("valutazioni").select("id,allievo_id,colpo,voto,data,test", conta ? { count: "exact" } : undefined)
+      .eq("centro_id", centroId).ilike("colpo", `%${prefissoColpo(chiave)}%`).order("id").range(da, a));
+}
+
+type RigaPresenza = { lezione_id: string; allievo_id: string; presente: boolean; lezioni: { data: string; gruppo_id: string } | { data: string; gruppo_id: string }[] | null };
+
+/**
+ * Presenze delle lezioni chiuse dal giorno `da`, con data e gruppo della lezione, in una sola lettura (join) invece di
+ * una richiesta ogni 60 lezioni. Con `gruppi` si limita ai gruppi indicati.
+ */
+export async function leggiPresenze(sb: SB, centroId: string, da: string, gruppi?: string[]): Promise<{ righe: PresenzaL[]; errore: string | null }> {
+  const r = await tuttePagine<RigaPresenza>((x, y, conta) => {
+    let q = sb.from("presenze").select("id,lezione_id,allievo_id,presente,lezioni!inner(data,gruppo_id)", conta ? { count: "exact" } : undefined)
+      .eq("centro_id", centroId).eq("lezioni.stato", "chiusa").gte("lezioni.data", da);
+    if (gruppi) q = q.in("lezioni.gruppo_id", gruppi);
+    return q.order("id").range(x, y);
+  });
+  const righe: PresenzaL[] = [];
+  for (const p of r.righe) {
+    const l = Array.isArray(p.lezioni) ? p.lezioni[0] : p.lezioni;
+    if (l) righe.push({ allievo_id: p.allievo_id, presente: p.presente, lezione_id: p.lezione_id, data: l.data, gruppo_id: l.gruppo_id });
+  }
+  return { righe, errore: r.errore };
+}
+
 // ───────── lettura dei dati ─────────
+/**
+ * Solo ciò che è piccolo e serve a tutte le schermate. Gli allievi (1500 per centro) e le famiglie (2000) NON si caricano qui:
+ * ogni schermata li legge a pagine, o solo quelli che mostra. `iscrizioni` contiene le sole iscrizioni in corso;
+ * `membri` solo il personale (i genitori si leggono nella scheda dell'allievo).
+ */
 export type DatiOrg = {
-  aree: AreaR[]; campi: CampoR[]; gruppi: GruppoR[]; gm: GruppoMaestroR[]; membri: Membro[]; allievi: AllievoR[];
-  famiglie: FamigliaR[]; iscrizioni: IscrizioneR[]; cambi: CambioCampoR[]; permessi: PermessoRuoloR[]; programmi: ProgrammaR[];
+  aree: AreaR[]; campi: CampoR[]; gruppi: GruppoR[]; gm: GruppoMaestroR[]; membri: Membro[];
+  iscrizioni: IscrizioneR[]; cambi: CambioCampoR[]; permessi: PermessoRuoloR[]; programmi: ProgrammaR[];
 };
 
 /**
@@ -145,19 +239,23 @@ export function useOrg() {
   const carica = useCallback(async () => {
     setErrore(null);
     const da = isoGiorno(aggiungiGiorni(new Date(), -30));
-    const q = (t: string) => sb.from(t).select("*").eq("centro_id", centro.id);
-    const [aree, campi, gruppi, gm, membri, allievi, famiglie, iscrizioni, cambi, permessi, programmi] = await Promise.all([
-      q("aree").order("ordine"), q("campi").order("numero"), q("gruppi"), q("gruppi_maestri"), q("membri"), q("allievi"),
-      q("allievi_famiglie"), q("iscrizioni"), q("cambi_campo").gte("data", da), q("permessi_ruolo"), q("programmi"),
+    const oggiIso = isoGiorno();
+    const q = (t: string, colonne: string) => sb.from(t).select(colonne).eq("centro_id", centro.id);
+    const [aree, campi, gruppi, gm, membri, isc, cambi, permessi, programmi] = await Promise.all([
+      q("aree", COL_AREA).order("ordine"), q("campi", COL_CAMPO).order("numero"), q("gruppi", COL_GRUPPO), q("gruppi_maestri", COL_GRUPPO_MAESTRO),
+      q("membri", COL_MEMBRO).in("ruolo", RUOLI_STAFF),
+      // solo le iscrizioni in corso (la storia non serve alle schermate), a blocchi perché oltre 1000 righe il database taglia
+      tuttePagine<IscrizioneR>((x, y, conta) => sb.from("iscrizioni").select(COL_ISCRIZIONE, conta ? { count: "exact" } : undefined)
+        .eq("centro_id", centro.id).or(`al.is.null,al.gte.${oggiIso}`).order("id").range(x, y)),
+      q("cambi_campo", COL_CAMBIO).gte("data", da), q("permessi_ruolo", COL_PERMESSI), q("programmi", COL_PROGRAMMA),
     ]);
     // aree, campi, gruppi e membri sono indispensabili; il resto, se manca o non è leggibile, si mostra vuoto
     const grave = [aree, campi, gruppi, membri].find((r) => r.error);
     if (grave?.error) { setErrore(grave.error.message); return; }
     setDati({
-      aree: (aree.data ?? []) as AreaR[], campi: (campi.data ?? []) as CampoR[], gruppi: (gruppi.data ?? []) as GruppoR[],
-      gm: (gm.data ?? []) as GruppoMaestroR[], membri: (membri.data ?? []) as Membro[], allievi: (allievi.data ?? []) as AllievoR[],
-      famiglie: (famiglie.data ?? []) as FamigliaR[], iscrizioni: (iscrizioni.data ?? []) as IscrizioneR[],
-      cambi: (cambi.data ?? []) as CambioCampoR[], permessi: (permessi.data ?? []) as PermessoRuoloR[], programmi: (programmi.data ?? []) as ProgrammaR[],
+      aree: (aree.data ?? []) as unknown as AreaR[], campi: (campi.data ?? []) as unknown as CampoR[], gruppi: (gruppi.data ?? []) as unknown as GruppoR[],
+      gm: (gm.data ?? []) as unknown as GruppoMaestroR[], membri: (membri.data ?? []) as unknown as Membro[], iscrizioni: isc.errore ? [] : isc.righe,
+      cambi: (cambi.data ?? []) as unknown as CambioCampoR[], permessi: (permessi.data ?? []) as unknown as PermessoRuoloR[], programmi: (programmi.data ?? []) as unknown as ProgrammaR[],
     });
   }, [sb, centro.id]);
 
@@ -183,18 +281,16 @@ export function useOrg() {
 
     const gruppiVis = ids ? d.gruppi.filter((g) => g.area_id && ids.includes(g.area_id)) : d.gruppi;
     const idGruppi = new Set(gruppiVis.map((g) => g.id));
+    // `d.iscrizioni` contiene già solo quelle in corso; il controllo sulla data copre la pagina rimasta aperta oltre la mezzanotte
     const attive = d.iscrizioni.filter((i) => !i.al || i.al >= oggi);
     const iscrAttive = ids ? attive.filter((i) => idGruppi.has(i.gruppo_id)) : attive;
-    const idAllievi = new Set(iscrAttive.map((i) => i.allievo_id));
-    // senza filtro d'area si vedono anche gli allievi non ancora iscritti a un gruppo
-    const allieviVis = ids ? d.allievi.filter((a) => idAllievi.has(a.id)) : d.allievi;
     // campi dell'area: quelli dove si allenano i suoi gruppi (abituali o per un cambio)
     const idCampi = new Set<string>();
     gruppiVis.forEach((g) => { if (g.campo_id) idCampi.add(g.campo_id); });
     d.cambi.filter((c) => idGruppi.has(c.gruppo_id)).forEach((c) => { if (c.campo_a) idCampi.add(c.campo_a); if (c.campo_da) idCampi.add(c.campo_da); });
     const campiVis = ids ? d.campi.filter((c) => idCampi.has(c.id)) : d.campi;
     const areaPrincipale = ids?.[0] ?? null;
-    return { areeMie, ids, gruppiVis, iscrAttive, allieviVis, campiVis, areaPrincipale };
+    return { areeMie, ids, gruppiVis, iscrAttive, campiVis, areaPrincipale };
   }, [dati, membroAttivo, eResp, sp, oggi]);
 
   /** Chi può cambiare cosa: direzione sempre; il responsabile solo se il permesso della sua area è acceso. */
@@ -217,7 +313,7 @@ export function useOrg() {
     [sb, centro.id, membroAttivo],
   );
 
-  return { centro, sb, membroAttivo, ruolo, eResp, isDT, oggi, dati, errore, carica, can, registra, ...(derivati ?? { areeMie: [] as string[], ids: null as string[] | null, gruppiVis: [] as GruppoR[], iscrAttive: [] as IscrizioneR[], allieviVis: [] as AllievoR[], campiVis: [] as CampoR[], areaPrincipale: null as string | null }) };
+  return { centro, sb, membroAttivo, ruolo, eResp, isDT, oggi, dati, errore, carica, can, registra, ...(derivati ?? { areeMie: [] as string[], ids: null as string[] | null, gruppiVis: [] as GruppoR[], iscrAttive: [] as IscrizioneR[], campiVis: [] as CampoR[], areaPrincipale: null as string | null }) };
 }
 export type Org = ReturnType<typeof useOrg>;
 

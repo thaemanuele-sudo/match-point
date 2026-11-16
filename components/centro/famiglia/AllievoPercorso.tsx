@@ -8,7 +8,7 @@ import type { IconaNome } from "@/components/centro/icone";
 import { useCentro } from "@/lib/centro/contesto";
 import { useT } from "@/lib/i18n/lingua";
 import { aggiungiGiorni, giornoSettimana, isoGiorno, leggiData } from "@/lib/centro/date";
-import { useFigli, type RLezione } from "./dati";
+import { COL_LEZIONE, useFigli, valutazioniAllievo, type RLezione } from "./dati";
 import { useCompiti } from "./compiti";
 import { chiaveMese, fmt, intervalloSettimana, nomeColpo, temaDelMese, type RValutazione } from "./util";
 import { Caricamento, ErroreBox, Icona, SelettoreFigli } from "./piccoli";
@@ -94,25 +94,27 @@ export default function AllievoPercorso() {
     (async () => {
       setErrDati(null);
       const g = idGr ?? "00000000-0000-0000-0000-000000000000";
-      const [l, v] = await Promise.all([
-        sb.from("lezioni").select("id,gruppo_id,data,ora,campo_id,maestro_id,stato,riassunto,riassunto_ok,compito").eq("centro_id", centro.id).eq("gruppo_id", g).eq("stato", "chiusa").order("data", { ascending: false }).limit(120),
-        sb.from("valutazioni").select("colpo,competenza,voto,test,data").eq("centro_id", centro.id).eq("allievo_id", idAll).order("data", { ascending: false }).limit(400),
+      // lezioni chiuse dell'ultimo anno (e comunque al massimo 120): il database non scorre tutto lo storico del gruppo
+      const dal = isoGiorno(aggiungiGiorni(new Date(), -400));
+      // lezioni, valutazioni (cache condivisa con Home e Progressi) e linea guida non dipendono l'una dall'altra: un solo giro
+      const [l, v, lgR] = await Promise.all([
+        sb.from("lezioni").select(COL_LEZIONE).eq("centro_id", centro.id).eq("gruppo_id", g).eq("stato", "chiusa").gte("data", dal).order("data", { ascending: false }).limit(120),
+        valutazioniAllievo(sb, centro.id, idAll).then((data) => ({ data, error: undefined as string | undefined }), (e: Error) => ({ data: [] as RValutazione[], error: e.message })),
+        fascia && colpoTema
+          ? sb.from("linee_guida").select("scala,competenze").eq("centro_id", centro.id).ilike("fascia", fascia).ilike("colpo", colpoTema).limit(1)
+          : Promise.resolve({ data: null, error: null }),
       ]);
       const lez = (l.data ?? []) as RLezione[];
       const p = lez.length ? await sb.from("presenze").select("lezione_id,presente").eq("centro_id", centro.id).eq("allievo_id", idAll).in("lezione_id", lez.map((x) => x.id)) : { data: [], error: null };
-      let lg: { scala: unknown; competenze: unknown } | null = null;
-      if (fascia && colpoTema) {
-        const r = await sb.from("linee_guida").select("scala,competenze").eq("centro_id", centro.id).ilike("fascia", fascia).ilike("colpo", colpoTema).limit(1);
-        lg = ((r.data ?? [])[0] as { scala: unknown; competenze: unknown } | undefined) ?? null;
-      }
+      const lg = ((lgR.data ?? [])[0] as { scala: unknown; competenze: unknown } | undefined) ?? null;
       if (!vivo) return;
-      const e = l.error?.message || v.error?.message || p.error?.message;
+      const e = l.error?.message || v.error || p.error?.message;
       if (e) setErrDati(e);
       const pr: Record<string, boolean> = {};
       for (const x of (p.data ?? []) as { lezione_id: string; presente: boolean }[]) pr[x.lezione_id] = x.presente;
       setLezioni(lez);
       setPresenze(pr);
-      setVals((v.data ?? []) as RValutazione[]);
+      setVals(v.data);
       setLinea(lg);
     })().catch((e: unknown) => vivo && setErrDati(e instanceof Error ? e.message : String(e)));
     return () => { vivo = false; };

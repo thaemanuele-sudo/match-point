@@ -56,7 +56,8 @@ export default function BOsservazione() {
       try {
         let lezione: Riga | null = null;
         let maestro: Riga | null = null;
-        const l = await sb.from("lezioni").select("id,gruppo_id,data,ora,campo_id,maestro_id,modello_id,stato").eq("centro_id", centro.id).eq("id", id).maybeSingle();
+        const COL_LEZ = "id,gruppo_id,data,ora,campo_id,maestro_id,modello_id,stato";
+        const l = await sb.from("lezioni").select(COL_LEZ).eq("centro_id", centro.id).eq("id", id).maybeSingle();
         if (l.error) throw l.error;
         if (l.data) {
           lezione = l.data as Riga;
@@ -66,9 +67,12 @@ export default function BOsservazione() {
           maestro = mm.data as Riga | null;
           if (maestro) {
             const oggi = isoGiorno();
-            const cand = await sb.from("lezioni").select("id,gruppo_id,data,ora,campo_id,maestro_id,modello_id,stato").eq("centro_id", centro.id).eq("maestro_id", id).order("data", { ascending: true }).limit(200);
-            const tutte = (cand.data as Riga[] | null) ?? [];
-            lezione = tutte.find((x) => x.stato !== "chiusa" && x.data >= oggi) ?? [...tutte].reverse().find((x) => x.stato === "chiusa") ?? null;
+            // la prossima lezione da fare, altrimenti l'ultima chiusa: due richieste da una riga, non 200 lezioni da filtrare nel browser
+            const [prossima, ultima] = await Promise.all([
+              sb.from("lezioni").select(COL_LEZ).eq("centro_id", centro.id).eq("maestro_id", id).neq("stato", "chiusa").gte("data", oggi).order("data", { ascending: true }).order("ora", { ascending: true }).limit(1),
+              sb.from("lezioni").select(COL_LEZ).eq("centro_id", centro.id).eq("maestro_id", id).eq("stato", "chiusa").order("data", { ascending: false }).limit(1),
+            ]);
+            lezione = ((prossima.data as Riga[] | null)?.[0] ?? (ultima.data as Riga[] | null)?.[0] ?? null);
           }
         }
         if (lezione && !maestro) {

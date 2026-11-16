@@ -72,3 +72,17 @@ export function useDatiAllievo(allievoId: string | undefined) {
   }, [sb, allievoId]);
   return d;
 }
+
+/** Nome del direttore tecnico (responsabile della tutela), se la RLS lo lascia leggere; altrimenti stringa vuota. */
+export function useNomeDt(): string {
+  const { sb, centro } = useMio();
+  const [n, setN] = useState("");
+  useEffect(() => {
+    if (!sb || !centro) return;
+    sb.from("membri").select("nome,cognome").eq("centro_id", centro.id).eq("ruolo", "dt").limit(1).then((r) => {
+      const m = ((r.data ?? []) as { nome: string; cognome: string | null }[])[0];
+      setN(m ? [m.nome, m.cognome].filter(Boolean).join(" ") : "");
+    });
+  }, [sb, centro]);
+  return n;
+}

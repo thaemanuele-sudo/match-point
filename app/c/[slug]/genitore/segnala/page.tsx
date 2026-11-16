@@ -1,6 +1,6 @@
-import { Segnaposto } from "@/components/centro/Segnaposto";
+"use client";
+import GenitoreSegnala from "@/components/centro/comunicazione/GenitoreSegnala";
 
-// Segnaposto: l'area responsabile sostituisce questo file con la schermata vera.
 export default function Page() {
-  return <Segnaposto codice="G6" ruolo="genitore" tab="messaggi" />;
+  return <GenitoreSegnala />;
 }

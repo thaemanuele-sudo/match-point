@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useCentro } from "@/lib/centro/contesto";
 import { aggiungiGiorni, isoGiorno } from "@/lib/centro/date";
-import { messaggioErrore, type DatiMaestro } from "./dati";
+import { COL, leggiPagine, messaggioErrore, type DatiMaestro } from "./dati";
 import { leggiPiano, leggiSvolto, ordineTest, pctDaVoto, type RValutazione } from "./util";
 
 export type StatAllievo = {
@@ -59,18 +59,18 @@ export function useStatAllievi(dati: DatiMaestro | null) {
     (async () => {
       try {
         const da = isoGiorno(aggiungiGiorni(new Date(), -30));
+        const daVal = isoGiorno(aggiungiGiorni(new Date(), -400));
+        // a pagine di 1000 righe, con intervallo di date: i voti più vecchi di un anno non servono al confronto fra test
         const [v, p] = await Promise.all([
-          sb.from("valutazioni").select("*").in("allievo_id", ids),
+          leggiPagine<RValutazione>((a, b) => sb.from("valutazioni").select(COL.valutazioni).in("allievo_id", ids).gte("data", daVal).order("data", { ascending: false }).range(a, b)),
           // lezioni!inner: solo le presenze di lezioni degli ultimi 30 giorni
-          sb.from("presenze").select("allievo_id,presente,lezioni!inner(data)").in("allievo_id", ids).gte("lezioni.data", da),
+          leggiPagine<{ allievo_id: string; presente: boolean | null }>((a, b) => sb.from("presenze").select("allievo_id,presente,lezioni!inner(data)").in("allievo_id", ids).gte("lezioni.data", da).range(a, b)),
         ]);
-        if (v.error) throw v.error;
-        if (p.error) throw p.error;
         const val = new Map<string, RValutazione[]>();
-        for (const x of (v.data ?? []) as RValutazione[]) val.set(x.allievo_id, [...(val.get(x.allievo_id) ?? []), x]);
+        for (const x of v) val.set(x.allievo_id, [...(val.get(x.allievo_id) ?? []), x]);
         const as = new Map<string, number>();
         const pr = new Map<string, number>();
-        for (const x of (p.data ?? []) as unknown as { allievo_id: string; presente: boolean | null }[]) {
+        for (const x of p) {
           if (x.presente === false) as.set(x.allievo_id, (as.get(x.allievo_id) ?? 0) + 1);
           if (x.presente) pr.set(x.allievo_id, (pr.get(x.allievo_id) ?? 0) + 1);
         }

@@ -82,6 +82,7 @@ export const comune = {
   fonte_da_approvare: "Da approvare",
   fonte_maestro: "Proposto da maestro",
   tutti: "Tutti",
+  carica_altri: "Carica altri",
   video: "Video",
   video_sel: "Video {t}",
   min_ab: "{n}'",

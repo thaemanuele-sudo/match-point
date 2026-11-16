@@ -23,6 +23,37 @@ export type DatiMaestro = {
   cambi: RCambio[];
 };
 
+/** Colonne lette: mai select("*") (regola "Scala" di docs/CENTRI.md). note_mediche non serve al maestro e non si scarica. */
+export const COL = {
+  gruppi: "id,nome,fascia,livello,giorni,ora,durata_min,campo_id,programma_id,attivo,area_id",
+  campi: "id,numero,nome,superficie,copertura,luci,stato",
+  programmi: "id,nome,fascia,schema,anno,mesi,settimane_test",
+  modelli: "id,nome,durata_min,blocchi",
+  esercizi: "id,titolo,colpo,fasce,durata_min,materiale,descrizione,stato",
+  cambi: "id,gruppo_id,data,campo_da,campo_a,motivo,deciso_da",
+  allievi: "id,nome,cognome,data_nascita,membro_id,certificato_scade",
+  lezioni: "id,gruppo_id,data,ora,campo_id,maestro_id,modello_id,piano,svolto,stato,riassunto,riassunto_ok,compito,motivi_scostamento",
+  presenze: "id,lezione_id,allievo_id,presente,voto_rapido,nota,nota_audio_path",
+  valutazioni: "id,allievo_id,maestro_id,test,colpo,competenza,voto,data",
+} as const;
+
+type Pagina<T> = PromiseLike<{ data: T[] | null; error: { message: string } | null }>;
+/**
+ * Legge tutte le righe di una query a blocchi con .range(): PostgREST taglia a 1000 righe e una sola richiesta enorme
+ * rallenterebbe tutto. Pagine in sequenza (non è un N+1: è la stessa query a pezzi), con un tetto di sicurezza.
+ */
+export async function leggiPagine<T>(pagina: (da: number, a: number) => Pagina<T>, blocco = 1000, massimo = 8): Promise<T[]> {
+  const out: T[] = [];
+  for (let i = 0; i < massimo; i++) {
+    const r = await pagina(i * blocco, (i + 1) * blocco - 1);
+    if (r.error) throw new Error(r.error.message);
+    const righe = r.data ?? [];
+    out.push(...righe);
+    if (righe.length < blocco) break;
+  }
+  return out;
+}
+
 const msg = (e: unknown) => (e && typeof e === "object" && "message" in e ? String((e as { message: unknown }).message) : String(e));
 const ordinaAllievi = (a: RAllievo, b: RAllievo) => (a.cognome ?? "").localeCompare(b.cognome ?? "", "it") || a.nome.localeCompare(b.nome, "it");
 
@@ -43,25 +74,27 @@ export function useMaestroDati() {
         const gm = await sb.from("gruppi_maestri").select("gruppo_id").eq("membro_id", maId);
         if (gm.error) throw gm.error;
         const ids = [...new Set((gm.data ?? []).map((r: { gruppo_id: string }) => r.gruppo_id))];
-        const gr = ids.length ? await sb.from("gruppi").select("*").in("id", ids).eq("centro_id", centro.id) : { data: [], error: null };
+        const gr = ids.length ? await sb.from("gruppi").select(COL.gruppi).in("id", ids).eq("centro_id", centro.id) : { data: [], error: null };
         if (gr.error) throw gr.error;
         const gruppi = ((gr.data ?? []) as RGruppo[]).filter((g) => g.attivo !== false).sort((a, b) => (a.ora ?? "").localeCompare(b.ora ?? "") || a.nome.localeCompare(b.nome, "it"));
         const gIds = gruppi.map((g) => g.id);
         const progIds = [...new Set(gruppi.map((g) => g.programma_id).filter((x): x is string => !!x))];
         const oggi = isoGiorno();
+        const fasce = [...new Set(gruppi.map((g) => g.fascia).filter((f): f is string => !!f))];
         const [campiR, progR, modR, esR, iscR, cambR] = await Promise.all([
-          sb.from("campi").select("*").eq("centro_id", centro.id),
-          progIds.length ? sb.from("programmi").select("*").in("id", progIds) : Promise.resolve({ data: [], error: null }),
-          sb.from("modelli_lezione").select("*").eq("centro_id", centro.id),
-          sb.from("esercizi").select("*").eq("centro_id", centro.id).eq("stato", "approvato"),
+          sb.from("campi").select(COL.campi).eq("centro_id", centro.id),
+          progIds.length ? sb.from("programmi").select(COL.programmi).in("id", progIds) : Promise.resolve({ data: [], error: null }),
+          sb.from("modelli_lezione").select(COL.modelli).eq("centro_id", centro.id),
+          // solo la libreria delle fasce dei miei gruppi: la libreria di un grande centro può avere migliaia di esercizi
+          fasce.length ? sb.from("esercizi").select(COL.esercizi).eq("centro_id", centro.id).eq("stato", "approvato").overlaps("fasce", fasce).limit(400) : Promise.resolve({ data: [], error: null }),
           gIds.length ? sb.from("iscrizioni").select("allievo_id,gruppo_id,dal,al").in("gruppo_id", gIds) : Promise.resolve({ data: [], error: null }),
-          gIds.length ? sb.from("cambi_campo").select("*").in("gruppo_id", gIds).gte("data", isoGiorno(aggiungiGiorni(oggi, -1))).lte("data", isoGiorno(aggiungiGiorni(oggi, 30))) : Promise.resolve({ data: [], error: null }),
+          gIds.length ? sb.from("cambi_campo").select(COL.cambi).in("gruppo_id", gIds).gte("data", isoGiorno(aggiungiGiorni(oggi, -1))).lte("data", isoGiorno(aggiungiGiorni(oggi, 30))) : Promise.resolve({ data: [], error: null }),
         ]);
         for (const r of [campiR, progR, modR, esR, iscR, cambR]) if (r.error) throw r.error;
         // iscrizione valida oggi: iniziata e non terminata
         const isc = ((iscR.data ?? []) as RIscrizione[]).filter((i) => (!i.dal || i.dal <= oggi) && (!i.al || i.al >= oggi));
         const aIds = [...new Set(isc.map((i) => i.allievo_id))];
-        const alR = aIds.length ? await sb.from("allievi").select("*").in("id", aIds) : { data: [], error: null };
+        const alR = aIds.length ? await sb.from("allievi").select(COL.allievi).in("id", aIds) : { data: [], error: null };
         if (alR.error) throw alR.error;
         const allievi = new Map<string, RAllievo>(((alR.data ?? []) as RAllievo[]).map((a) => [a.id, a]));
         const iscritti = new Map<string, RAllievo[]>();
@@ -153,13 +186,13 @@ export function useLezione(id: string, dati: DatiMaestro | null) {
     let vivo = true;
     (async () => {
       try {
-        const lr = await sb.from("lezioni").select("*").eq("id", id).maybeSingle();
+        const lr = await sb.from("lezioni").select(COL.lezioni).eq("id", id).maybeSingle();
         if (lr.error) throw lr.error;
         const lezione = lr.data as RLezione | null;
         if (!lezione) { if (vivo) setErrore("nonTrovata"); return; }
         const gruppo = lezione.gruppo_id ? dati.gruppi.find((g) => g.id === lezione.gruppo_id) ?? null : null;
         const [pr, ar] = await Promise.all([
-          sb.from("presenze").select("*").eq("lezione_id", id),
+          sb.from("presenze").select(COL.presenze).eq("lezione_id", id),
           sb.from("assenze").select("allievo_id").eq("centro_id", centro.id).eq("data", lezione.data),
         ]);
         if (pr.error) throw pr.error;
@@ -168,7 +201,7 @@ export function useLezione(id: string, dati: DatiMaestro | null) {
         let allievi = gruppo ? dati.iscritti.get(gruppo.id) ?? [] : [];
         const mancanti = presenze.map((p) => p.allievo_id).filter((x) => !allievi.some((a) => a.id === x));
         if (mancanti.length) {
-          const extra = await sb.from("allievi").select("*").in("id", mancanti);
+          const extra = await sb.from("allievi").select(COL.allievi).in("id", mancanti);
           if (extra.error) throw extra.error;
           allievi = [...allievi, ...((extra.data ?? []) as RAllievo[])];
         }
@@ -192,7 +225,7 @@ export async function assicuraPresenze(sb: SupabaseClient, centroId: string, d: 
   const { data, error } = await sb
     .from("presenze")
     .insert(mancanti.map((a) => ({ centro_id: centroId, lezione_id: d.lezione.id, allievo_id: a.id, presente: !d.assenti.has(a.id) })))
-    .select("*");
+    .select(COL.presenze);
   if (error) throw error;
   return [...d.presenze, ...((data ?? []) as RPresenza[])];
 }

@@ -45,9 +45,9 @@ type Vista = "maestro" | "figlio" | "segreteria" | "avvisi";
 export default function GenitoreMessaggi() {
   const t = useT(T);
   const { sb, me, centro, base, imp } = useMio();
-  const { conv, errore, ricarica } = useConversazioni();
   const { figli, figlio, setSel } = useFigli("genitore");
   const [vista, setVista] = useState<Vista>("maestro");
+  const { conv, errore, ricarica } = useConversazioni({ tipi: [vista === "figlio" ? "allievo_maestro" : vista === "segreteria" ? "famiglia_segreteria" : "famiglia_maestro"], allievoId: figlio?.id ?? null, attivo: vista !== "avvisi" && !!figlio });
   const [err, setErr] = useState<string | null>(null);
   const [crea, setCrea] = useState(false);
   const [maestroNome, setMaestroNome] = useState("");
@@ -86,6 +86,7 @@ export default function GenitoreMessaggi() {
   // quale conversazione corrisponde alla scheda scelta
   const trova = (): Conv | undefined => {
     const c = conv ?? [];
+    if (vista === "avvisi") return undefined;
     if (vista === "maestro") return c.find((x) => x.tipo === "famiglia_maestro" && !x.miaSolaLettura && (!figlio || !x.allievo_id || x.allievo_id === figlio.id));
     if (vista === "figlio") return c.find((x) => x.tipo === "allievo_maestro" && x.allievo_id === figlio?.id);
     if (vista === "segreteria") return c.find((x) => x.tipo === "famiglia_segreteria" && (!figlio || !x.allievo_id || x.allievo_id === figlio.id));
@@ -157,7 +158,7 @@ export default function GenitoreMessaggi() {
         </div>
         <ErroreC testo={err ?? errore} />
 
-        {figli === null || conv === null ? (
+        {figli === null || (conv === null && vista !== "avvisi") ? (
           <Caric testo={t.caricamento} />
         ) : figli.length === 0 ? (
           <VuotoC>{t.nessunFiglio}</VuotoC>

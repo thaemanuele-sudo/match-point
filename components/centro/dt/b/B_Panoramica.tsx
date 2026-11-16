@@ -63,7 +63,8 @@ export default function BPanoramica() {
   const t = useT(T);
   const { centro } = useCentro();
   const R = rotta(centro.slug);
-  const { dati, carica, errore, ricarica } = useDatiMaestri();
+  // la panoramica non mostra il totale storico delle lezioni: si risparmia una richiesta per maestro
+  const { dati, carica, errore, ricarica } = useDatiMaestri({ conteggi: false });
   const [per, setPer] = useState<Per>("oggi");
 
   const numeri = useMemo(() => (dati ? calcola(dati, per, t) : []), [dati, per, t]);

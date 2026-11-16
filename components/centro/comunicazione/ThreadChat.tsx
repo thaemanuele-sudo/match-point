@@ -4,7 +4,7 @@ import { useT } from "@/lib/i18n/lingua";
 import { Ic } from "./icone";
 import { Caric, ErroreC } from "./stati";
 import { caricaParti, inviaMessaggio, type Msg, type Parte } from "./conversazioni";
-import { dataBreve, f, giornoLungo, inSilenzio, lettoAdesso, messaggioErrore, nomeMembro, oraIt, useMio, useRealtime, isoGiorno } from "./comuni";
+import { dataBreve, f, giornoLungo, inSilenzio, lettoAdesso, messaggioErrore, nomeMembro, oraIt, useMio, useRealtime, isoGiorno, BLOCCO } from "./comuni";
 import "./comunicazione.css";
 
 const it = {
@@ -24,6 +24,7 @@ const it = {
   ruolo_dt: "direttore tecnico",
   ruolo_titolare: "titolare",
   ruolo_responsabile_area: "responsabile d'area",
+  precedenti: "Carica i messaggi precedenti",
   nonCancellabili: "I messaggi non si possono cancellare e restano nell'archivio del centro.",
 };
 const T = { it, en: { ...it } };
@@ -62,17 +63,47 @@ export default function ThreadChat({ id, stile = "adulto", soloLettura, mostraAu
   const [tick, setTick] = useState(0);
   const fine = useRef<HTMLDivElement>(null);
 
+  const [ancora, setAncora] = useState(false);
+  const [vecchi, setVecchi] = useState(false);
+  // vero solo quando i messaggi nuovi vanno mostrati in fondo; caricando quelli precedenti la vista non deve saltare
+  const scorri = useRef(true);
+  const COL = "id,conversazione_id,autore_id,testo,created_at,consegna_il";
+
+  /** Aggiunge messaggi senza doppioni, in ordine di data. */
+  const unisci = useCallback((nuovi: Msg[]) => {
+    setMsgs((vecchio) => {
+      const mappa = new Map((vecchio ?? []).map((m) => [m.id, m]));
+      nuovi.forEach((m) => mappa.set(m.id, m));
+      return Array.from(mappa.values()).sort((x, y) => x.created_at.localeCompare(y.created_at));
+    });
+  }, []);
+
+  // ultimi 50 messaggi (paginazione all'indietro: i precedenti si chiedono a richiesta)
   const carica = useCallback(async () => {
     if (!sb) return;
-    const { data, error } = await sb.from("messaggi").select("id,conversazione_id,autore_id,testo,created_at,consegna_il").eq("conversazione_id", id).order("created_at", { ascending: true }).limit(500);
+    const { data, error } = await sb.from("messaggi").select(COL).eq("conversazione_id", id).order("created_at", { ascending: false }).limit(BLOCCO);
     if (error) {
       setErrore(messaggioErrore(error));
       setMsgs((m) => m ?? []);
       return;
     }
-    setMsgs((data ?? []) as Msg[]);
+    const righe = ((data ?? []) as Msg[]).reverse();
+    scorri.current = true;
+    setMsgs(righe);
+    setAncora((data ?? []).length === BLOCCO);
     lettoAdesso(id);
   }, [sb, id]);
+
+  async function precedenti() {
+    if (!sb || !msgs?.length || vecchi) return;
+    setVecchi(true);
+    const { data, error } = await sb.from("messaggi").select(COL).eq("conversazione_id", id).lt("created_at", msgs[0].created_at).order("created_at", { ascending: false }).limit(BLOCCO);
+    setVecchi(false);
+    if (error) return setErrore(messaggioErrore(error));
+    scorri.current = false;
+    unisci((data ?? []) as Msg[]);
+    setAncora((data ?? []).length === BLOCCO);
+  }
 
   useEffect(() => {
     carica();
@@ -81,14 +112,19 @@ export default function ThreadChat({ id, stile = "adulto", soloLettura, mostraAu
     if (!sb) return;
     caricaParti(sb, [id]).then((r) => setParti(r[id] ?? []));
   }, [sb, id]);
-  useRealtime(sb, `cm-chat-${id}`, "messaggi", `conversazione_id=eq.${id}`, "INSERT", carica);
+  // realtime solo su questa conversazione, chiuso allo smontaggio; la riga nuova arriva già nel payload
+  useRealtime<Msg>(sb, `cm-chat-${id}`, "messaggi", `conversazione_id=eq.${id}`, "INSERT", (riga) => {
+    scorri.current = true;
+    unisci([riga]);
+    lettoAdesso(id);
+  });
   // ogni minuto si ricalcola cosa è già stato consegnato (un messaggio programmato alle 8:00 compare da solo)
   useEffect(() => {
     const x = setInterval(() => setTick((n) => n + 1), 60000);
     return () => clearInterval(x);
   }, []);
   useEffect(() => {
-    fine.current?.scrollIntoView({ block: "end" });
+    if (scorri.current) fine.current?.scrollIntoView({ block: "end" });
   }, [msgs, tick]);
 
   const mia = parti.find((p) => p.membro_id === me?.id);
@@ -103,7 +139,13 @@ export default function ThreadChat({ id, stile = "adulto", soloLettura, mostraAu
     try {
       await inviaMessaggio(sb, id, x);
       setBozza("");
-      await carica();
+      // solo i messaggi più recenti dell'ultimo che ho: niente ricarica dell'intera conversazione
+      const ultimo = msgs?.length ? msgs[msgs.length - 1].created_at : null;
+      let q = sb.from("messaggi").select(COL).eq("conversazione_id", id).order("created_at", { ascending: true }).limit(BLOCCO);
+      if (ultimo) q = q.gt("created_at", ultimo);
+      const { data } = await q;
+      scorri.current = true;
+      unisci((data ?? []) as Msg[]);
       onInviato?.();
     } catch (e) {
       setErrore(messaggioErrore(e));
@@ -125,6 +167,11 @@ export default function ThreadChat({ id, stile = "adulto", soloLettura, mostraAu
   return (
     <div className="cm-col" style={alto ? { flex: 1, minHeight: 0 } : undefined}>
       <div className={`cm-thread${alto ? " alto" : ""}${stile === "bimbo" ? " bimbo" : ""}`} role="log" aria-live="polite">
+        {ancora && (
+          <button type="button" className="cm-bt2" style={{ height: 34, fontSize: 12.5, alignSelf: "center" }} onClick={precedenti} disabled={vecchi}>
+            {t.precedenti}
+          </button>
+        )}
         {visibili.length === 0 && <div className="cm-stato">{t.vuoto}</div>}
         {visibili.map((m) => {
           const autore = nome(m.autore_id);

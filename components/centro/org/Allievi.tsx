@@ -1,21 +1,21 @@
 "use client";
 // C10 · Allievi del centro: lista con ricerca e filtri "in ritardo" e "assenze ripetute", scheda con iscrizioni e famiglia,
 // aggiunta di un allievo con la sua famiglia e invito con codice.
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { SchermoCentro } from "@/components/centro/Schermo";
 import { Btn, Campo, Caricamento, Chip, Chips, Errore, Foglio, Ico, Nota, Sezione, Tile, Vuoto } from "@/components/centro/ui";
 import { rotta } from "@/lib/centro/rotte";
 import { fmtData } from "@/lib/centro/date";
 import { aggiungiGiorni, isoGiorno } from "@/lib/centro/date";
 import { useT } from "@/lib/i18n/lingua";
-import { coloreNome, iniziali, meseProgramma, nomeAllievo, nomeCompleto, sostituisci, maestriDi, useOrg, type DatiOrg, type Org } from "./dati";
+import { COL_ALLIEVO_LISTA, PAGINA, coloreNome, iniziali, leggiPresenze, leggiValutazioni, meseProgramma, nomeAllievo, nomeCompleto, pulisciRicerca, sostituisci, maestriDi, useDebounce, useOrg, type DatiOrg, type Org } from "./dati";
 import { InvitoBox, creaInvito } from "./Invito";
-import type { AllievoR, LezioneR, PresenzaR, ValutazioneR } from "./tipi";
+import type { AllievoL, FamigliaR, GruppoR, PresenzaL, ValutazioneL } from "./tipi";
 import "./org.css";
 
 const IT = {
   titolo: "Allievi del centro", sopra: "{centro} · {mese}", attivi: "allievi attivi", presenze: "presenze del mese", ritardo: "in ritardo", cerca: "Cerca per nome, gruppo o maestro",
-  allievi: "Allievi", progresso: "{c} · progresso del mese", fTutti: "Tutti {n}", fRitardo: "In ritardo {n}", fAssenze: "Assenze ripetute {n}", mostraAltri: "Altri {n} allievi · mostra tutti", vuotoT: "Nessun allievo", vuotoS: "Aggiungi il primo allievo con la sua famiglia.",
+  allievi: "Allievi", progresso: "{c} · progresso del mese", fTutti: "Tutti {n}", fRitardo: "In ritardo {n}", fAssenze: "Assenze ripetute {n}", mostraAltri: "Carica altri allievi", vuotoT: "Nessun allievo", vuotoS: "Aggiungi il primo allievo con la sua famiglia.",
   inLinea: "In linea", inRitardo: "In ritardo", assenze: "{a} assenze su {n}", senzaVal: "Nessuna valutazione", aggiungi: "Aggiungi allievo", senzaGruppo: "Senza gruppo", nessunaPres: "Nessuna presenza registrata",
   // nuovo allievo
   nuovoT: "Nuovo allievo", nome: "Nome", cognome: "Cognome", nascita: "Data di nascita", gruppo: "Gruppo", nessuno: "Nessun gruppo ancora", famiglia: "Famiglia", famAiuto: "Il genitore entrerà con il codice che ti diamo dopo.",
@@ -31,43 +31,177 @@ const T = { it: IT, en: { ...IT } };
 const norm = (s: string | null | undefined) => (s ?? "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 const media = (v: number[]) => (v.length ? v.reduce((a, b) => a + b, 0) / v.length : null);
 
-type Riga = { a: AllievoR; gruppi: string[]; maestri: string[]; perc: number | null; ritardo: boolean; assenti: number; su: number };
+/** Stato di un allievo ricavato da valutazioni e presenze recenti. */
+type Stato = { perc: number | null; ritardo: boolean; assenti: number; su: number };
+const SENZA_STATO: Stato = { perc: null, ritardo: false, assenti: 0, su: 0 };
+type Agg = { colpo: string; val: ValutazioneL[]; pres: PresenzaL[] };
+/** Gli identificativi nei filtri finiscono nell'indirizzo della richiesta: oltre questo numero non si allunga. */
+const MAX_ID_RICERCA = 150;
+const MAX_ID_BLOCCO = 100;
 
 export default function CentroAllievi() {
   const t = useT(T);
   const o = useOrg();
   const { centro, sb, dati: d } = o;
   const r = rotta(centro.slug);
-  const [extra, setExtra] = useState<{ val: ValutazioneR[]; lez: LezioneR[]; pres: PresenzaR[] } | null>(null);
+  const [agg, setAgg] = useState<Agg | null>(null);
   const [errExtra, setErrExtra] = useState<string | null>(null);
   const [filtro, setFiltro] = useState<"tutti" | "ritardo" | "assenze">("tutti");
   const [q, setQ] = useState("");
-  const [tutti, setTutti] = useState(false);
+  const qDeb = useDebounce(q);
   const [nuovo, setNuovo] = useState(false);
-  const [scheda, setScheda] = useState<string | null>(null);
+  const [scheda, setScheda] = useState<AllievoL | null>(null);
+  // la lista corrente (una pagina alla volta) e il totale degli allievi dell'area
+  const [lista, setLista] = useState<{ righe: AllievoL[]; altri: boolean; errore: string | null } | null>(null);
+  const [caricando, setCaricando] = useState(false);
+  const [totale, setTotale] = useState<number | null>(null);
+  const [versione, setVersione] = useState(0);
+  const rinnova = useCallback(() => setVersione((v) => v + 1), []);
 
+  const oggi = o.oggi;
+  const idGruppiVis = useMemo(() => (o.ids ? o.gruppiVis.map((g) => g.id) : null), [o.ids, o.gruppiVis]);
+  // il colpo del mese decide quali valutazioni servono: si leggono solo quelle
+  const colpo = useMemo(() => (d ? colpoDelMese(d, o.gruppiVis) : null), [d, o.gruppiVis]);
+
+  // valutazioni del colpo e presenze delle ultime 6 settimane: una lettura ciascuna, in parallelo
   useEffect(() => {
+    if (!colpo) return;
     let vivo = true;
     (async () => {
       const da = isoGiorno(aggiungiGiorni(new Date(), -42));
-      const [v, l] = await Promise.all([
-        sb.from("valutazioni").select("*").eq("centro_id", centro.id),
-        sb.from("lezioni").select("id,gruppo_id,data,stato").eq("centro_id", centro.id).gte("data", da).eq("stato", "chiusa"),
-      ]);
+      const [v, p] = await Promise.all([leggiValutazioni(sb, centro.id, colpo), leggiPresenze(sb, centro.id, da)]);
       if (!vivo) return;
-      if (v.error || l.error) { setErrExtra((v.error ?? l.error)?.message ?? "?"); return; }
-      const lez = (l.data ?? []) as LezioneR[];
-      let pres: PresenzaR[] = [];
-      // gli identificativi vanno a blocchi: l'indirizzo della richiesta non deve diventare troppo lungo
-      for (let i = 0; i < lez.length; i += 60) {
-        const p = await sb.from("presenze").select("id,lezione_id,allievo_id,presente").in("lezione_id", lez.slice(i, i + 60).map((x) => x.id));
-        if (p.error) { if (vivo) setErrExtra(p.error.message); return; }
-        pres = pres.concat((p.data ?? []) as PresenzaR[]);
-      }
-      if (vivo) setExtra({ val: (v.data ?? []) as ValutazioneR[], lez, pres });
+      if (v.errore || p.errore) { setErrExtra(v.errore ?? p.errore); return; }
+      setAgg({ colpo, val: v.righe, pres: p.righe });
     })();
     return () => { vivo = false; };
-  }, [sb, centro.id]);
+  }, [sb, centro.id, colpo]);
+
+  // insieme degli allievi dell'area (null = tutto il centro) e gruppi di ciascuno
+  const gruppiDi = useMemo(() => {
+    const m = new Map<string, string[]>();
+    o.iscrAttive.forEach((i) => m.set(i.allievo_id, [...(m.get(i.allievo_id) ?? []), i.gruppo_id]));
+    return m;
+  }, [o.iscrAttive]);
+
+  // "in ritardo" e "assenze ripetute": calcolati una volta sui dati recenti (con una funzione del database sarebbero un'unica riga di risposta)
+  const stat = useMemo(() => {
+    if (!agg || !d) return null;
+    const chiave = agg.colpo === "gambe" ? "gamb" : agg.colpo;
+    const perAllievo = new Map<string, ValutazioneL[]>();
+    for (const x of agg.val) {
+      if (x.voto == null || !(x.data || x.test) || !norm(x.colpo).includes(chiave)) continue;
+      perAllievo.set(x.allievo_id, [...(perAllievo.get(x.allievo_id) ?? []), x]);
+    }
+    // livello raggiunto: media dei voti (1-5) dell'ultimo test dell'allievo sul colpo del mese, in percentuale
+    const livello = (mie: ValutazioneL[]) => {
+      const chiavi = [...new Set(mie.map((x) => x.data ?? x.test ?? ""))].sort().reverse();
+      const di = (k: string | undefined) => (k === undefined ? null : media(mie.filter((x) => (x.data ?? x.test ?? "") === k).map((x) => x.voto as number)));
+      const ora = di(chiavi[0]), prima = di(chiavi[1]);
+      return { ora: ora === null ? null : Math.round((ora / 5) * 100), prima: prima === null ? null : (prima / 5) * 100 };
+    };
+    const presPer = new Map<string, PresenzaL[]>();
+    for (const p of agg.pres) presPer.set(p.allievo_id, [...(presPer.get(p.allievo_id) ?? []), p]);
+
+    const nellArea = o.ids ? new Set(o.iscrAttive.map((i) => i.allievo_id)) : null;
+    const per = new Map<string, Stato & { prima: number | null }>();
+    for (const id of new Set([...perAllievo.keys(), ...presPer.keys()])) {
+      if (nellArea && !nellArea.has(id)) continue;
+      const lv = livello(perAllievo.get(id) ?? []);
+      const ultime = (presPer.get(id) ?? []).sort((x, y) => (y.data > x.data ? 1 : y.data < x.data ? -1 : 0)).slice(0, 6);
+      per.set(id, { perc: lv.ora, prima: lv.prima, ritardo: false, assenti: ultime.filter((p) => !p.presente).length, su: ultime.length });
+    }
+    // "in ritardo": 10 punti sotto la media del suo gruppo, oppure in calo di 5 punti rispetto al test precedente
+    const mediaGruppo = new Map<string, number>();
+    for (const g of o.ids ? o.gruppiVis : d.gruppi) {
+      const m = media(o.iscrAttive.filter((i) => i.gruppo_id === g.id).map((i) => per.get(i.allievo_id)?.perc ?? null).filter((x): x is number => x !== null));
+      if (m !== null) mediaGruppo.set(g.id, m);
+    }
+    const idRit: string[] = [], idAss: string[] = [];
+    per.forEach((x, id) => {
+      const sotto = x.perc !== null && (gruppiDi.get(id) ?? []).some((g) => mediaGruppo.has(g) && x.perc! < (mediaGruppo.get(g) as number) - 10);
+      const calo = x.perc !== null && x.prima !== null && x.perc < x.prima - 5;
+      x.ritardo = sotto || calo;
+      if (x.ritardo) idRit.push(id);
+      if (x.assenti >= 3) idAss.push(id);
+    });
+    // presenze del mese
+    const mm = oggi.slice(0, 7);
+    const pm = agg.pres.filter((p) => p.data.startsWith(mm) && (!nellArea || nellArea.has(p.allievo_id)));
+    const percPres = pm.length ? Math.round((pm.filter((p) => p.presente).length / pm.length) * 100) : null;
+    return { per: per as Map<string, Stato>, idRit, idAss, percPres };
+  }, [agg, d, o.ids, o.iscrAttive, o.gruppiVis, gruppiDi, oggi]);
+
+  // quanti allievi ha l'area: solo il conteggio, senza scaricare le righe
+  useEffect(() => {
+    let vivo = true;
+    (async () => {
+      const x = idGruppiVis
+        ? await sb.from("allievi").select("id,iscrizioni!inner(gruppo_id)", { count: "exact", head: true }).eq("centro_id", centro.id).in("iscrizioni.gruppo_id", idGruppiVis).or(`al.is.null,al.gte.${oggi}`, { referencedTable: "iscrizioni" })
+        : await sb.from("allievi").select("id", { count: "exact", head: true }).eq("centro_id", centro.id);
+      if (vivo && !x.error) setTotale(x.count ?? 0);
+    })();
+    return () => { vivo = false; };
+  }, [sb, centro.id, idGruppiVis, oggi, versione]);
+
+  /** Allievi che corrispondono alla ricerca per gruppo o maestro: le iscrizioni in corso sono già in memoria. */
+  const idPerGruppoMaestro = useCallback((tok: string): string[] => {
+    if (!d) return [];
+    const k = norm(tok);
+    const gruppi = new Set(d.gruppi.filter((g) => norm(g.nome).includes(k)).map((g) => g.id));
+    d.membri.filter((m) => m.ruolo === "maestro" && norm(nomeCompleto(m)).includes(k))
+      .forEach((m) => d.gm.filter((x) => x.membro_id === m.id).forEach((x) => gruppi.add(x.gruppo_id)));
+    return [...new Set(o.iscrAttive.filter((i) => gruppi.has(i.gruppo_id)).map((i) => i.allievo_id))].slice(0, MAX_ID_RICERCA);
+  }, [d, o.iscrAttive]);
+
+  const leggiPagina = useCallback(async (da: number): Promise<{ righe: AllievoL[]; altri: boolean; errore: string | null }> => {
+    // con i filtri "in ritardo" e "assenze" gli allievi sono già noti per id: si leggono i nomi a blocchi e si impagina qui
+    if (filtro !== "tutti") {
+      if (!stat) return { righe: [], altri: false, errore: null };
+      const ids = filtro === "ritardo" ? stat.idRit : stat.idAss;
+      const blocchi = Array.from({ length: Math.ceil(ids.length / MAX_ID_BLOCCO) }, (_, i) => ids.slice(i * MAX_ID_BLOCCO, (i + 1) * MAX_ID_BLOCCO));
+      const risp = await Promise.all(blocchi.map((b) => sb.from("allievi").select(COL_ALLIEVO_LISTA).eq("centro_id", centro.id).in("id", b)));
+      const err = risp.find((x) => x.error)?.error;
+      if (err) return { righe: [], altri: false, errore: err.message };
+      const ql = norm(pulisciRicerca(qDeb));
+      const tutti = risp.flatMap((x) => (x.data ?? []) as unknown as AllievoL[])
+        .filter((a) => !ql || norm(`${nomeCompleto(a)} ${(gruppiDi.get(a.id) ?? []).map((g) => d?.gruppi.find((x) => x.id === g)?.nome ?? "").join(" ")}`).includes(ql))
+        .sort((x, y) => (x.cognome ?? "").localeCompare(y.cognome ?? "") || x.nome.localeCompare(y.nome));
+      return { righe: tutti.slice(0, da + PAGINA), altri: tutti.length > da + PAGINA, errore: null };
+    }
+    // filtro "tutti": una pagina dal database, con ordine e ricerca sul server (si chiede una riga in più per sapere se ce ne sono altre)
+    let query = sb.from("allievi")
+      .select(idGruppiVis ? `${COL_ALLIEVO_LISTA},iscrizioni!inner(gruppo_id)` : COL_ALLIEVO_LISTA)
+      .eq("centro_id", centro.id);
+    if (idGruppiVis) query = query.in("iscrizioni.gruppo_id", idGruppiVis).or(`al.is.null,al.gte.${oggi}`, { referencedTable: "iscrizioni" });
+    for (const tok of pulisciRicerca(qDeb).split(" ").filter(Boolean)) {
+      const ids = idPerGruppoMaestro(tok);
+      query = query.or([`nome.ilike.%${tok}%`, `cognome.ilike.%${tok}%`, ids.length ? `id.in.(${ids.join(",")})` : ""].filter(Boolean).join(","));
+    }
+    const x = await query.order("cognome").order("nome").order("id").range(da, da + PAGINA);
+    if (x.error) return { righe: [], altri: false, errore: x.error.message };
+    // con il join d'area ogni riga porta anche le sue iscrizioni: alla lista servono solo le colonne dell'allievo
+    const righe = ((x.data ?? []) as unknown as AllievoL[]).map((a) => ({ id: a.id, nome: a.nome, cognome: a.cognome, data_nascita: a.data_nascita, certificato_scade: a.certificato_scade }));
+    return { righe: righe.slice(0, PAGINA), altri: righe.length > PAGINA, errore: null };
+  }, [filtro, stat, qDeb, sb, centro.id, idGruppiVis, oggi, idPerGruppoMaestro, gruppiDi, d]);
+
+  // prima pagina: riparte a ogni cambio di filtro, di ricerca (dopo il debounce) o dopo una modifica
+  useEffect(() => {
+    if (!d) return;
+    let vivo = true;
+    setCaricando(true);
+    void leggiPagina(0).then((p) => { if (vivo) { setLista(p); setCaricando(false); } });
+    return () => { vivo = false; };
+  }, [d, leggiPagina, versione]);
+
+  const altri = async () => {
+    if (!lista || caricando) return;
+    setCaricando(true);
+    const p = await leggiPagina(lista.righe.length);
+    // la pagina nuova va in coda; con i filtri "in ritardo" e "assenze" `leggiPagina` restituisce già tutte le righe fin lì
+    setLista(filtro === "tutti" ? { righe: [...lista.righe, ...p.righe], altri: p.altri, errore: p.errore } : p);
+    setCaricando(false);
+  };
 
   const schermo = (corpo: React.ReactNode, sopra?: string) => (
     <SchermoCentro ruolo={o.eResp ? "area" : "dt"} tab="allievi" titolo={t.titolo} sopra={sopra ?? centro.nome} indietro={o.eResp ? r.area.base : r.dt.base}
@@ -75,111 +209,74 @@ export default function CentroAllievi() {
       {corpo}
     </SchermoCentro>
   );
-  if (!d || !extra) return schermo(o.errore || errExtra ? <Errore messaggio={o.errore ?? errExtra} onRiprova={() => void o.carica()} /> : <Caricamento />);
+  if (!d || !stat || lista === null) return schermo(o.errore || errExtra ? <Errore messaggio={o.errore ?? errExtra} onRiprova={() => void o.carica()} /> : <Caricamento />);
 
   const adesso = new Date();
   const mese = adesso.toLocaleDateString("it-IT", { month: "long" });
-  const colpo = colpoDelMese(d, o);
-  const v = extra.val.filter((x) => norm(x.colpo).includes(colpo === "gambe" ? "gamb" : colpo));
-
-  // livello raggiunto: media dei voti (1-5) dell'ultimo test dell'allievo sul colpo del mese, in percentuale
-  const livelloAllievo = (id: string) => {
-    const mie = v.filter((x) => x.allievo_id === id && x.voto != null && (x.data || x.test));
-    const chiavi = [...new Set(mie.map((x) => x.data ?? x.test ?? ""))].sort().reverse();
-    const di = (k: string | undefined) => (k === undefined ? null : media(mie.filter((x) => (x.data ?? x.test ?? "") === k).map((x) => x.voto as number)));
-    const ora = di(chiavi[0]), prima = di(chiavi[1]);
-    return { ora: ora === null ? null : (ora / 5) * 100, prima: prima === null ? null : (prima / 5) * 100 };
-  };
-
-  const lezData = new Map(extra.lez.map((l) => [l.id, l]));
-  const righe: Riga[] = o.allieviVis.map((a) => {
-    const gid = [...new Set(o.iscrAttive.filter((i) => i.allievo_id === a.id).map((i) => i.gruppo_id))];
-    const gr = d.gruppi.filter((g) => gid.includes(g.id));
-    const mie = extra.pres.filter((p) => p.allievo_id === a.id && lezData.has(p.lezione_id)).sort((x, y) => (lezData.get(y.lezione_id)!.data > lezData.get(x.lezione_id)!.data ? 1 : -1)).slice(0, 6);
-    const assenti = mie.filter((p) => !p.presente).length;
-    const lv = livelloAllievo(a.id);
-    return { a, gruppi: gr.map((g) => g.nome), maestri: [...new Set(gr.flatMap((g) => maestriDi(d, g.id).map((m) => nomeCompleto(m))))], perc: lv.ora === null ? null : Math.round(lv.ora), ritardo: false, assenti, su: mie.length, _prima: lv.prima } as Riga & { _prima: number | null };
-  });
-  // "in ritardo": 10 punti sotto la media del suo gruppo, oppure in calo di 5 punti rispetto al test precedente
-  const mediaGruppo = new Map<string, number>();
-  d.gruppi.forEach((g) => {
-    const m = media(righe.filter((x) => x.gruppi.includes(g.nome) && x.perc !== null).map((x) => x.perc as number));
-    if (m !== null) mediaGruppo.set(g.nome, m);
-  });
-  righe.forEach((x) => {
-    const prima = (x as Riga & { _prima: number | null })._prima;
-    const sotto = x.perc !== null && x.gruppi.some((g) => mediaGruppo.has(g) && x.perc! < (mediaGruppo.get(g) as number) - 10);
-    const calo = x.perc !== null && prima !== null && x.perc < prima - 5;
-    x.ritardo = sotto || calo;
-  });
-  const ripetute = (x: Riga) => x.assenti >= 3;
-
-  // presenze del mese
-  const mm = isoGiorno(adesso).slice(0, 7);
-  const lezMese = new Set(extra.lez.filter((l) => l.data.startsWith(mm)).map((l) => l.id));
-  const visibili = new Set(o.allieviVis.map((a) => a.id));
-  const pm = extra.pres.filter((p) => lezMese.has(p.lezione_id) && visibili.has(p.allievo_id));
-  const percPres = pm.length ? Math.round((pm.filter((p) => p.presente).length / pm.length) * 100) : null;
-
-  const nRit = righe.filter((x) => x.ritardo).length;
-  const nAss = righe.filter(ripetute).length;
-  const ql = norm(q);
-  let lista = righe.filter((x) => filtro === "tutti" || (filtro === "ritardo" && x.ritardo) || (filtro === "assenze" && ripetute(x)));
-  if (ql) lista = lista.filter((x) => norm(`${nomeCompleto(x.a)} ${x.gruppi.join(" ")} ${x.maestri.join(" ")}`).includes(ql));
-  lista.sort((x, y) => (x.a.cognome ?? "").localeCompare(y.a.cognome ?? "") || x.a.nome.localeCompare(y.a.nome));
-  const LIM = 12;
-  const mostrati = tutti || filtro !== "tutti" || ql ? lista : lista.slice(0, LIM);
+  const colpoTesto = agg?.colpo ?? colpo ?? "dritto";
+  const statoDi = (id: string): Stato => stat.per.get(id) ?? SENZA_STATO;
+  const ripetute = (x: Stato) => x.assenti >= 3;
+  const nRit = stat.idRit.length;
+  const nAss = stat.idAss.length;
+  const nTot = totale ?? 0;
   const col = (p: number) => (p >= 70 ? "#4CD07D" : p >= 55 ? "#FFD54A" : "#FF9F43");
-  const etCol = (x: Riga) => (x.ritardo ? "rgba(255,159,67,.16);color:#FF9F43" : ripetute(x) ? "rgba(255,90,95,.16);color:#FF7A7E" : "rgba(76,208,125,.14);color:#4CD07D");
+  const etCol = (x: Stato) => (x.ritardo ? "rgba(255,159,67,.16);color:#FF9F43" : ripetute(x) ? "rgba(255,90,95,.16);color:#FF7A7E" : "rgba(76,208,125,.14);color:#4CD07D");
+  const nomiGruppi = (id: string) => (gruppiDi.get(id) ?? []).map((g) => d.gruppi.find((x) => x.id === g)).filter((g): g is NonNullable<typeof g> => !!g);
+  const maestriAll = (id: string) => [...new Set(nomiGruppi(id).flatMap((g) => maestriDi(d, g.id).map((m) => nomeCompleto(m))))];
 
   return schermo(
     <div className="og-pagina">
       <div className="og-dash c3" style={{ gap: 8 }}>
         <div className="g3 og-tutta" style={{ gap: 8 }}>
-          <Tile valore={righe.length} etichetta={t.attivi} />
-          <Tile valore={percPres === null ? "—" : `${percPres}%`} etichetta={t.presenze} colore="#4CD07D" />
+          <Tile valore={nTot} etichetta={t.attivi} />
+          <Tile valore={stat.percPres === null ? "—" : `${stat.percPres}%`} etichetta={t.presenze} colore="#4CD07D" />
           <Tile valore={nRit} etichetta={t.ritardo} colore="#FF9F43" />
         </div>
       </div>
       <input className="og-inp" type="search" aria-label={t.cerca} placeholder={t.cerca} value={q} onChange={(e) => setQ(e.target.value)} />
       <Chips>
-        <Chip on={filtro === "tutti"} onClick={() => setFiltro("tutti")}>{sostituisci(t.fTutti, { n: righe.length })}</Chip>
+        <Chip on={filtro === "tutti"} onClick={() => setFiltro("tutti")}>{sostituisci(t.fTutti, { n: nTot })}</Chip>
         <Chip on={filtro === "ritardo"} onClick={() => setFiltro("ritardo")}>{sostituisci(t.fRitardo, { n: nRit })}</Chip>
         <Chip on={filtro === "assenze"} onClick={() => setFiltro("assenze")}>{sostituisci(t.fAssenze, { n: nAss })}</Chip>
       </Chips>
-      <Sezione titolo={t.allievi} azione={<span className="muted">{sostituisci(t.progresso, { c: colpo.charAt(0).toUpperCase() + colpo.slice(1) })}</span>} />
-      {righe.length === 0 ? <Vuoto titolo={t.vuotoT} testo={t.vuotoS} icona="user" /> : (
+      <Sezione titolo={t.allievi} azione={<span className="muted">{sostituisci(t.progresso, { c: colpoTesto.charAt(0).toUpperCase() + colpoTesto.slice(1) })}</span>} />
+      {lista.errore ? <Errore messaggio={lista.errore} onRiprova={rinnova} /> : totale === 0 && filtro === "tutti" && !qDeb.trim() ? <Vuoto titolo={t.vuotoT} testo={t.vuotoS} icona="user" /> : (
         <div className="og-dash c2" style={{ gap: 7 }}>
-          {mostrati.map((x) => (
-            <button key={x.a.id} type="button" className="li" style={{ padding: "8px 12px", textAlign: "left", font: "inherit" }} onClick={() => setScheda(x.a.id)}>
-              <span className="og-av" style={{ background: coloreNome(nomeCompleto(x.a)) }} aria-hidden="true">{iniziali(x.a)}</span>
-              <span className="grow"><span className="t" style={{ display: "block", fontSize: 14.5 }}>{nomeAllievo(x.a)}</span>
-                <span className="s og-ell" style={{ display: "block", fontSize: 12 }}>{x.gruppi.length ? `${x.gruppi.join(", ")}${x.maestri[0] ? ` · ${x.maestri[0]}` : ""}` : t.senzaGruppo}</span></span>
-              <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3 }}>
-                <span className="disp" style={{ fontSize: 20, fontWeight: 700, lineHeight: 1, color: x.perc === null ? "#8E8E93" : col(x.perc) }}>{x.perc === null ? "—" : `${x.perc}%`}</span>
-                <span style={{ fontSize: 10.5, fontWeight: 800, padding: "2px 7px", borderRadius: 7, whiteSpace: "nowrap", background: etCol(x).split(";")[0], color: etCol(x).split("color:")[1] }}>
-                  {x.ritardo ? t.inRitardo : ripetute(x) ? sostituisci(t.assenze, { a: x.assenti, n: x.su }) : x.perc === null ? t.senzaVal : t.inLinea}
+          {lista.righe.map((a) => {
+            const x = statoDi(a.id);
+            const gr = nomiGruppi(a.id).map((g) => g.nome);
+            const ma = maestriAll(a.id);
+            return (
+              <button key={a.id} type="button" className="li" style={{ padding: "8px 12px", textAlign: "left", font: "inherit" }} onClick={() => setScheda(a)}>
+                <span className="og-av" style={{ background: coloreNome(nomeCompleto(a)) }} aria-hidden="true">{iniziali(a)}</span>
+                <span className="grow"><span className="t" style={{ display: "block", fontSize: 14.5 }}>{nomeAllievo(a)}</span>
+                  <span className="s og-ell" style={{ display: "block", fontSize: 12 }}>{gr.length ? `${gr.join(", ")}${ma[0] ? ` · ${ma[0]}` : ""}` : t.senzaGruppo}</span></span>
+                <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3 }}>
+                  <span className="disp" style={{ fontSize: 20, fontWeight: 700, lineHeight: 1, color: x.perc === null ? "#8E8E93" : col(x.perc) }}>{x.perc === null ? "—" : `${x.perc}%`}</span>
+                  <span style={{ fontSize: 10.5, fontWeight: 800, padding: "2px 7px", borderRadius: 7, whiteSpace: "nowrap", background: etCol(x).split(";")[0], color: etCol(x).split("color:")[1] }}>
+                    {x.ritardo ? t.inRitardo : ripetute(x) ? sostituisci(t.assenze, { a: x.assenti, n: x.su }) : x.perc === null ? t.senzaVal : t.inLinea}
+                  </span>
                 </span>
-              </span>
-            </button>
-          ))}
+              </button>
+            );
+          })}
         </div>
       )}
-      {!tutti && filtro === "tutti" && !ql && lista.length > LIM && (
-        <button type="button" className="chip" style={{ alignSelf: "center", background: "none", color: "#D8F34A" }} onClick={() => setTutti(true)}>{sostituisci(t.mostraAltri, { n: lista.length - LIM })}</button>
+      {lista.altri && (
+        <button type="button" className="chip" disabled={caricando} style={{ alignSelf: "center", background: "none", color: "#D8F34A" }} onClick={() => void altri()}>{t.mostraAltri}</button>
       )}
       {o.can("iscrizioni") && <Btn onClick={() => setNuovo(true)} icona="plus">{t.aggiungi}</Btn>}
-      {nuovo && <FoglioNuovo o={o} d={d} onChiudi={() => setNuovo(false)} />}
-      {scheda && <FoglioScheda o={o} d={d} id={scheda} onChiudi={() => setScheda(null)} />}
+      {nuovo && <FoglioNuovo o={o} d={d} onChiudi={() => setNuovo(false)} onCambiato={rinnova} />}
+      {scheda && <FoglioScheda o={o} d={d} a={scheda} onChiudi={() => setScheda(null)} onCambiato={rinnova} />}
     </div>,
     sostituisci(t.sopra, { centro: centro.nome, mese: mese.charAt(0).toUpperCase() + mese.slice(1) }),
   );
 }
 
 /** Il colpo del mese: quello del programma più usato dai gruppi visibili, altrimenti il dritto. */
-function colpoDelMese(d: DatiOrg, o: Org): string {
+function colpoDelMese(d: DatiOrg, gruppiVis: GruppoR[]): string {
   const conta = new Map<string, number>();
-  o.gruppiVis.forEach((g) => {
+  gruppiVis.forEach((g) => {
     const c = meseProgramma(d.programmi.find((p) => p.id === g.programma_id))?.colpo;
     if (c) conta.set(norm(c), (conta.get(norm(c)) ?? 0) + 1);
   });
@@ -212,7 +309,7 @@ function FormGenitore({ g, set }: { g: Genitore; set: (g: Genitore) => void }) {
   );
 }
 
-function FoglioNuovo({ o, d, onChiudi }: { o: Org; d: DatiOrg; onChiudi: () => void }) {
+function FoglioNuovo({ o, d, onChiudi, onCambiato }: { o: Org; d: DatiOrg; onChiudi: () => void; onCambiato: () => void }) {
   const t = useT(T);
   const [nome, setNome] = useState("");
   const [cognome, setCognome] = useState("");
@@ -232,15 +329,16 @@ function FoglioNuovo({ o, d, onChiudi }: { o: Org; d: DatiOrg; onChiudi: () => v
     const id = a.data.id as string;
     if (gruppoId) {
       const i = await o.sb.from("iscrizioni").insert({ centro_id: o.centro.id, allievo_id: id, gruppo_id: gruppoId, dal: o.oggi });
-      if (i.error) { setErrore(i.error.message); setLavoro(false); await o.carica(); return; }
+      if (i.error) { setErrore(i.error.message); setLavoro(false); await o.carica(); onCambiato(); return; }
     }
     if (gen.nome.trim()) {
       const e = await collegaGenitore(o, id, gen);
-      if (e) { setErrore(e); setLavoro(false); await o.carica(); return; }
+      if (e) { setErrore(e); setLavoro(false); await o.carica(); onCambiato(); return; }
     }
     const inv = await creaInvito(o.sb, o.centro.id, { ruolo: "genitore", gruppo_id: gruppoId || null, allievo_id: id, usi_max: 2 });
     await o.registra("allievo_creato", `${nome.trim()} ${cognome.trim()}`, { allievo_id: id, gruppo_id: gruppoId || null });
     await o.carica();
+    onCambiato();
     setLavoro(false);
     if (inv.errore) setErrore(inv.errore); else setCodice(inv.invito?.codice ?? null);
   };
@@ -281,18 +379,27 @@ function FoglioNuovo({ o, d, onChiudi }: { o: Org; d: DatiOrg; onChiudi: () => v
   );
 }
 
-function FoglioScheda({ o, d, id, onChiudi }: { o: Org; d: DatiOrg; id: string; onChiudi: () => void }) {
+type FamiliareL = { id: string; relazione: string | null; membri: { id: string; nome: string; cognome: string | null; email: string | null; telefono: string | null } | null };
+
+function FoglioScheda({ o, a, onChiudi, onCambiato }: { o: Org; d: DatiOrg; a: AllievoL; onChiudi: () => void; onCambiato: () => void }) {
   const t = useT(T);
-  const a = d.allievi.find((x) => x.id === id);
-  const [cert, setCert] = useState(a?.certificato_scade ?? "");
+  const d = o.dati as DatiOrg;
+  const id = a.id;
+  const [cert, setCert] = useState(a.certificato_scade ?? "");
+  // la famiglia si legge solo per l'allievo aperto (un genitore non è mai nella lettura generale del centro)
+  const [famiglia, setFamiglia] = useState<FamiliareL[] | null>(null);
+  const caricaFamiglia = useCallback(async () => {
+    const x = await o.sb.from("allievi_famiglie").select("id,relazione,membri(id,nome,cognome,email,telefono)").eq("allievo_id", id);
+    if (!x.error) setFamiglia((x.data ?? []) as unknown as FamiliareL[]);
+  }, [o.sb, id]);
+  useEffect(() => { void caricaFamiglia(); }, [caricaFamiglia]);
   const [nuovoG, setNuovoG] = useState("");
   const [gen, setGen] = useState<Genitore | null>(null);
   const [codice, setCodice] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [errore, setErrore] = useState<string | null>(null);
-  if (!a) return null;
   const gid = [...new Set(o.iscrAttive.filter((i) => i.allievo_id === id).map((i) => i.gruppo_id))];
-  const fam = d.famiglie.filter((f) => f.allievo_id === id).map((f) => ({ f, m: d.membri.find((m) => m.id === f.membro_id) })).filter((x) => x.m);
+  const fam = (famiglia ?? []).filter((f) => f.membri).map((f) => ({ f, m: f.membri! }));
   const gruppiLiberi = o.gruppiVis.filter((g) => g.attivo && !gid.includes(g.id) && o.can("iscrizioni", g.area_id));
   const puo = o.can("iscrizioni");
 
@@ -302,6 +409,7 @@ function FoglioScheda({ o, d, id, onChiudi }: { o: Org; d: DatiOrg; id: string; 
     setNuovoG("");
     await o.registra("iscrizione", nomeCompleto(a), { gruppo_id: nuovoG });
     await o.carica();
+    onCambiato();
   };
   const togli = async (gruppoId: string) => {
     const ids = d.iscrizioni.filter((i) => i.allievo_id === id && i.gruppo_id === gruppoId && (!i.al || i.al >= o.oggi)).map((i) => i.id);
@@ -309,19 +417,20 @@ function FoglioScheda({ o, d, id, onChiudi }: { o: Org; d: DatiOrg; id: string; 
     if (r.error) { setErrore(r.error.message); return; }
     await o.registra("iscrizione_chiusa", nomeCompleto(a), { gruppo_id: gruppoId });
     await o.carica();
+    onCambiato();
   };
   const salvaCert = async () => {
     const r = await o.sb.from("allievi").update({ certificato_scade: cert || null }).eq("id", id);
     if (r.error) { setErrore(r.error.message); return; }
     setMsg(t.salvato);
-    await o.carica();
+    onCambiato();
   };
   const aggiungiGen = async () => {
     if (!gen || !gen.nome.trim()) return;
     const e = await collegaGenitore(o, id, gen);
     if (e) { setErrore(e); return; }
     setGen(null);
-    await o.carica();
+    await caricaFamiglia();
   };
   const invita = async () => {
     const inv = await creaInvito(o.sb, o.centro.id, { ruolo: "genitore", allievo_id: id, gruppo_id: gid[0] ?? null, usi_max: 2 });
@@ -346,8 +455,8 @@ function FoglioScheda({ o, d, id, onChiudi }: { o: Org; d: DatiOrg; id: string; 
           </div>
         )}
         <div className="og-k">{t.famigliaT}</div>
-        {fam.length === 0 && <Nota>{t.nessunaFam}</Nota>}
-        {fam.map(({ f, m }) => <div key={f.id} className="li" style={{ padding: "8px 12px" }}><span className="grow"><span className="og-t" style={{ display: "block" }}>{nomeCompleto(m!)}</span><span className="og-s" style={{ display: "block" }}>{[f.relazione, m!.email, m!.telefono].filter(Boolean).join(" · ")}</span></span></div>)}
+        {famiglia !== null && fam.length === 0 && <Nota>{t.nessunaFam}</Nota>}
+        {fam.map(({ f, m }) => <div key={f.id} className="li" style={{ padding: "8px 12px" }}><span className="grow"><span className="og-t" style={{ display: "block" }}>{nomeCompleto(m)}</span><span className="og-s" style={{ display: "block" }}>{[f.relazione, m.email, m.telefono].filter(Boolean).join(" · ")}</span></span></div>)}
         {puo && (gen ? (
           <>
             <FormGenitore g={gen} set={setGen} />

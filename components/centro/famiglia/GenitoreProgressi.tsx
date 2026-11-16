@@ -8,7 +8,7 @@ import { useCentro } from "@/lib/centro/contesto";
 import { rotta } from "@/lib/centro/rotte";
 import { useT } from "@/lib/i18n/lingua";
 import { fmtData } from "@/lib/centro/date";
-import { useFigli } from "./dati";
+import { useFigli, valutazioniAllievo } from "./dati";
 import { useCompiti } from "./compiti";
 import { calcolaColpi, etichettaPeriodo, fmt, maiuscola, nomeColpo, nomeMese, temaDelMese, type RValutazione } from "./util";
 import { Caricamento, ErroreBox, Icona, SelettoreFigli, SenzaFigli, Tratto, VisoreMedia } from "./piccoli";
@@ -64,10 +64,11 @@ export default function GenitoreProgressi() {
     if (!idAll) { setVals(null); return; }
     let vivo = true;
     (async () => {
-      const x = await sb.from("valutazioni").select("colpo,competenza,voto,test,data").eq("centro_id", centro.id).eq("allievo_id", idAll).order("data", { ascending: false }).limit(500);
+      // stessa lettura (e stessa cache) di Home e Percorso
+      let righe: RValutazione[] = [];
+      try { righe = await valutazioniAllievo(sb, centro.id, idAll); } catch (e) { if (vivo) setErrVal(e instanceof Error ? e.message : String(e)); }
       if (!vivo) return;
-      if (x.error) setErrVal(x.error.message);
-      setVals((x.data ?? []) as RValutazione[]);
+      setVals(righe);
     })();
     return () => { vivo = false; };
   }, [idAll, centro.id, sb]);

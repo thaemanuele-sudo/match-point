@@ -5,7 +5,7 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { lettoQuando, messaggioErrore, nomeCorto, nomeMembro, useMio, useRealtime } from "./comuni";
+import { BLOCCO, lettoQuando, messaggioErrore, nomeCorto, nomeMembro, useMio, useRealtime } from "./comuni";
 
 export type TipoConv = "allievo_maestro" | "famiglia_maestro" | "famiglia_segreteria" | "staff";
 export type Parte = { membro_id: string; sola_lettura: boolean; nome: string; cognome: string; ruolo: string };
@@ -49,66 +49,96 @@ export async function caricaParti(sb: SupabaseClient, convIds: string[]): Promis
   return out;
 }
 
-/** Tutte le conversazioni visibili al membro attivo, con ultimo messaggio e puntino "nuovo". */
-export function useConversazioni() {
+/**
+ * Conversazioni del membro attivo, a blocchi di 50 (più recenti per prime).
+ * Il filtro per tipo e per allievo si fa nel database: la RLS limita già alle conversazioni che posso vedere.
+ * Ultimo messaggio: una sola query `in(...)` sugli ultimi 90 giorni (mai una query per conversazione).
+ * `attivo: false` salta il caricamento quando la scheda non serve.
+ */
+export function useConversazioni(opz: { tipi?: TipoConv[]; allievoId?: string | null; attivo?: boolean } = {}) {
   const { sb, centro, me } = useMio();
   const [conv, setConv] = useState<Conv[] | null>(null);
   const [errore, setErrore] = useState<string | null>(null);
+  const [ancora, setAncora] = useState(false);
+  const chiaveTipi = opz.tipi?.join(",") ?? "";
+  const allievoId = opz.allievoId ?? null;
+  const attivo = opz.attivo !== false;
 
-  const carica = useCallback(async () => {
-    if (!sb || !centro || !me) return;
-    try {
-      const { data, error } = await sb.from("conversazioni").select("id,tipo,allievo_id,titolo,created_at").eq("centro_id", centro.id).order("created_at", { ascending: false });
+  const leggi = useCallback(
+    async (da: number, a: number): Promise<Conv[]> => {
+      if (!sb || !centro || !me || !attivo) return [];
+      let q = sb.from("conversazioni").select("id,tipo,allievo_id,titolo,created_at").eq("centro_id", centro.id).order("created_at", { ascending: false }).range(da, a);
+      if (chiaveTipi) q = q.in("tipo", chiaveTipi.split(","));
+      if (allievoId) q = q.or(`allievo_id.eq.${allievoId},allievo_id.is.null`);
+      const { data, error } = await q;
       if (error) throw error;
       const righe = (data ?? []) as { id: string; tipo: TipoConv; allievo_id: string | null; titolo: string | null; created_at: string }[];
       const ids = righe.map((r) => r.id);
-      const parti = await caricaParti(sb, ids);
       const alIds = Array.from(new Set(righe.map((r) => r.allievo_id).filter(Boolean))) as string[];
+      const novanta = new Date(Date.now() - 90 * 86400000).toISOString();
+      const [parti, al, ms] = await Promise.all([
+        caricaParti(sb, ids),
+        alIds.length ? sb.from("allievi").select("id,nome,cognome").in("id", alIds) : Promise.resolve({ data: [] as unknown[] }),
+        ids.length ? sb.from("messaggi").select("conversazione_id,autore_id,testo,created_at,consegna_il").in("conversazione_id", ids).gte("created_at", novanta).order("created_at", { ascending: false }).limit(300) : Promise.resolve({ data: [] as unknown[] }),
+      ]);
       const alNomi: Record<string, string> = {};
-      if (alIds.length) {
-        const { data: al } = await sb.from("allievi").select("id,nome,cognome").in("id", alIds);
-        ((al ?? []) as { id: string; nome: string; cognome: string | null }[]).forEach((a) => (alNomi[a.id] = nomeCorto(a)));
-      }
+      ((al.data ?? []) as { id: string; nome: string; cognome: string | null }[]).forEach((x) => (alNomi[x.id] = nomeCorto(x)));
       const ultimi: Record<string, Msg> = {};
-      if (ids.length) {
-        const { data: ms } = await sb.from("messaggi").select("id,conversazione_id,autore_id,testo,created_at,consegna_il").in("conversazione_id", ids).order("created_at", { ascending: false }).limit(400);
-        const ora = Date.now();
-        ((ms ?? []) as Msg[]).forEach((m) => {
-          // un messaggio programmato per l'indomani non è ancora "arrivato" a chi lo deve ricevere
-          if (m.consegna_il && new Date(m.consegna_il).getTime() > ora && m.autore_id !== me.id) return;
-          if (!ultimi[m.conversazione_id]) ultimi[m.conversazione_id] = m;
-        });
-      }
-      const out: Conv[] = righe
-        .map((r) => {
-          const p = parti[r.id] ?? [];
-          const u = ultimi[r.id];
-          return {
-            ...r,
-            parti: p,
-            allievoNome: r.allievo_id ? alNomi[r.allievo_id] ?? "" : "",
-            ultimo: u ? { testo: u.testo, autore_id: u.autore_id, created_at: u.created_at } : null,
-            nuovo: !!u && u.autore_id !== me.id && new Date(u.created_at).getTime() > lettoQuando(r.id),
-            miaSolaLettura: !!p.find((x) => x.membro_id === me.id)?.sola_lettura,
-          };
-        })
-        // vedo solo le conversazioni in cui sono partecipante (il DT vede il resto dall'archivio, non dalla casella)
-        .filter((c) => c.parti.some((x) => x.membro_id === me.id));
-      setConv(out);
+      const ora = Date.now();
+      ((ms.data ?? []) as Msg[]).forEach((m) => {
+        // un messaggio programmato per l'indomani non è ancora "arrivato" a chi lo deve ricevere
+        if (m.consegna_il && new Date(m.consegna_il).getTime() > ora && m.autore_id !== me.id) return;
+        if (!ultimi[m.conversazione_id]) ultimi[m.conversazione_id] = m;
+      });
+      return righe.map((r) => {
+        const p = parti[r.id] ?? [];
+        const u = ultimi[r.id];
+        return {
+          ...r,
+          parti: p,
+          allievoNome: r.allievo_id ? alNomi[r.allievo_id] ?? "" : "",
+          ultimo: u ? { testo: u.testo, autore_id: u.autore_id, created_at: u.created_at } : null,
+          nuovo: !!u && u.autore_id !== me.id && new Date(u.created_at).getTime() > lettoQuando(r.id),
+          miaSolaLettura: !!p.find((x) => x.membro_id === me.id)?.sola_lettura,
+        };
+      });
+    },
+    [sb, centro, me, chiaveTipi, allievoId, attivo]
+  );
+
+  const carica = useCallback(async () => {
+    try {
+      const n = Math.max(BLOCCO, conv?.length ?? 0);
+      const r = await leggi(0, n - 1);
+      setConv(r);
+      setAncora(r.length === n);
       setErrore(null);
     } catch (e) {
       setErrore(messaggioErrore(e));
       setConv((c) => c ?? []);
     }
-  }, [sb, centro, me]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leggi]);
+
+  const altre = useCallback(async () => {
+    try {
+      const da = conv?.length ?? 0;
+      const r = await leggi(da, da + BLOCCO - 1);
+      setConv((c) => [...(c ?? []), ...r]);
+      setAncora(r.length === BLOCCO);
+    } catch (e) {
+      setErrore(messaggioErrore(e));
+    }
+  }, [leggi, conv]);
 
   useEffect(() => {
+    setConv(null);
     carica();
   }, [carica]);
-  // nuovi messaggi del centro: la RLS fa arrivare solo quelli che posso leggere
-  useRealtime(sb, `cm-lista-${me?.id ?? "x"}`, "messaggi", null, "INSERT", carica);
+  // un messaggio nuovo per me crea una notifica: ascolto solo le mie notifiche (filtro per membro), non tutti i messaggi del centro
+  useRealtime(sb, `cm-lista-${me?.id ?? "x"}`, "notifiche", me ? `membro_id=eq.${me.id}` : null, "INSERT", () => carica());
 
-  return { conv, errore, ricarica: carica };
+  return { conv, errore, ricarica: carica, altre, ancora };
 }
 
 /** Nome da mostrare nella lista per il membro attivo. */

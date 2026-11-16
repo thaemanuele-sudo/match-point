@@ -43,11 +43,12 @@ export function useMio() {
     centro: { id: string; slug: string; nome: string; nome_app?: string | null; impostazioni?: Partial<Imp> | null };
     membro: MembroLite | null;
     vistaCome: MembroLite | null;
+    membroAttivo: MembroLite | null;
     ruolo: string;
     sb: SupabaseClient;
   };
   const centro = c?.centro;
-  const me = c?.vistaCome ?? c?.membro ?? null;
+  const me = (c?.membroAttivo ?? c?.vistaCome ?? c?.membro) as MembroLite | null;
   const imp: Imp = { ...IMP_DEF, ...(centro?.impostazioni ?? {}) };
   return { sb: c?.sb, centro, slug: centro?.slug ?? "", base: `/c/${centro?.slug ?? ""}`, me, ruolo: (c?.ruolo ?? "") as string, imp };
 }
@@ -179,17 +180,18 @@ export function lettoQuando(chiave: string): number {
 }
 
 /**
- * Ascolta una tabella in tempo reale (Supabase Realtime) e richiama `quando` a ogni cambio.
- * Il callback sta in un ref, così la sottoscrizione non si rifà a ogni render.
+ * Ascolta una tabella in tempo reale (Supabase Realtime). Il filtro è obbligatorio (per conversazione o per membro):
+ * con grandi centri una sottoscrizione senza filtro riceverebbe i messaggi di tutti. Si chiude allo smontaggio.
+ * Il callback sta in un ref, così la sottoscrizione non si rifà a ogni render. Riceve la riga nuova.
  */
-export function useRealtime(sb: SupabaseClient | undefined, nome: string, tabella: string, filtro: string | null, evento: "INSERT" | "*", quandoSuccede: () => void) {
+export function useRealtime<R = Record<string, unknown>>(sb: SupabaseClient | undefined, nome: string, tabella: string, filtro: string | null, evento: "INSERT" | "*", quandoSuccede: (riga: R) => void) {
   const cb = useRef(quandoSuccede);
   cb.current = quandoSuccede;
   useEffect(() => {
-    if (!sb) return;
+    if (!sb || !filtro) return;
     const ch = sb
       .channel(nome)
-      .on("postgres_changes" as never, { event: evento, schema: "public", table: tabella, ...(filtro ? { filter: filtro } : {}) } as never, () => cb.current())
+      .on("postgres_changes" as never, { event: evento, schema: "public", table: tabella, filter: filtro } as never, ((p: { new: R }) => cb.current(p.new)) as never)
       .subscribe();
     return () => {
       sb.removeChannel(ch);
@@ -197,7 +199,21 @@ export function useRealtime(sb: SupabaseClient | undefined, nome: string, tabell
   }, [sb, nome, tabella, filtro, evento]);
 }
 
+/** Pagina di lista: blocchi di 50 con "carica altri" (regola Scala di docs/CENTRI.md). */
+export const BLOCCO = 50;
+
 export const messaggioErrore = (e: unknown): string => {
   const m = (e as { message?: string } | null)?.message;
   return m || "Errore";
 };
+
+/** Giorni "2026-11-17" scritti per l'utente, senza slittamenti di fuso orario. */
+export const giornoCorto = (data: string) => {
+  const d = inizioLezione(data, "00:00");
+  return `${giornoSettimanaCorto(d)} ${dataBreve(d)}`;
+};
+export const giornoNumero = (data: string) => {
+  const d = inizioLezione(data, "00:00");
+  return `${giornoSettimana(d)} ${d.getDate()}`;
+};
+export const giornoCompleto = (data: string) => dataLunga(inizioLezione(data, "00:00"));

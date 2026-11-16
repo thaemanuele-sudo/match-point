@@ -9,7 +9,7 @@ import { useCentro } from "@/lib/centro/contesto";
 import { rotta } from "@/lib/centro/rotte";
 import { useT } from "@/lib/i18n/lingua";
 import { aggiungiGiorni, fmtData, fmtGiorni, fmtOra, isoGiorno, leggiData } from "@/lib/centro/date";
-import { agendaLezioni, nomeBreve, nomeCompleto, useFigli, type Figlio, type RCambio, type RLezione, type VoceLezione } from "./dati";
+import { COL_CAMBIO, COL_LEZIONE, agendaLezioni, nomeBreve, nomeCompleto, useFigli, type Figlio, type RCambio, type RLezione, type VoceLezione } from "./dati";
 import { dataTest, fineMese, fmt, chiaveMese, inizioMese, maiuscola, nomeCampo, nomeColpo, nomeMese, temaDelMese } from "./util";
 import { inviaMessaggioFamiglia } from "./messaggi";
 import { Caricamento, ErroreBox, Foglio, FoglioAssenza, Icona, SelettoreFigli, SenzaFigli } from "./piccoli";
@@ -96,16 +96,17 @@ export default function GenitoreCalendario() {
       const al = isoGiorno(fineMese(mese));
       const g = idGr ?? "00000000-0000-0000-0000-000000000000";
       const [cambi, righe, ass] = await Promise.all([
-        sb.from("cambi_campo").select("*").eq("centro_id", centro.id).eq("gruppo_id", g).gte("data", dal).lte("data", al),
-        sb.from("lezioni").select("*").eq("centro_id", centro.id).eq("gruppo_id", g).gte("data", dal).lte("data", al),
+        sb.from("cambi_campo").select(COL_CAMBIO).eq("centro_id", centro.id).eq("gruppo_id", g).gte("data", dal).lte("data", al),
+        sb.from("lezioni").select(COL_LEZIONE).eq("centro_id", centro.id).eq("gruppo_id", g).gte("data", dal).lte("data", al),
         sb.from("assenze").select("data").eq("centro_id", centro.id).eq("allievo_id", idAll).gte("data", dal).lte("data", al),
       ]);
       const lez = (righe.data ?? []) as RLezione[];
       const presenti: Record<string, boolean> = {};
       if (lez.length) {
         const p = await sb.from("presenze").select("lezione_id,presente").eq("centro_id", centro.id).eq("allievo_id", idAll).in("lezione_id", lez.map((x) => x.id));
+        const dataDi = new Map(lez.map((l) => [l.id, l.data]));
         for (const x of (p.data ?? []) as { lezione_id: string; presente: boolean }[]) {
-          const d = lez.find((l) => l.id === x.lezione_id)?.data;
+          const d = dataDi.get(x.lezione_id);
           if (d) presenti[d] = x.presente;
         }
       }

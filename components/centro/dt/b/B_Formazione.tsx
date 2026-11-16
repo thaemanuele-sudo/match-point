@@ -11,6 +11,7 @@ import {
   COL, coloreAvatar, corsoCompletato, iniziali, nomeCompleto, rimpiazza, tipoCorso,
   type CorsoB, type FormazioneB, type MembroB, type TipoCorso,
 } from "./util";
+import { leggiPagine } from "./dati";
 import "./b.css";
 
 const it = {
@@ -51,21 +52,29 @@ export default function BFormazione() {
   const [aperto, setAperto] = useState(false);
 
   const leggi = useCallback(async () => {
+    const errori: string[] = [];
     const [m, c, f] = await Promise.all([
       sb.from("membri").select("id,nome,cognome,ruolo,stato").eq("centro_id", centro.id).eq("ruolo", "maestro").eq("stato", "attivo").order("nome"),
       sb.from("corsi_formazione").select("id,titolo,obbligatorio,moduli").eq("centro_id", centro.id).order("created_at", { ascending: true }),
-      sb.from("formazione").select("id,corso_id,membro_id,moduli_fatti,certificato_il,scadenza").eq("centro_id", centro.id),
+      // corsi per maestri: può superare le 1000 righe che PostgREST restituisce in una volta
+      leggiPagine((x, y) => sb.from("formazione").select("id,corso_id,membro_id,moduli_fatti,certificato_il,scadenza").eq("centro_id", centro.id).order("id").range(x, y), errori, "formazione"),
     ]);
-    const e = m.error ?? c.error ?? f.error;
-    if (e) { setErr(e.message); } else { setErr(""); }
+    const e = m.error?.message ?? c.error?.message ?? errori[0];
+    if (e) { setErr(e); } else { setErr(""); }
     setMaestri((m.data as MembroB[]) ?? []);
     setCorsi((c.data as CorsoB[]) ?? []);
-    setForma((f.data as FormazioneB[]) ?? []);
+    setForma(f as FormazioneB[]);
     setCarica(false);
   }, [sb, centro.id]);
   useEffect(() => { void leggi(); }, [leggi]);
 
-  const fDi = useCallback((corso: string, membro: string) => forma.find((x) => x.corso_id === corso && x.membro_id === membro), [forma]);
+  // indice corso+maestro: i controlli sono corsi × maestri × (ogni render), con `find` su tutta la lista diventano migliaia di giri
+  const indice = useMemo(() => {
+    const mp = new Map<string, FormazioneB>();
+    for (const x of forma) if (!mp.has(`${x.corso_id}|${x.membro_id}`)) mp.set(`${x.corso_id}|${x.membro_id}`, x);
+    return mp;
+  }, [forma]);
+  const fDi = useCallback((corso: string, membro: string) => indice.get(`${corso}|${membro}`), [indice]);
   const fatto = useCallback((c: CorsoB, m: MembroB) => corsoCompletato(c, fDi(c.id, m.id)), [fDi]);
 
   const riepilogo = useMemo(() => {
@@ -198,6 +207,7 @@ function FoglioAssegna({ corsi, maestri, forma, onChiudi, onFatto }: { corsi: Co
     return () => window.removeEventListener("keydown", k);
   }, [onChiudi]);
 
+  const giaAssegnati = useMemo(() => new Set(forma.map((f) => `${f.corso_id}|${f.membro_id}`)), [forma]);
   const valido = scelti.length > 0 && (corso !== "nuovo" || titolo.trim().length > 1);
 
   async function conferma() {
@@ -215,13 +225,16 @@ function FoglioAssegna({ corsi, maestri, forma, onChiudi, onFatto }: { corsi: Co
     }
     const nuove: Record<string, unknown>[] = [];
     let gia = 0;
+    const giaIds: string[] = [];
     for (const mid of scelti) {
       const ex = forma.find((f) => f.corso_id === corsoId && f.membro_id === mid);
       if (ex) {
         gia++;
-        if (scadenza) await sb.from("formazione").update({ scadenza }).eq("id", ex.id);
+        giaIds.push(ex.id);
       } else nuove.push({ centro_id: centro.id, corso_id: corsoId, membro_id: mid, moduli_fatti: 0, scadenza: scadenza || null });
     }
+    // una sola richiesta per tutti i maestri che avevano già il corso (prima era una per maestro)
+    if (scadenza && giaIds.length) await sb.from("formazione").update({ scadenza }).in("id", giaIds);
     if (nuove.length) {
       const r = await sb.from("formazione").insert(nuove);
       if (r.error) { setErr(rimpiazza(t.errore, { e: r.error.message })); setLavoro(false); return; }
@@ -253,7 +266,7 @@ function FoglioAssegna({ corsi, maestri, forma, onChiudi, onFatto }: { corsi: Co
         <div className="k">{t.fMaestri}</div>
         <div className="b-col" style={{ gap: 6 }}>
           {maestri.map((m) => {
-            const gia = corso !== "nuovo" && !!forma.find((f) => f.corso_id === corso && f.membro_id === m.id);
+            const gia = corso !== "nuovo" && giaAssegnati.has(`${corso}|${m.id}`);
             return (
               <label key={m.id} className="b-check">
                 <input type="checkbox" checked={scelti.includes(m.id)} onChange={(e) => setScelti((s) => (e.target.checked ? [...s, m.id] : s.filter((x) => x !== m.id)))} />

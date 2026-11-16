@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { SchermoCentro } from "@/components/centro/Schermo";
-import { Avatar, Chip, Chips, Ico, Tile, Vuoto } from "@/components/centro/ui";
+import { Avatar, Btn, Chip, Chips, Ico, Tile, Vuoto } from "@/components/centro/ui";
 import { useCentro } from "@/lib/centro/contesto";
 import { rotta } from "@/lib/centro/rotte";
 import { useT } from "@/lib/i18n/lingua";
@@ -15,7 +15,7 @@ import { coloreVoto, fmt, nomeBreve, norm, type RAllievo } from "./util";
 const IT = {
   sopra: "{nome} · {centro}", titolo: "Allievi", cerca: "Cerca un allievo", cercaPlaceholder: "Nome o cognome", allievi: "allievi", inRitardo: "in ritardo", assenzeRipetute: "assenze ripetute",
   tutti: "Tutti", fRitardo: "In ritardo", fAssenze: "Assenze ripetute", tagRitardo: "In ritardo", tagAssenze: "Assenze", aria: "Scheda di {nome}", vsPrec: "vs test prec.",
-  nessunVoto: "Ancora nessun voto", vuoto: "Nessun allievo", vuotoTesto: "Qui compaiono gli allievi dei tuoi gruppi.", vuotoFiltro: "Nessun allievo con questo filtro.", chiudiCerca: "Chiudi la ricerca",
+  nessunVoto: "Ancora nessun voto", vuoto: "Nessun allievo", vuotoTesto: "Qui compaiono gli allievi dei tuoi gruppi.", vuotoFiltro: "Nessun allievo con questo filtro.", chiudiCerca: "Chiudi la ricerca", caricaAltri: "Carica altri",
 };
 const T = { it: IT, en: { ...IT } };
 type Filtro = "tutti" | "ritardo" | "assenze";
@@ -28,6 +28,8 @@ export function Allievi() {
   const { stat, errore: errStat } = useStatAllievi(dati);
   const [filtro, setFiltro] = useState<Filtro>("tutti");
   const [cerca, setCerca] = useState<string | null>(null);
+  // lista a blocchi di 50 con "carica altri": un maestro con molti gruppi non deve disegnare centinaia di righe in una volta
+  const [quanti, setQuanti] = useState(50);
 
   const righe = useMemo(() => {
     if (!dati || !stat) return [];
@@ -68,7 +70,8 @@ export function Allievi() {
             <Chip on={filtro === "assenze"} onClick={() => setFiltro("assenze")}>{t.fAssenze}</Chip>
           </Chips>
           {visibili.length === 0 && <Vuoto titolo={righe.length ? t.vuotoFiltro : t.vuoto} testo={righe.length ? undefined : t.vuotoTesto} icona="users" />}
-          {visibili.map(({ a, g, s }) => <RigaAllievo key={a.id} a={a} gruppo={g} s={s} href={r.allievo(a.id)} t={t} />)}
+          {visibili.slice(0, quanti).map(({ a, g, s }) => <RigaAllievo key={a.id} a={a} gruppo={g} s={s} href={r.allievo(a.id)} t={t} />)}
+          {visibili.length > quanti && <Btn variante="secondario" onClick={() => setQuanti((n) => n + 50)}>{t.caricaAltri}</Btn>}
         </div>
       )}
     </SchermoCentro>

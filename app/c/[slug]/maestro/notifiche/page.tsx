@@ -1,6 +1,6 @@
-import { Segnaposto } from "@/components/centro/Segnaposto";
+"use client";
+import MaestroNotifiche from "@/components/centro/comunicazione/MaestroNotifiche";
 
-// Segnaposto: l'area responsabile sostituisce questo file con la schermata vera.
 export default function Page() {
-  return <Segnaposto codice="M13" ruolo="maestro" tab="messaggi" />;
+  return <MaestroNotifiche />;
 }

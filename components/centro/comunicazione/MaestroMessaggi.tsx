@@ -34,6 +34,7 @@ const it = {
   piedeFa: "Conversazione conservata dal centro. I messaggi non si cancellano.",
   piedeGr: "Gli avvisi restano archiviati. I messaggi non si cancellano.",
   rispondiA: "Scrivi o scegli una risposta rapida",
+  altre: "Carica altre conversazioni",
   apriChat: "Apri tutta la conversazione",
   nessunMsg: "Ancora nessun messaggio.",
   tu: "Tu",
@@ -59,15 +60,15 @@ type Vista = "al" | "fa" | "gr";
 export default function MaestroMessaggi() {
   const t = useT(T);
   const { me, centro, base, imp, sb } = useMio();
-  const { conv, errore, ricarica } = useConversazioni();
   const avvisi = useAvvisiInviati("miei", 15);
   const nomi = useNomi();
   const [vista, setVista] = useState<Vista>("al");
+  const { conv, errore, ricarica, altre, ancora } = useConversazioni({ tipi: [vista === "fa" ? "famiglia_maestro" : "allievo_maestro"], attivo: vista !== "gr" });
   const [sel, setSel] = useState<string | null>(null);
   const [nonLette, setNonLette] = useState(0);
 
   const et = { famigliaDi: t.famigliaDi, chatDi: t.chatDi, segreteria: t.segreteria, staff: t.staff };
-  const righe = useMemo<Conv[]>(() => (conv ?? []).filter((c) => (vista === "al" ? c.tipo === "allievo_maestro" : vista === "fa" ? c.tipo === "famiglia_maestro" : false)), [conv, vista]);
+  const righe = useMemo<Conv[]>(() => (vista === "gr" ? [] : conv ?? []), [conv, vista]);
   const idSel = vista === "gr" ? (avvisi.lista ?? []).find((a) => a.id === sel)?.id ?? avvisi.lista?.[0]?.id ?? null : righe.find((c) => c.id === sel)?.id ?? righe[0]?.id ?? null;
   const corrente = righe.find((c) => c.id === idSel) ?? null;
   const avvCorr = vista === "gr" ? (avvisi.lista ?? []).find((a) => a.id === idSel) ?? null : null;
@@ -124,7 +125,7 @@ export default function MaestroMessaggi() {
         </div>
 
         <ErroreC testo={errore ?? avvisi.errore} />
-        {conv === null ? (
+        {conv === null && vista !== "gr" ? (
           <Caric testo={t.caricamento} />
         ) : vista === "gr" ? (
           avvisi.lista === null ? (
@@ -169,6 +170,12 @@ export default function MaestroMessaggi() {
               );
             })}
           </div>
+        )}
+
+        {vista !== "gr" && ancora && (
+          <button type="button" className="cm-bt2" style={{ height: 36, fontSize: 13 }} onClick={altre}>
+            {t.altre}
+          </button>
         )}
 
         {corrente && (

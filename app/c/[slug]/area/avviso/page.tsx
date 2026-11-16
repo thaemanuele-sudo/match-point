@@ -1,6 +1,6 @@
-import { Segnaposto } from "@/components/centro/Segnaposto";
+"use client";
+import AreaAvviso from "@/components/centro/comunicazione/AreaAvviso";
 
-// Segnaposto: l'area responsabile sostituisce questo file con la schermata vera.
 export default function Page() {
-  return <Segnaposto codice="R2" ruolo="area" tab="messaggi" />;
+  return <AreaAvviso />;
 }

@@ -11,6 +11,10 @@ export type RCompito = {
 export type RFatto = { id: string; compito_id: string; allievo_id: string; fatto_il: string; media_path: string | null };
 export type REsercizio = { id: string; titolo: string; descrizione: string | null; materiale: string | null; video_path: string | null; durata_min: number | null };
 
+// Colonne esplicite: `compiti` e `compiti_fatti` crescono con ogni lezione
+export const COL_COMPITO = "id,allievo_id,gruppo_id,maestro_id,titolo,durata_min,esercizio_id,scadenza,created_at";
+export const COL_FATTO = "id,compito_id,allievo_id,fatto_il,media_path";
+
 export function useCompiti(figlio: Figlio | null) {
   const { centro, sb } = useCentro();
   const [compiti, setCompiti] = useState<RCompito[]>([]);
@@ -30,13 +34,13 @@ export function useCompiti(figlio: Figlio | null) {
       setErrore(null);
       // compiti personali, oppure di gruppo (allievo_id nullo) per il gruppo in cui è iscritto
       const filtro = idGr ? `allievo_id.eq.${idAll},and(allievo_id.is.null,gruppo_id.eq.${idGr})` : `allievo_id.eq.${idAll}`;
-      const c = await sb.from("compiti").select("*").eq("centro_id", centro.id).or(filtro).order("created_at", { ascending: false }).limit(40);
+      const c = await sb.from("compiti").select(COL_COMPITO).eq("centro_id", centro.id).or(filtro).order("created_at", { ascending: false }).limit(40);
       if (c.error) return void (vivo && (setErrore(c.error.message), setCaricamento(false)));
       const lista = (c.data ?? []) as RCompito[];
       const ids = lista.map((x) => x.id);
       const idEs = [...new Set(lista.map((x) => x.esercizio_id).filter(Boolean))] as string[];
       const [f, e] = await Promise.all([
-        ids.length ? sb.from("compiti_fatti").select("*").eq("centro_id", centro.id).eq("allievo_id", idAll).in("compito_id", ids) : Promise.resolve({ data: [], error: null }),
+        ids.length ? sb.from("compiti_fatti").select(COL_FATTO).eq("centro_id", centro.id).eq("allievo_id", idAll).in("compito_id", ids) : Promise.resolve({ data: [], error: null }),
         idEs.length ? sb.from("esercizi").select("id,titolo,descrizione,materiale,video_path,durata_min").eq("centro_id", centro.id).in("id", idEs) : Promise.resolve({ data: [], error: null }),
       ]);
       if (!vivo) return;
