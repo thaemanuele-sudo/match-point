@@ -7,11 +7,11 @@ Un solo progetto Next.js 15 (App Router, React 19, TypeScript, CSS semplice, nie
 | `/` e `/en` | Sito di presentazione IT/EN, nero, stile Apple (come il sito di Archimede) | `app/(sito)/`, `components/sito/`, `lib/sito/`, `public/sito/` |
 | `/app/...` | App mobile (PWA) Match Point: Coach AI, Tecnica, Tattica, Atletica | `app/app/`, `components/app/` |
 | `/admin` | Super admin, stile iOS come la dashboard di Archimede | `app/admin/`, `components/admin/` |
-| `/api/ai/*` | Claude (chat, analisi video) e OpenAI TTS (voce), con costo registrato per utente | `app/api/ai/`, `lib/ai/` |
+| `/api/ai/*` | Claude (chat, analisi video) e voce OpenAI o KittenML (motore `voce_motore`, voce scelta `kitten_voce_id` da Impostazioni → «Voce di Match Point», elenco da `/api/admin/voci`), con costo registrato per utente | `app/api/ai/`, `lib/ai/` |
 | `/api/admin/*` | Operazioni admin lato server (solo se servono) | `app/api/admin/` |
 
 ## Regole per chi scrive codice
-- **Niente chiavi nel codice.** Claude e OpenAI: chiavi salvate dall'admin (tabella `settings`, letta solo dal server con `MP_SERVER_TOKEN`) oppure variabili d'ambiente `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` (vincono loro).
+- **Niente chiavi nel codice.** Claude, OpenAI e KittenML (`kittenml_api_key`, env `KITTENML_API_KEY`): chiavi salvate dall'admin (tabella `settings`, letta solo dal server con `MP_SERVER_TOKEN`) oppure variabili d'ambiente `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` (vincono loro).
 - **Due lingue, italiano e inglese**, in app e sito. Ogni schermata ha il suo dizionario `const T = { it: {...}, en: {...} }` e usa `const t = useT(T)` (`lib/i18n/lingua.tsx`). Nessun testo visibile scritto fuori dal dizionario. L'admin è solo in italiano.
 - I disegni originali stanno in `/home/claude/mp-design/it/*.dc.html` (italiano) e `/home/claude/mp-design/en/*.dc.html` (inglese, stessi nomi). Ogni schermata va riprodotta **fedelmente** (stessa grafica, stessi testi), adattata a larghezza piena del telefono (max 430px).
 - I link `href="X.dc.html"` diventano `<Link href={ROTTE.X}>` (`lib/rotte.ts`).
