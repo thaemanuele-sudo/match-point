@@ -149,7 +149,7 @@ function TimerSerie({ dosaggio }: { dosaggio: string }) {
   // L'anello mostra quante serie sono già fatte (durante il recupero conta anche quella appena chiusa).
   const fatte = inRecupero ? serie : serie - 1;
   return (
-    <div className={s.fine} aria-label={t.sessione}>
+    <div className={s.fine} role="group" aria-label={t.sessione}>
       <div className={s.fase}>{inRecupero ? t.recupero : t.lavoro}</div>
       <svg width="170" height="170" viewBox="0 0 170 170" role="timer" aria-label={`${t.timer}: ${formatta(mostra)}`}>
         <circle cx="85" cy="85" r="74" stroke="#232326" strokeWidth="12" fill="none" />

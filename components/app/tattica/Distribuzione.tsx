@@ -72,7 +72,7 @@ export function Distribuzione() {
         </div>
         <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
           <div className={K.card} style={{ padding: "4px" }}>
-            <svg width="200" height="190" viewBox="0 0 200 190" aria-hidden="true">
+            <svg width="200" height="190" viewBox="0 0 200 190" aria-hidden="true" style={{ overflow: "visible" }}>
               <polygon points="100,70 121,85 113,110 87,110 79,85" fill="none" stroke="#2C2C2E"></polygon>
               <polygon points="100,48 141,79 126,127 74,127 59,79" fill="none" stroke="#2C2C2E"></polygon>
               <polygon points="100,26 163,72 139,145 61,145 37,72" fill="none" stroke="#2C2C2E"></polygon>

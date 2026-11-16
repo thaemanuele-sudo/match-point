@@ -5,8 +5,8 @@ import { Quadrante, useOra } from "./Quadrante";
 import s from "./atletica.module.css";
 
 const T = {
-  it: { nome: "Allenamento sul quadrante dello smartwatch", titolo: "Allenamento", salva: "Salva lo scambio", salvato: "Scambio salvato", kcal: " KCAL", km: " KM", bpm: "BPM", cuore: "Battito" },
-  en: { nome: "Practice on the smartwatch face", titolo: "Practice", salva: "Save the rally", salvato: "Rally saved", kcal: " KCAL", km: " KM", bpm: "BPM", cuore: "Heart rate" },
+  it: { nome: "Allenamento sul quadrante dello smartwatch", titolo: "Allenamento", salva: "Salva lo scambio", salvato: "Scambio salvato", kcal: " KCAL", km: " KM", distanza: "2,7", bpm: "BPM", cuore: "Battito" },
+  en: { nome: "Practice on the smartwatch face", titolo: "Practice", salva: "Save the rally", salvato: "Rally saved", kcal: " KCAL", km: " KM", distanza: "2.7", bpm: "BPM", cuore: "Heart rate" },
 };
 
 export function WatchAllenamento() {
@@ -25,7 +25,7 @@ export function WatchAllenamento() {
       <div style={{ position: "absolute", inset: 0, padding: "14px 12px", display: "flex", flexDirection: "column", gap: 4 }}>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700 }}><span style={{ color: "#D8F34A" }}>{t.titolo}</span><span className={s.muted}>{ora}</span></div>
         <div className={s.disp} style={{ fontSize: 40, fontWeight: 800, lineHeight: 1 }}>105<span style={{ fontSize: 15, color: "#FF5A5F" }}>{t.kcal}</span></div>
-        <div className={s.disp} style={{ fontSize: 30, fontWeight: 700, lineHeight: 1 }}>2,7<span style={{ fontSize: 14, color: "#3D8BFF" }}>{t.km}</span></div>
+        <div className={s.disp} style={{ fontSize: 30, fontWeight: 700, lineHeight: 1 }}>{t.distanza}<span style={{ fontSize: 14, color: "#3D8BFF" }}>{t.km}</span></div>
         <div className={s.disp} style={{ fontSize: 30, fontWeight: 700, lineHeight: 1, display: "flex", alignItems: "center", gap: 6 }}>154<span style={{ fontSize: 14, color: "#FF5A5F" }}>{t.bpm}</span>
           <span style={{ color: "#FF5A5F" }} role="img" aria-label={t.cuore}><svg width="16" height="16" viewBox="0 0 24 24" fill="#FF5A5F" aria-hidden="true"><path d="M12 20s-7-4.5-7-10a4 4 0 017-2.5A4 4 0 0119 10c0 5.5-7 10-7 10z" /></svg></span>
         </div>

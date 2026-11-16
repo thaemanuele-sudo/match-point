@@ -7,8 +7,8 @@ import { ROTTE } from "@/lib/rotte";
 import s from "./atletica.module.css";
 
 const T = {
-  it: { kick: "Movimento gambe · U12", titolo: "Spider drill", nota: "5 coni, partenza dal centro e ritorno al centro dopo ogni cono.", giri: "giri", tempo: "tempo", record: "record personale", video: "Video", crono: "Cronometra", schema: "Schema dello spider drill: cinque coni intorno al giocatore al centro" },
-  en: { kick: "Leg movement · U12", titolo: "Spider drill", nota: "5 cones, start from the middle and return to the middle after each cone.", giri: "rounds", tempo: "time", record: "personal best", video: "Video", crono: "Time it", schema: "Spider drill layout: five cones around the player in the middle" },
+  it: { kick: "Movimento gambe · U12", titolo: "Spider drill", nota: "5 coni, partenza dal centro e ritorno al centro dopo ogni cono.", giri: "giri", tempo: "tempo", record: "record personale", recordValore: "17,4 s", video: "Video", crono: "Cronometra", schema: "Schema dello spider drill: cinque coni intorno al giocatore al centro" },
+  en: { kick: "Leg movement · U12", titolo: "Spider drill", nota: "5 cones, start from the middle and return to the middle after each cone.", giri: "rounds", tempo: "time", record: "personal best", recordValore: "17.4 s", video: "Video", crono: "Time it", schema: "Spider drill layout: five cones around the player in the middle" },
 };
 // Coni: [x della punta, y della punta, etichetta]; le linee partono dal centro (178,200).
 const CONI: [number, number, number][] = [[70, 236, 1], [70, 76, 2], [178, 46, 3], [286, 76, 4], [286, 236, 5]];
@@ -39,7 +39,7 @@ export function SpiderDrill() {
         <div className={s.g3}>
           <div className={s.tile}><b>3</b><span>{t.giri}</span></div>
           <div className={s.tile}><b>8&apos;</b><span>{t.tempo}</span></div>
-          <div className={s.tile}><b style={{ color: "#4CD07D" }}>17,4 s</b><span>{t.record}</span></div>
+          <div className={s.tile}><b style={{ color: "#4CD07D" }}>{t.recordValore}</b><span>{t.record}</span></div>
         </div>
         <div className={s.g2}>
           <Link href={ROTTE.TecnicaColpo} className={s.btn2}>

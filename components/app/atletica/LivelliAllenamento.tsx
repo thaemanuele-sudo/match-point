@@ -41,7 +41,7 @@ export function LivelliAllenamento() {
             return (
               <li key={nome} className={s.tl} aria-current={corso ? "step" : undefined}>
                 <div className={s.tlCol}>
-                  <span className={`${s.num} ${s.tlNum}`} style={{ background: col }} aria-label={fatto ? t.fatto : corso ? t.corso : undefined}>
+                  <span className={`${s.num} ${s.tlNum}`} style={{ background: col }} role={fatto || corso ? "img" : undefined} aria-label={fatto ? t.fatto : corso ? t.corso : undefined}>
                     {fatto ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10" /></svg> : i + 1}
                   </span>
                   <span className={s.tlLine} style={{ background: col }} />

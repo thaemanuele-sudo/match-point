@@ -6,8 +6,8 @@ import { ROTTE } from "@/lib/rotte";
 import s from "./atletica.module.css";
 
 const T = {
-  it: { kick: "Dallo stesso video del servizio", titolo: "Segnali da approfondire", nota: "Non è una diagnosi medica: segnali per maestro e preparatore, con percorsi dalla libreria atletica." },
-  en: { kick: "From the same serve video", titolo: "Signals to look into", nota: "Not a medical diagnosis: signals for coach and trainer, with programs from the fitness library." },
+  it: { kick: "Dallo stesso video del servizio", titolo: "Segnali da approfondire", nota: "Non è una diagnosi medica: segnali per maestro e preparatore, con percorsi dalla libreria atletica.", da: "Rilevato da" },
+  en: { kick: "From the same serve video", titolo: "Signals to look into", nota: "Not a medical diagnosis: signals for coach and trainer, with programs from the fitness library.", da: "Detected from" },
 };
 // Dati dimostrativi: [titolo, rilevato da, percorso consigliato, colore gravità]
 const SEGNALI = {
@@ -28,7 +28,6 @@ const SEGNALI = {
     ["Slow recovery to the middle", "steps after the shot", "Crossover steps, agility", "#4CD07D"],
   ],
 };
-const DA = { it: "Rilevato da", en: "Detected from" };
 
 export function SegnaliAtletici() {
   const t = useT(T);
@@ -46,7 +45,7 @@ export function SegnaliAtletici() {
             <span className={s.dot} style={{ background: col }} />
             <span className={s.grow}>
               <span className={s.t}>{tit}</span>
-              <span className={`${s.s} ${s.blk}`}>{DA[lang]}: {da}</span>
+              <span className={`${s.s} ${s.blk}`}>{t.da}: {da}</span>
               <span className={`${s.link} ${s.blk}`}>→ {perc}</span>
             </span>
           </div>

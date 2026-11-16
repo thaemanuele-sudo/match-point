@@ -16,7 +16,7 @@ export function Telefono({
   eager?: boolean;
   className?: string;
 }) {
-  // le tre schermate dell'orologio sono un quadro 420x512 nell'angolo di un'immagine nera 640x1387:
+  // le tre schermate dell'orologio sono un quadro 392x432 nell'angolo di un'immagine nera 640x1387:
   // niente cornice iPhone, si mostra solo quel quadro (vedi .s-orol in sito.css)
   if (nome.startsWith("Watch")) {
     return (

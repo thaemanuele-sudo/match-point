@@ -48,8 +48,8 @@ export function WatchPunteggio() {
           <span className={s.disp} style={{ fontSize: 24, fontWeight: 800 }}>{PUNTI[st.punti[1]]}</span>
         </div>
         <div className={s.g2} style={{ gap: 6, marginTop: "auto" }}>
-          <button type="button" className={s.wBtn} aria-label={t.puntoTu} onClick={() => setSt((x) => segna(x, 0))} style={{ height: 52, borderRadius: 16, background: "#D8F34A", color: "#0B0B0C", fontWeight: 800, fontSize: 15 }}>{t.piuTu}</button>
-          <button type="button" className={s.wBtn} aria-label={t.puntoAvv} onClick={() => setSt((x) => segna(x, 1))} style={{ height: 52, borderRadius: 16, background: "#2C2C2E", color: "#F3F6F1", fontWeight: 800, fontSize: 15 }}>{t.piuAvv}</button>
+          <button type="button" className={s.wBtn} aria-label={`${t.piuTu}: ${t.puntoTu}`} onClick={() => setSt((x) => segna(x, 0))} style={{ height: 52, borderRadius: 16, background: "#D8F34A", color: "#0B0B0C", fontWeight: 800, fontSize: 15 }}>{t.piuTu}</button>
+          <button type="button" className={s.wBtn} aria-label={`${t.piuAvv}: ${t.puntoAvv}`} onClick={() => setSt((x) => segna(x, 1))} style={{ height: 52, borderRadius: 16, background: "#2C2C2E", color: "#F3F6F1", fontWeight: 800, fontSize: 15 }}>{t.piuAvv}</button>
         </div>
       </div>
     </Quadrante>
