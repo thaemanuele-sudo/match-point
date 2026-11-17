@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase/server";
 import { leggiImpostazioni } from "@/lib/ai/impostazioni";
 import { errore } from "@/lib/ai/guardia";
-import { APP, motorePannello } from "@/lib/ai/motore";
+import { APP, motorePannello, tokenServerCorto } from "@/lib/ai/motore";
 import { sincronizza } from "@/lib/motore";
 
 export const runtime = "nodejs";
@@ -33,7 +33,10 @@ export async function GET() {
 
   const base = {
     modo: imp.motoreModo,
-    sage: { chiave: !!imp.levantoKey, acceso: imp.sageUtenti },
+    // Della chiave di Sage si dice solo se c'è e da dove arriva (Vercel o database): mai il valore.
+    sage: { chiave: !!imp.levantoKey, acceso: imp.sageUtenti, origine: process.env.LEVANTO_API_KEY ? "vercel" : imp.levantoKey ? "database" : null },
+    // Solo sì o no: il valore del token non esce mai dal server.
+    tokenCorto: tokenServerCorto(),
     centro: { url: imp.centroUrl, chiave: !!imp.centroChiave },
   };
   if (!m) return NextResponse.json({ ...base, pronto: false, motivo: "Serve la chiave Claude (Anthropic) e un modello configurato." }, { headers: { "Cache-Control": "no-store" } });
@@ -120,6 +123,6 @@ export async function POST(req: Request) {
     return NextResponse.json(r, { headers: { "Cache-Control": "no-store" } });
   } catch (e) {
     console.error("[admin] sincronizza:", e instanceof Error ? e.message : "errore");
-    return errore(502, "errore_centro", e instanceof Error ? e.message.replace(imp.centroChiave, "•••") : "Il motore centrale non risponde.");
+    return errore(502, "errore_centro", e instanceof Error ? e.message.split(imp.centroChiave).join("•••") : "Il motore centrale non risponde.");
   }
 }

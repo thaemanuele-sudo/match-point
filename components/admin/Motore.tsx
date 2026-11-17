@@ -14,7 +14,8 @@ type Secchio = { secchio: string; servito: string; bracci: Braccio[] };
 type Compito = { id: string; genere: string; versione: number; riferimento: string; candidati: string[]; secchi: Secchio[] };
 type Dati = {
   modo: "attivo" | "osserva" | "spento";
-  sage: { chiave: boolean; acceso: boolean };
+  sage: { chiave: boolean; acceso: boolean; origine: "vercel" | "database" | null };
+  tokenCorto?: boolean;
   centro: { url: string | null; chiave: boolean };
   pronto: boolean;
   motivo?: string;
@@ -31,6 +32,14 @@ const SPIEGA_MODO: Record<Dati["modo"], string> = {
   spento: "Il motore non viene usato: ogni chiamata AI segue la strada di prima, diretta ad Anthropic e al servizio di voce.",
 };
 const NOME_STATO: Record<Braccio["stato"], string> = { prova: "in prova", attivo: "promosso", escluso: "escluso" };
+/** Nome leggibile del decisore: l'id interno ("llm:anthropic/claude-haiku-5-5", "sage") non dice nulla a chi non è tecnico. */
+function nomeDecisore(id: string): string {
+  if (id === "sage") return "Sage (Levanto)";
+  const claude = /^llm:anthropic\/claude-([a-z]+)/i.exec(id);
+  if (claude) return `Claude ${claude[1][0].toUpperCase()}${claude[1].slice(1).toLowerCase()} (Anthropic)`;
+  if (id.startsWith("llm:anthropic/")) return "Claude (Anthropic)";
+  return id.replace(/^llm:/, "").replace(/^[^/]*\//, "");
+}
 const pc = (x: number) => `${Math.round(x * 100)}%`;
 const corto = (id: string) => (id.includes("/") ? id.slice(id.indexOf("/") + 1) : id);
 const NOME_COMPITO: Record<string, string> = {
@@ -95,7 +104,7 @@ export function Motore() {
       const r = await fetch("/api/admin/motore", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ azione: "sincronizza" }) });
       const j = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(j.messaggio || "Sincronizzazione non riuscita.");
-      setEsitoSync(`Sincronizzato: inviate ${intero(j.inviati)} righe di numeri, ricevuti ${intero(j.priori)} valori di partenza.`);
+      setEsitoSync(`Sincronizzato: inviate ${intero(j.inviati)} righe di numeri, ricevute ${intero(j.priori)} righe della tabella di partenza.`);
       void caricaDati();
     } catch (e) {
       setErrore(e instanceof Error ? e.message : "Sincronizzazione non riuscita.");
@@ -105,7 +114,9 @@ export function Motore() {
 
   if (!righe || !dati) return errore ? <Errore testo={errore} /> : <div className="db-caric"><span className="db-spin" aria-label="Caricamento" /></div>;
 
-  const haChiaveSage = !!righe.levanto_api_key?.impostata;
+  // La chiave di Sage può stare anche su Vercel (LEVANTO_API_KEY): in quel caso nel database non c'è, ma Sage funziona.
+  const haChiaveSage = dati.sage.chiave || !!righe.levanto_api_key?.impostata;
+  const chiaveSuVercel = dati.sage.origine === "vercel";
   const haChiaveCentro = !!righe.motore_centro_chiave?.impostata;
   const s = dati.spesa;
 
@@ -116,6 +127,7 @@ export function Motore() {
           <p className="db-sotto">Ogni chiamata AI di Match Point passa da qui: risposte già date dalla cache, il modello meno caro che basta e conti precisi. Se il motore si ferma, si torna alla strada di prima.</p></div>
       </div>
       <Errore testo={errore} />
+      {dati.tokenCorto && <Errore testo="Il token del server è troppo corto: servono almeno 32 caratteri casuali. Va cambiato su Vercel e nel database." />}
       {!dati.pronto && <Errore testo={dati.motivo ?? "Il motore non è pronto."} />}
       {dati.erroreDati && <Errore testo={dati.erroreDati} />}
 
@@ -155,7 +167,7 @@ export function Motore() {
                   {c.secchi.flatMap((sc) => sc.bracci.map((b) => (
                     <tr key={sc.secchio + b.modello}>
                       <td>{sc.secchio}</td>
-                      <td>{corto(b.modello)}{sc.servito === b.modello ? " · serve oggi" : ""}</td>
+                      <td>{corto(b.modello)}{sc.servito === b.modello ? " · risponde oggi" : ""}</td>
                       <td><span className={"db-badge " + (b.stato === "attivo" ? "verde" : "arancio")}>{NOME_STATO[b.stato]}</span></td>
                       <td>{intero(b.prove)}</td>
                       <td>{pc(b.basso)} – {pc(b.alto)}</td>
@@ -170,7 +182,7 @@ export function Motore() {
       ))}
 
       <section className="db-card">
-        <div className="db-card-testa"><h2 className="db-h2">Decisore</h2><span className="db-nota">{dati.decisore ? `in uso: ${dati.decisore}` : "non attivo"}</span></div>
+        <div className="db-card-testa"><h2 className="db-h2">Decisore</h2><span className="db-nota">{dati.decisore ? `in uso: ${nomeDecisore(dati.decisore)}` : "non attivo"}</span></div>
         <div className="db-form">
           <p className="db-nota intera">
             Il decisore legge l&apos;ultimo messaggio di chi scrive al Coach AI per capire se la domanda è facile o difficile. Di partenza è Claude Haiku, lo stesso fornitore che già risponde:
@@ -178,7 +190,7 @@ export function Motore() {
           </p>
           <div className="db-campo intera">
             <span>Chiave API Sage (Levanto)</span>
-            <div className="db-sec-pwd"><span className={"db-badge " + (haChiaveSage ? "verde" : "arancio")}>{haChiaveSage ? "Impostata" : "Non impostata"}</span></div>
+            <div className="db-sec-pwd"><span className={"db-badge " + (haChiaveSage ? "verde" : "arancio")}>{haChiaveSage ? (chiaveSuVercel ? "Impostata (su Vercel)" : "Impostata") : "Non impostata"}</span></div>
             <div className="db-sec-pwd">
               <input type="password" autoComplete="new-password" aria-label="Chiave API Sage" placeholder={haChiaveSage ? "Incolla una nuova chiave per sostituirla" : "Incolla la chiave"}
                 value={chiaveSage} onChange={(e) => setChiaveSage(e.target.value)} style={{ flex: "1 1 220px", minHeight: 44, border: 0, borderRadius: 10, background: "var(--campo)", padding: "0 12px", fontSize: 16 }} />
@@ -202,7 +214,7 @@ export function Motore() {
         <div className="db-card-testa"><h2 className="db-h2">Motore centrale</h2><span className="db-nota">scambio di soli numeri</span></div>
         <div className="db-form">
           <p className="db-nota intera">
-            «Sincronizza» manda al motore centrale solo numeri (compito, modello, successi, insuccessi, costo medio) e ne riceve i valori di partenza per i modelli nuovi.
+            «Sincronizza» manda al motore centrale solo numeri e nomi di compiti e modelli (successi, insuccessi, costo medio) e ne riceve i valori di partenza per i modelli nuovi.
             Non partono mai testi, richieste o dati degli utenti.
           </p>
           <Campo lab="Indirizzo del motore centrale" nota="Per esempio https://il-tuo-motore.vercel.app" intera>

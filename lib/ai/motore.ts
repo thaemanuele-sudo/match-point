@@ -50,6 +50,17 @@ export type MotoreApp = {
 /** "anthropic/claude-haiku-5-5" → "claude-haiku-5-5": come si chiamano i modelli nella tabella ai_usage. */
 export const nomeModello = (id: string): string => (id.includes("/") ? id.slice(id.indexOf("/") + 1) : id);
 
+/**
+ * Le funzioni motore_* si aprono solo col token del server (MP_SERVER_TOKEN) e la chiave `anon` è pubblica:
+ * con un token facile da indovinare chiunque potrebbe leggerle. Si controlla solo la lunghezza, mai si stampa il valore.
+ * Non blocca nulla: avvisa e basta. Se il token manca del tutto non si dice "corto": quel caso lo segnalano già le altre funzioni.
+ */
+export const TOKEN_LUNGHEZZA_MINIMA = 32;
+export function tokenServerCorto(): boolean {
+  const n = (process.env.MP_SERVER_TOKEN ?? "").length;
+  return n > 0 && n < TOKEN_LUNGHEZZA_MINIMA;
+}
+
 // ---------- client dell'archivio ----------
 type Rpc = (nome: string, argomenti: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
 
@@ -105,6 +116,8 @@ function firma(imp: Impostazioni): string {
 let memoria: { firma: string; app: MotoreApp | null } | null = null;
 
 function costruisci(imp: Impostazioni): MotoreApp | null {
+  // Una volta a ogni costruzione, non a ogni richiesta; senza il valore.
+  if (tokenServerCorto()) console.warn(`[motore] avviso: il token del server ha meno di ${TOKEN_LUNGHEZZA_MINIMA} caratteri. Va cambiato su Vercel e nel database.`);
   if (!imp.anthropicKey) return null;
   const catalogo = catalogoApp(imp);
   const compiti = creaCompiti(imp, catalogo);
