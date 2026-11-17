@@ -190,7 +190,8 @@ export function archivioMemoria(opz: { adesso?: () => number } = {}): Archivio {
     },
 
     async prenotaContributo(c) {
-      const k = JSON.stringify([c.utente, chiaveBraccio(c.chiave)]);
+      // Senza il secchio: dipende dal testo, e chi scrive potrebbe moltiplicare il tetto per il numero di secchi.
+      const k = JSON.stringify([c.utente, c.chiave.app, c.chiave.compito, c.chiave.versione, c.chiave.modello]);
       const recenti = (contributi.get(k) ?? []).filter((t) => c.adesso - t < c.finestra_ms);
       if (recenti.length >= c.tetto) {
         contributi.set(k, recenti);

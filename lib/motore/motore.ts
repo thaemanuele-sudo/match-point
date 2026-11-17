@@ -248,7 +248,8 @@ export function creaMotore(opz: OpzioniMotore): Motore {
         emetti({ tipo: "errore_archivio", compito: chiave.compito, dettagli: { operazione: "prenotaContributo", messaggio: String(err) } });
       }
     }
-    const k = JSON.stringify([chiave.app, utente, chiave.compito, chiave.versione, chiave.secchio, chiave.modello]);
+    // Senza il secchio: il secchio dipende dal testo, e chi scrive potrebbe moltiplicare il tetto per il numero di secchi.
+    const k = JSON.stringify([chiave.app, utente, chiave.compito, chiave.versione, chiave.modello]);
     const recenti = (memContributi.get(k) ?? []).filter((t) => ora - t < FINESTRA_UTENTE_MS);
     if (recenti.length >= tettoUtente) {
       memContributi.set(k, recenti);
@@ -618,11 +619,66 @@ export function creaMotore(opz: OpzioniMotore): Motore {
     return { c: ctx.c, rif: ctx.rif, ammessi: ctx.ammessi, bracci, secchio, token_in: ctx.token_in, token_out: ctx.token_out };
   }
 
-  /** Percorso dal passo 3 (secchio) in poi: scelta, chiamata con ripiego, valida, verifica, registrazione. */
+  /**
+   * Registra una richiesta interrotta (il cliente ha chiuso, il flusso è caduto a metà, la catena è finita) con la sua
+   * spesa stimata. Il fornitore fattura l'ingresso anche se la risposta non arriva mai: se il motore non lo registrasse,
+   * chi apre tanti flussi costosi e li chiude subito spenderebbe fuori da ogni conteggio. Si stima l'ingresso (token
+   * dai caratteri, perché il fornitore non li ha comunicati) più l'uscita emessa fino a quel momento.
+   */
+  async function registraInterrotta(ctx: Ctx, secchio: string, speso: number, corrente: ModelloInfo | null, testoEmesso: string): Promise<void> {
+    let usd = speso;
+    let token_in = 0;
+    let token_out = 0;
+    if (corrente) {
+      token_in = ctx.token_in;
+      token_out = tokenDaTesto(testoEmesso);
+      usd += costo(corrente, { token_in, token_out });
+    }
+    await registra({
+      id: nuovoId(),
+      app: opz.app,
+      compito: ctx.c.id,
+      versione: ctx.c.versione,
+      secchio,
+      modello: corrente?.id ?? ctx.c.riferimento,
+      esito: "errore",
+      ombra: false,
+      token_in,
+      token_out,
+      caratteri: 0,
+      costo_usd: usd,
+      costo_riferimento_usd: 0,
+      latenza_ms: Math.max(0, adesso() - ctx.inizio),
+      utente: ctx.o.utente,
+      creato_il: adesso(),
+    });
+    emetti({ tipo: "richiesta_interrotta", compito: ctx.c.id, modello: corrente?.id, dettagli: { costo_usd: usd } });
+  }
+
+  // Cosa serve a registrare una richiesta che si interrompe: chi la scrive aggiorna questi campi mentre procede.
+  type Percorso = { secchio: string; speso: number; corrente: ModelloInfo | null; testo: string; chiusa: boolean };
+
+  /** Percorso dal passo 3 (secchio) in poi. Ogni uscita registra la chiamata una volta sola, anche se la richiesta viene annullata. */
   async function servi(ctx: Ctx): Promise<Risultato> {
+    const p: Percorso = { secchio: secchioBase(ctx.messaggi), speso: 0, corrente: null, testo: "", chiusa: false };
+    try {
+      return await serviPassi(ctx, p);
+    } catch (err) {
+      if (!p.chiusa) {
+        p.chiusa = true;
+        await registraInterrotta(ctx, p.secchio, p.speso, p.corrente, p.testo);
+      }
+      throw err;
+    }
+  }
+
+  /** Percorso dal passo 3 (secchio) in poi: scelta, chiamata con ripiego, valida, verifica, registrazione. */
+  async function serviPassi(ctx: Ctx, perc: Percorso): Promise<Risultato> {
     const { c } = ctx;
     const sec = await assegnaSecchio(ctx);
+    perc.secchio = sec.secchio;
     let spesa = sec.costo_usd;
+    perc.speso = spesa;
     const bracci = await bracciDi(c);
     const catena = catenaDiServizio(dipScelta(ctx, bracci, sec.secchio), { osserva: modo === "osserva", sospeso: sospensioni.sospeso });
     const insuccessi: Insuccesso[] = [];
@@ -640,10 +696,14 @@ export function creaMotore(opz: OpzioniMotore): Motore {
 
       let r: RispostaFornitore;
       try {
+        perc.corrente = info;
         r = await chiamaModello(ctx, info, true);
+        perc.corrente = null;
         sospensioni.successo(info.id);
       } catch (err) {
+        // Se è un annullamento la chiamata in corso è stata pagata in ingresso: `corrente` resta, e la registra chi cattura.
         fallitaPerAnnullamento(ctx);
+        perc.corrente = null;
         ultimoErrore = err;
         const sospeso = sospensioni.errore(info.id);
         emetti({ tipo: "errore_fornitore", compito: c.id, modello: info.id, dettagli: { messaggio: String(err), sospeso } });
@@ -653,6 +713,7 @@ export function creaMotore(opz: OpzioniMotore): Motore {
       }
       const costoTentativo = costo(info, r.uso);
       spesa += costoTentativo;
+      perc.speso = spesa;
       const cont = contenutoDi(r);
 
       let accettata = valido(ctx, cont);
@@ -662,6 +723,7 @@ export function creaMotore(opz: OpzioniMotore): Motore {
       if (accettata && !èRiferimento && c.verifica) {
         const v = await verificata(ctx, info, cont);
         spesa += v.costo_usd;
+        perc.speso = spesa;
         accettata = v.ok;
         probabilitaVerifica = v.probabilita;
         motivo = "verifica";
@@ -674,10 +736,12 @@ export function creaMotore(opz: OpzioniMotore): Motore {
       }
       // Se perfino il riferimento non supera `valida` non resta nulla da provare: si risponde comunque
       // con la sua risposta (e non la si mette in cache), perché un errore sicuro è peggio di una risposta imperfetta.
+      perc.chiusa = true;
       return finalizza(ctx, sec.secchio, info, r, spesa, insuccessi, accettata, probabilitaVerifica);
     }
 
     // Nessun modello ha risposto: si registra l'errore e lo si passa all'app.
+    perc.chiusa = true;
     await registra({
       id: nuovoId(),
       app: opz.app,
@@ -697,13 +761,19 @@ export function creaMotore(opz: OpzioniMotore): Motore {
       creato_il: adesso(),
     });
     // I fallimenti per qualità dei candidati contano comunque come insuccessi.
-    if (insuccessi.length) programma(() => registraInsuccessi(c, sec.secchio, insuccessi));
+    if (insuccessi.length) programma(() => registraInsuccessi(c, sec.secchio, insuccessi, ctx.o.utente));
     const dettaglio = ultimoErrore instanceof Error ? ultimoErrore.message : String(ultimoErrore ?? "nessuna risposta");
     throw new Error(`Motore: nessun modello ha risposto per "${c.id}" (${dettaglio})`);
   }
 
-  async function registraInsuccessi(c: Compito_, secchio: string, lista: Insuccesso[]): Promise<void> {
+  async function registraInsuccessi(c: Compito_, secchio: string, lista: Insuccesso[], utente?: string): Promise<void> {
     for (const i of lista) {
+      // Anche i fallimenti sono contributi: chi prepara testi che fanno bocciare il modello economico non lo ritira da solo.
+      // La risposta all'utente è già partita per il suo percorso: qui si decide solo se il braccio ne risente.
+      if (!(await contributoConsentito(chiaveDi(c, secchio, i.info.id), utente))) {
+        emetti({ tipo: "tetto_utente", compito: c.id, modello: i.info.id, dettagli: { uso: "insuccesso" } });
+        continue;
+      }
       await applica(c, secchio, i.info.id, { ok: 0, ko: 1, costo_usd: i.costo_usd, latenza_ms: i.latenza_ms });
     }
   }
@@ -920,7 +990,7 @@ export function creaMotore(opz: OpzioniMotore): Motore {
   ): Promise<void> {
     const { c } = ctx;
     const reg = regoleDi(c);
-    if (insuccessi.length) await registraInsuccessi(c, secchio, insuccessi);
+    if (insuccessi.length) await registraInsuccessi(c, secchio, insuccessi, ctx.o.utente);
     if (verifica.probabilitaVerifica !== undefined) await ricordaVerifica(ctx, verifica.id, verifica.probabilitaVerifica);
 
     const servitoRif = servito.id === c.riferimento;
@@ -1181,68 +1251,85 @@ export function creaMotore(opz: OpzioniMotore): Motore {
       return;
     }
 
-    const sec = await assegnaSecchio(ctx);
-    const bracci = await bracciDi(c);
-    const catena = catenaDiServizio(dipScelta(ctx, bracci, sec.secchio), { osserva: modo === "osserva", sospeso: sospensioni.sospeso });
-    let ultimoErrore: unknown = null;
+    // Ogni uscita (risposta, errore, cliente che chiude a metà) registra la chiamata una volta sola.
+    const perc: Percorso = { secchio: secchioBase(ctx.messaggi), speso: 0, corrente: null, testo: "", chiusa: false };
+    try {
+      const sec = await assegnaSecchio(ctx);
+      perc.secchio = sec.secchio;
+      perc.speso = sec.costo_usd;
+      const bracci = await bracciDi(c);
+      const catena = catenaDiServizio(dipScelta(ctx, bracci, sec.secchio), { osserva: modo === "osserva", sospeso: sospensioni.sospeso });
+      let ultimoErrore: unknown = null;
 
-    for (let i = 0; i < catena.length; i++) {
-      const info = catena[i].info;
-      fallitaPerAnnullamento(ctx);
-      const f = fornitori[info.fornitore];
-      let testo = "";
-      let emesso = false;
-      let fine: RispostaFornitore | undefined;
-      try {
-        const rich = { modello: info, messaggi: ctx.messaggi, schema: c.schema, max_token: c.max_token, temperatura: c.temperatura, segnale: o.segnale };
-        if (f.flusso) {
-          for await (const p of f.flusso(rich)) {
-            if (p.delta) {
-              testo += p.delta;
-              emesso = true;
-              yield { delta: p.delta };
-            }
-            if (p.fine) fine = p.fine;
-          }
-        } else {
-          const r = await f.genera(rich);
-          fine = r;
-          testo = r.testo;
-          emesso = true;
-          yield { delta: r.testo };
-        }
-        sospensioni.successo(info.id);
-      } catch (err) {
+      for (let i = 0; i < catena.length; i++) {
+        const info = catena[i].info;
         fallitaPerAnnullamento(ctx);
-        const sospeso = sospensioni.errore(info.id);
-        emetti({ tipo: "errore_fornitore", compito: c.id, modello: info.id, dettagli: { messaggio: String(err), sospeso } });
-        if (sospeso) emetti({ tipo: "sospeso", compito: c.id, modello: info.id, dettagli: { modello: info.id, minuti: SOSPENSIONE_MS / 60_000 } });
-        // Se l'utente ha già ricevuto dei pezzi non si può più cambiare modello a metà frase.
-        if (emesso) throw err;
-        ultimoErrore = err;
-        const prossimo = catena[i + 1]?.info.id;
-        if (prossimo) emetti({ tipo: "ripiego", compito: c.id, modello: info.id, dettagli: { da: info.id, a: prossimo, motivo: "errore" } });
-        continue;
+        const f = fornitori[info.fornitore];
+        perc.corrente = info;
+        perc.testo = "";
+        let testo = "";
+        let emesso = false;
+        let fine: RispostaFornitore | undefined;
+        try {
+          const rich = { modello: info, messaggi: ctx.messaggi, schema: c.schema, max_token: c.max_token, temperatura: c.temperatura, segnale: o.segnale };
+          if (f.flusso) {
+            for await (const p of f.flusso(rich)) {
+              if (p.delta) {
+                testo += p.delta;
+                perc.testo = testo;
+                emesso = true;
+                yield { delta: p.delta };
+              }
+              if (p.fine) fine = p.fine;
+            }
+          } else {
+            const r = await f.genera(rich);
+            fine = r;
+            testo = r.testo;
+            perc.testo = testo;
+            emesso = true;
+            yield { delta: r.testo };
+          }
+          sospensioni.successo(info.id);
+        } catch (err) {
+          fallitaPerAnnullamento(ctx);
+          const sospeso = sospensioni.errore(info.id);
+          emetti({ tipo: "errore_fornitore", compito: c.id, modello: info.id, dettagli: { messaggio: String(err), sospeso } });
+          if (sospeso) emetti({ tipo: "sospeso", compito: c.id, modello: info.id, dettagli: { modello: info.id, minuti: SOSPENSIONE_MS / 60_000 } });
+          // Se l'utente ha già ricevuto dei pezzi non si può più cambiare modello a metà frase.
+          if (emesso) throw err;
+          perc.corrente = null;
+          ultimoErrore = err;
+          const prossimo = catena[i + 1]?.info.id;
+          if (prossimo) emetti({ tipo: "ripiego", compito: c.id, modello: info.id, dettagli: { da: info.id, a: prossimo, motivo: "errore" } });
+          continue;
+        }
+        const r: RispostaFornitore = fine ?? {
+          testo,
+          uso: { token_in: ctx.token_in, token_out: tokenDaTesto(testo) },
+          latenza_ms: Math.max(0, adesso() - ctx.inizio),
+        };
+        const cont: Contenuto = { testo: fine?.testo ?? testo, dati: fine?.dati };
+        // Nel flusso `valida` arriva quando i pezzi sono già partiti: non si può tornare indietro,
+        // ma la bocciatura conta come insuccesso del braccio, così il modello si ritira da solo.
+        const ok = valido(ctx, cont);
+        const insuccessi: Insuccesso[] = [];
+        if (!ok && info.id !== c.riferimento) {
+          emetti({ tipo: "valida_bocciata", compito: c.id, modello: info.id, dettagli: { modello: info.id } });
+          insuccessi.push({ info, costo_usd: costo(info, r.uso), latenza_ms: r.latenza_ms });
+        }
+        perc.chiusa = true;
+        yield { fine: await finalizza(ctx, sec.secchio, info, { ...r, testo: cont.testo, dati: cont.dati }, sec.costo_usd + costo(info, r.uso), insuccessi, ok) };
+        return;
       }
-      const r: RispostaFornitore = fine ?? {
-        testo,
-        uso: { token_in: ctx.token_in, token_out: tokenDaTesto(testo) },
-        latenza_ms: Math.max(0, adesso() - ctx.inizio),
-      };
-      const cont: Contenuto = { testo: fine?.testo ?? testo, dati: fine?.dati };
-      // Nel flusso `valida` arriva quando i pezzi sono già partiti: non si può tornare indietro,
-      // ma la bocciatura conta come insuccesso del braccio, così il modello si ritira da solo.
-      const ok = valido(ctx, cont);
-      const insuccessi: Insuccesso[] = [];
-      if (!ok && info.id !== c.riferimento) {
-        emetti({ tipo: "valida_bocciata", compito: c.id, modello: info.id, dettagli: { modello: info.id } });
-        insuccessi.push({ info, costo_usd: costo(info, r.uso), latenza_ms: r.latenza_ms });
+      const dettaglio = ultimoErrore instanceof Error ? ultimoErrore.message : String(ultimoErrore ?? "nessuna risposta");
+      throw new Error(`Motore: nessun modello ha risposto per "${c.id}" (${dettaglio})`);
+    } finally {
+      if (!perc.chiusa) {
+        perc.chiusa = true;
+        await registraInterrotta(ctx, perc.secchio, perc.speso, perc.corrente, perc.testo);
       }
-      yield { fine: await finalizza(ctx, sec.secchio, info, { ...r, testo: cont.testo, dati: cont.dati }, sec.costo_usd + costo(info, r.uso), insuccessi, ok) };
-      return;
     }
-    const dettaglio = ultimoErrore instanceof Error ? ultimoErrore.message : String(ultimoErrore ?? "nessuna risposta");
-    throw new Error(`Motore: nessun modello ha risposto per "${c.id}" (${dettaglio})`);
   }
 
   // ===== esito umano =====
@@ -1268,25 +1355,27 @@ export function creaMotore(opz: OpzioniMotore): Motore {
   const esitiDati = new Set<string>();
 
   /**
-   * Vero solo la prima volta che si dà un esito umano a questa chiamata. Con `segnaEsito` il segno sta sulla chiamata
-   * ed è atomico (vale tra istanze); senza, regge solo la memoria di questa istanza.
+   * Dice se questo è il primo esito umano della chiamata. Con `segnaEsito` il segno sta sulla chiamata ed è atomico
+   * (vale tra istanze); senza, regge solo la memoria di questa istanza.
    * Senza questo, ripetere `esito` sulla stessa chiamata sommerebbe ogni volta il peso e sposterebbe il braccio.
+   * Se il segno non si riesce a scrivere l'esito è "incerto" e non conta: con il database in difficoltà
+   * gli esiti ripetuti passerebbero tutti.
    */
-  async function primoEsito(ch: Chiamata): Promise<boolean> {
-    if (esitiDati.has(ch.id)) return false;
-    let primo = true;
+  async function primoEsito(ch: Chiamata): Promise<"primo" | "ripetuto" | "incerto"> {
+    if (esitiDati.has(ch.id)) return "ripetuto";
     if (archivio.segnaEsito) {
+      let primo: boolean;
       try {
         primo = await archivio.segnaEsito(ch.id, adesso());
       } catch (err) {
         emetti({ tipo: "errore_archivio", compito: ch.compito, dettagli: { operazione: "segnaEsito", messaggio: String(err) } });
+        return "incerto";
       }
+      if (!primo) return "ripetuto";
     }
-    if (primo) {
-      if (esitiDati.size >= MASSIMO_ESITI_IN_MEMORIA) esitiDati.clear();
-      esitiDati.add(ch.id);
-    }
-    return primo;
+    if (esitiDati.size >= MASSIMO_ESITI_IN_MEMORIA) esitiDati.clear();
+    esitiDati.add(ch.id);
+    return "primo";
   }
 
   async function esito(id_chiamata: string, e: { ok: boolean; peso?: number }): Promise<void> {
@@ -1302,7 +1391,12 @@ export function creaMotore(opz: OpzioniMotore): Motore {
       return;
     }
     // Un esito umano per chiamata: dal secondo in poi non si cambia più nulla.
-    if (!(await primoEsito(ch))) {
+    const segno = await primoEsito(ch);
+    if (segno === "incerto") {
+      emetti({ tipo: "esito_non_segnato", compito: ch.compito, dettagli: { id_chiamata } });
+      return;
+    }
+    if (segno === "ripetuto") {
       emetti({ tipo: "esito_ripetuto", compito: ch.compito, dettagli: { id_chiamata } });
       return;
     }
