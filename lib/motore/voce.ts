@@ -176,7 +176,7 @@ function costoVoce(modello: ModelloInfo, caratteri: number): number {
 
 export async function parlaConCache(
   r: RichiestaParla,
-  dip: { fornitore: Fornitore; modello: ModelloInfo; deposito?: Deposito },
+  dip: { fornitore: Fornitore; modello: ModelloInfo; deposito?: Deposito; app?: string },
 ): Promise<RisultatoParla> {
   const { fornitore, modello, deposito } = dip;
   if (!fornitore.parla) throw new Error(`Il fornitore "${fornitore.id}" non sa sintetizzare la voce`);
@@ -205,8 +205,11 @@ export async function parlaConCache(
   }
 
   // La chiave usa il testo normalizzato: "Ciao!" e "ciao" sono la stessa frase e si pagano una volta.
+  // L'app entra nella chiave: se la cache fosse comune, un'app capirebbe dall'esito "da cache" che cosa ha
+  // fatto pronunciare un'altra. Il prezzo è che la stessa frase si paga una volta per app.
+  const app = dip.app ?? "";
   const chiavi = await Promise.all(
-    frasi.map(async (f) => `voce/${await chiaveCache([r.modello, r.voce, r.lingua ?? "", normalizzaTesto(f)])}.mp3`),
+    frasi.map(async (f) => `voce/${await chiaveCache([app, r.modello, r.voce, r.lingua ?? "", normalizzaTesto(f)])}.mp3`),
   );
 
   // Le frasi ripetute nello stesso testo si sintetizzano una volta sola.

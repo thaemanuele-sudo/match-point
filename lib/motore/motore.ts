@@ -52,6 +52,15 @@ const PESO_ESITO_UMANO = 3;
 const QUOTA_DOPPIO_GIUDIZIO = 0.1;
 // Per quanto si ricorda la probabilità data dal decisore a una risposta servita, in attesa di un esito umano.
 const DURATA_PROBABILITA_S = 7 * 86_400;
+// Un solo utente non deve poter spostare un braccio da solo: per ogni coppia (utente, braccio) contano al massimo
+// `tetto_utente` contributi (prove in ombra, controlli, esiti umani) in una finestra di 24 ore.
+const TETTO_UTENTE_PREDEFINITO = 3;
+const FINESTRA_UTENTE_MS = MS_GIORNO;
+// La prova in ombra è esente dal tetto di apprendimento finché il braccio ha poche prove, ma non oltre questa soglia:
+// un compito con `minimo_prove` altissimo non deve poter spendere senza freno per migliaia di prove.
+const MASSIMO_PROVE_ESENTI = 40;
+// Quanti segni di esito si tengono in memoria: da soli reggono per istanza, con `segnaEsito` sono una seconda difesa.
+const MASSIMO_ESITI_IN_MEMORIA = 5_000;
 
 type Compito_ = Compito<any>;
 
@@ -92,6 +101,7 @@ export function creaMotore(opz: OpzioniMotore): Motore {
   const emivita = opz.emivita_giorni ?? 30;
   const pesoPriori = opz.peso_priori ?? 8;
   const tetto = opz.tetto_apprendimento ?? 0.2;
+  const tettoUtente = opz.tetto_utente ?? TETTO_UTENTE_PREDEFINITO;
   const { archivio, catalogo, fornitori } = opz;
 
   const compiti = new Map<string, Compito_>();
@@ -217,6 +227,49 @@ export function creaMotore(opz: OpzioniMotore): Motore {
       tetto: tetto * s.base,
     };
   }
+
+  // ===== Tetto per utente =====
+
+  // Ripiego in memoria, per gli archivi senza `prenotaContributo` o quando non rispondono: vale per istanza.
+  const memContributi = new Map<string, number[]>();
+
+  /**
+   * Prenota un contributo di `utente` al braccio. Falso = ha già dato il massimo nelle ultime 24 ore: il contributo
+   * non deve toccare il braccio (né costare una prova). Senza utente il tetto non si applica. Se l'archivio ha
+   * `prenotaContributo` il conto è condiviso tra tutte le istanze; altrimenti, o se l'archivio dà errore, si conta in memoria.
+   */
+  async function contributoConsentito(chiave: ChiaveBraccio, utente: string | undefined): Promise<boolean> {
+    if (!utente || !Number.isFinite(tettoUtente)) return true;
+    const ora = adesso();
+    if (archivio.prenotaContributo) {
+      try {
+        return await archivio.prenotaContributo({ chiave, utente, tetto: tettoUtente, finestra_ms: FINESTRA_UTENTE_MS, adesso: ora });
+      } catch (err) {
+        emetti({ tipo: "errore_archivio", compito: chiave.compito, dettagli: { operazione: "prenotaContributo", messaggio: String(err) } });
+      }
+    }
+    const k = JSON.stringify([chiave.app, utente, chiave.compito, chiave.versione, chiave.secchio, chiave.modello]);
+    const recenti = (memContributi.get(k) ?? []).filter((t) => ora - t < FINESTRA_UTENTE_MS);
+    if (recenti.length >= tettoUtente) {
+      memContributi.set(k, recenti);
+      return false;
+    }
+    recenti.push(ora);
+    memContributi.set(k, recenti);
+    // Le chiavi non crescono senza limite: ogni tanto si buttano quelle senza contributi recenti.
+    if (memContributi.size > 10_000) {
+      for (const [chiaveVecchia, v] of memContributi) if (!v.some((t) => ora - t < FINESTRA_UTENTE_MS)) memContributi.delete(chiaveVecchia);
+    }
+    return true;
+  }
+
+  const chiaveDi = (c: Compito_, secchio: string, modello: string): ChiaveBraccio => ({
+    app: opz.app,
+    compito: c.id,
+    versione: c.versione,
+    secchio,
+    modello,
+  });
 
   // ===== Registro delle chiamate =====
 
@@ -878,6 +931,8 @@ export function creaMotore(opz: OpzioniMotore): Motore {
       const t = await tettoDi(c, false);
       if (!t.consentito) {
         emetti({ tipo: "tetto_raggiunto", compito: c.id, modello: servito.id, dettagli: { spesa: t.spesa, tetto: t.tetto } });
+      } else if (!(await contributoConsentito(chiaveDi(c, secchio, servito.id), ctx.o.utente))) {
+        emetti({ tipo: "tetto_utente", compito: c.id, modello: servito.id, dettagli: { uso: "controllo" } });
       } else {
         const p = await eseguiInOmbra(ctx, ctx.rif, secchio);
         if (p) {
@@ -906,10 +961,16 @@ export function creaMotore(opz: OpzioniMotore): Motore {
 
     const scelto = eleggibili[0];
     // Finché il braccio ha poche prove il tetto non vale: senza dati non si potrebbe mai cominciare.
-    const esente = (scelto.braccio ? proveVere(scelto.braccio) : 0) < reg.minimo_prove;
+    // L'esenzione però ha un limite fisso, anche se il compito chiede `minimo_prove` più alto.
+    const esente = (scelto.braccio ? proveVere(scelto.braccio) : 0) < Math.min(reg.minimo_prove, MASSIMO_PROVE_ESENTI);
     const t = await tettoDi(c, esente);
     if (!t.consentito) {
       emetti({ tipo: "tetto_raggiunto", compito: c.id, modello: scelto.info.id, dettagli: { spesa: t.spesa, tetto: t.tetto } });
+      return;
+    }
+    // Il tetto per utente si controlla prima di spendere: se non c'è posto, la prova non parte nemmeno.
+    if (!(await contributoConsentito(chiaveDi(c, secchio, scelto.info.id), ctx.o.utente))) {
+      emetti({ tipo: "tetto_utente", compito: c.id, modello: scelto.info.id, dettagli: { uso: "prova_ombra" } });
       return;
     }
     if (!rifRisposta) {
@@ -1203,6 +1264,31 @@ export function creaMotore(opz: OpzioniMotore): Motore {
     }
   }
 
+  // Seconda difesa in memoria: se l'archivio non risponde, la stessa istanza non somma comunque due esiti alla stessa chiamata.
+  const esitiDati = new Set<string>();
+
+  /**
+   * Vero solo la prima volta che si dà un esito umano a questa chiamata. Con `segnaEsito` il segno sta sulla chiamata
+   * ed è atomico (vale tra istanze); senza, regge solo la memoria di questa istanza.
+   * Senza questo, ripetere `esito` sulla stessa chiamata sommerebbe ogni volta il peso e sposterebbe il braccio.
+   */
+  async function primoEsito(ch: Chiamata): Promise<boolean> {
+    if (esitiDati.has(ch.id)) return false;
+    let primo = true;
+    if (archivio.segnaEsito) {
+      try {
+        primo = await archivio.segnaEsito(ch.id, adesso());
+      } catch (err) {
+        emetti({ tipo: "errore_archivio", compito: ch.compito, dettagli: { operazione: "segnaEsito", messaggio: String(err) } });
+      }
+    }
+    if (primo) {
+      if (esitiDati.size >= MASSIMO_ESITI_IN_MEMORIA) esitiDati.clear();
+      esitiDati.add(ch.id);
+    }
+    return primo;
+  }
+
   async function esito(id_chiamata: string, e: { ok: boolean; peso?: number }): Promise<void> {
     let ch: Chiamata | null;
     try {
@@ -1213,6 +1299,11 @@ export function creaMotore(opz: OpzioniMotore): Motore {
     }
     if (!ch) {
       emetti({ tipo: "esito_senza_chiamata", dettagli: { id_chiamata } });
+      return;
+    }
+    // Un esito umano per chiamata: dal secondo in poi non si cambia più nulla.
+    if (!(await primoEsito(ch))) {
+      emetti({ tipo: "esito_ripetuto", compito: ch.compito, dettagli: { id_chiamata } });
       return;
     }
     const peso = e.peso ?? PESO_ESITO_UMANO;
@@ -1245,6 +1336,11 @@ export function creaMotore(opz: OpzioniMotore): Motore {
     // Il riferimento è la misura: non ha statistiche da aggiornare. Le chiamate in ombra non sono andate all'utente.
     if (!c || ch.ombra || !modello || modello === "locale" || modello === c.riferimento) return;
     if (ch.esito === "errore" || ch.secchio === "cache" || ch.secchio === "locale") return;
+    // Un solo utente non sposta il braccio con tanti esiti su chiamate diverse: oltre il tetto non conta.
+    if (!(await contributoConsentito(chiaveDi(c, ch.secchio, modello), ch.utente))) {
+      emetti({ tipo: "tetto_utente", compito: ch.compito, modello, dettagli: { uso: "esito" } });
+      return;
+    }
     await applica(c, ch.secchio, modello, e.ok ? { ok: peso, ko: 0 } : { ok: 0, ko: peso });
   }
 
@@ -1324,7 +1420,7 @@ export function creaMotore(opz: OpzioniMotore): Motore {
     if (!fornitore) throw new Error(`Motore: nessun fornitore "${modello.fornitore}" per la voce`);
     const inizio = adesso();
     // Spento: niente deposito, quindi niente cache; e niente registro.
-    const res = await parlaConCache(r, { fornitore, modello, deposito: modo === "spento" ? undefined : opz.deposito });
+    const res = await parlaConCache(r, { fornitore, modello, app: opz.app, deposito: modo === "spento" ? undefined : opz.deposito });
     if (modo !== "spento") {
       await registra({
         id: nuovoId(),

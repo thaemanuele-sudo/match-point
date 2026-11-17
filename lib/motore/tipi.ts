@@ -227,6 +227,13 @@ export interface Archivio {
     opz: { emivita_giorni: number; adesso: number },
   ): Promise<void>;
   leggiTaratura?(chiave: ChiaveTaratura): Promise<FasciaTaratura[]>;
+  // Facoltativi: servono a non far spostare un braccio a un solo utente e a contare un solo esito umano per chiamata.
+  // Un archivio che non li ha lascia al motore il ripiego, che vale per istanza (in memoria).
+  // `prenotaContributo`: in un solo passo conta i contributi di (utente, braccio) nella finestra e, se sono meno di `tetto`,
+  // ne aggiunge uno. Vero = prenotato, falso = tetto raggiunto.
+  prenotaContributo?(c: { chiave: ChiaveBraccio; utente: string; tetto: number; finestra_ms: number; adesso: number }): Promise<boolean>;
+  // `segnaEsito`: segna sulla chiamata che ha ricevuto un esito umano. Vero solo la prima volta.
+  segnaEsito?(id: string, adesso: number): Promise<boolean>;
 }
 
 export interface Deposito {
@@ -254,6 +261,7 @@ export type OpzioniMotore = {
   emivita_giorni?: number; // 30
   peso_priori?: number; // 8
   tetto_apprendimento?: number; // 0,2
+  tetto_utente?: number; // 3: contributi al giorno di un utente a uno stesso braccio (Infinity lo spegne)
 };
 
 export type OpzioniChiamata = { utente?: string; segnale?: AbortSignal; senza_cache?: boolean };

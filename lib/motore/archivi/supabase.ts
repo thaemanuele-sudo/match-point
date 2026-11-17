@@ -39,6 +39,11 @@
 //     giorni, adesso })                                      p_emivita_giorni, p_adesso (ms)
 //   leggiTaratura(chiave)         motore_taratura_leggi    p_token, p_app, p_decisore, p_uso, p_compito
 //                                                          -> [{ fascia, ok, ko }] (sempre 6 fasce)
+//   prenotaContributo(c)          motore_contributo_prenota p_token, p_app, p_utente, p_compito, p_versione,
+//                                                          p_secchio, p_modello, p_tetto, p_finestra_ms,
+//                                                          p_adesso (ms) -> boolean (falso = tetto raggiunto)
+//   segnaEsito(id, adesso)        motore_esito_segna       p_token, p_id, p_adesso (ms)
+//                                 -> boolean (vero solo la prima volta)
 //
 // Un errore di `rpc` diventa un `Error` con lo stesso messaggio.
 
@@ -188,6 +193,26 @@ export function archivioSupabase(opz: { rpc: Rpc; token?: string }): Archivio {
     async leggiChiamata(id) {
       const r = (await chiama("motore_chiamata_leggi", { p_id: id })) as Record<string, unknown> | null;
       return r ? comeChiamata(r) : null;
+    },
+
+    async prenotaContributo(c) {
+      const r = await chiama("motore_contributo_prenota", {
+        p_app: c.chiave.app,
+        p_utente: c.utente,
+        p_compito: c.chiave.compito,
+        p_versione: c.chiave.versione,
+        p_secchio: c.chiave.secchio,
+        p_modello: c.chiave.modello,
+        p_tetto: c.tetto,
+        p_finestra_ms: c.finestra_ms,
+        p_adesso: c.adesso,
+      });
+      return r === true;
+    },
+
+    async segnaEsito(id, adesso) {
+      const r = await chiama("motore_esito_segna", { p_id: id, p_adesso: adesso });
+      return r === true;
     },
 
     async leggiPriori(genere: Genere) {

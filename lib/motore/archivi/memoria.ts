@@ -94,6 +94,9 @@ export function archivioMemoria(opz: { adesso?: () => number } = {}): Archivio {
   const bracci = new Map<string, Braccio>();
   const chiamate = new Map<string, Chiamata>();
   const taratura = new Map<string, { ok: number; ko: number; aggiornato_il: number }>();
+  // Contributi per (utente, braccio) e chiamate che hanno già ricevuto un esito umano.
+  const contributi = new Map<string, number[]>();
+  const conEsito = new Set<string>();
   // genere -> modello -> fonte -> contributo
   const priori = new Map<string, Map<string, Map<string, Priore>>>();
 
@@ -184,6 +187,25 @@ export function archivioMemoria(opz: { adesso?: () => number } = {}): Archivio {
     async registraChiamata(c) {
       // Registrare due volte lo stesso id non fa nulla (come `on conflict do nothing`).
       if (!chiamate.has(c.id)) chiamate.set(c.id, copiaJson(c));
+    },
+
+    async prenotaContributo(c) {
+      const k = JSON.stringify([c.utente, chiaveBraccio(c.chiave)]);
+      const recenti = (contributi.get(k) ?? []).filter((t) => c.adesso - t < c.finestra_ms);
+      if (recenti.length >= c.tetto) {
+        contributi.set(k, recenti);
+        return false;
+      }
+      recenti.push(c.adesso);
+      contributi.set(k, recenti);
+      return true;
+    },
+
+    async segnaEsito(id) {
+      // Come il database: una chiamata che non c'è non si può segnare.
+      if (!chiamate.has(id) || conEsito.has(id)) return false;
+      conEsito.add(id);
+      return true;
     },
 
     async leggiChiamata(id) {
