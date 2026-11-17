@@ -93,7 +93,7 @@ export function decisoreLLM(opz: { fornitore: Fornitore; modello: ModelloInfo })
           additionalProperties: false,
         },
         temperatura: 0,
-        max_token: 100,
+        max_token: 300,
         segnale: r.segnale,
       });
       const dati = leggiJson(risposta);
@@ -147,7 +147,7 @@ export function decisoreLLM(opz: { fornitore: Fornitore; modello: ModelloInfo })
           additionalProperties: false,
         },
         temperatura: 0,
-        max_token: 50 + 30 * ids.length,
+        max_token: 150 + 60 * ids.length,
         segnale: r.segnale,
       });
       const dati = leggiJson(risposta);

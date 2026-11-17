@@ -26,6 +26,41 @@ export type OpzioniAnthropic = {
   versione_api?: string;
 };
 
+// Parole chiave dello schema che la risposta strutturata di Anthropic non accetta (decodifica vincolata):
+// limiti numerici, lunghezze di stringhe e di elenchi. La documentazione le elenca tra le funzioni non
+// supportate e l'SDK ufficiale le toglie prima di inviare; inviandole a mano si rischia un 400 che
+// manda a vuoto ogni chiamata (nel banco «Riassunto» il giudice usava `minimum`/`maximum`).
+const VINCOLI_NON_SUPPORTATI = ["minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "multipleOf", "minLength", "maxLength", "maxItems"] as const;
+
+/**
+ * Copia dello schema senza i vincoli non supportati: si spostano nella descrizione del campo, così il modello
+ * li legge comunque, e il rispetto vero resta a chi riceve la risposta (il motore limita e controlla da sé).
+ * `minItems` si lascia se è 0 o 1, gli unici valori ammessi.
+ */
+export function semplificaSchema(schema: unknown): unknown {
+  if (Array.isArray(schema)) return schema.map(semplificaSchema);
+  if (!schema || typeof schema !== "object") return schema;
+  const fuori: Record<string, unknown> = {};
+  const spostati: string[] = [];
+  for (const [chiave, valore] of Object.entries(schema as Record<string, unknown>)) {
+    if ((VINCOLI_NON_SUPPORTATI as readonly string[]).includes(chiave) && typeof valore !== "object") {
+      spostati.push(`${chiave}: ${String(valore)}`);
+    } else if (chiave === "minItems" && typeof valore === "number" && valore > 1) {
+      spostati.push(`minItems: ${valore}`);
+    } else if (chiave === "properties" && valore && typeof valore === "object" && !Array.isArray(valore)) {
+      // I nomi dei campi non sono parole chiave: si scende dentro ogni campo, non si guarda la chiave.
+      fuori[chiave] = Object.fromEntries(Object.entries(valore as Record<string, unknown>).map(([k, v]) => [k, semplificaSchema(v)]));
+    } else {
+      fuori[chiave] = semplificaSchema(valore);
+    }
+  }
+  if (spostati.length) {
+    const nota = `(${spostati.join(", ")})`;
+    fuori.description = typeof fuori.description === "string" && fuori.description ? `${fuori.description} ${nota}` : nota;
+  }
+  return fuori;
+}
+
 function bloccoDaParte(p: Parte): Blocco | null {
   if (p.tipo === "testo") {
     // Anthropic rifiuta i blocchi di testo vuoti: meglio ometterli che far fallire la richiesta.
@@ -120,7 +155,7 @@ export function fornitoreAnthropic(opz: OpzioniAnthropic): Fornitore {
     // Per un modello del catalogo che non la offre (`schema: false`) si ripiega su uno strumento forzato.
     const conStrumento = !!r.schema && r.modello.schema === false;
     if (r.schema && !conStrumento) {
-      json.output_config = { format: { type: "json_schema", schema: r.schema } };
+      json.output_config = { format: { type: "json_schema", schema: semplificaSchema(r.schema) } };
     }
     if (r.schema && conStrumento) {
       json.tools = [{ name: STRUMENTO, description: "Restituisce la risposta nel formato richiesto.", input_schema: r.schema }];

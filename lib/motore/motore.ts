@@ -31,7 +31,7 @@ import type {
 } from "./tipi";
 import { chiaveCache, normalizzaTesto, unica } from "./cache";
 import { costo, costoAtteso, stimaToken } from "./costi";
-import { giudica } from "./giudice";
+import { giudica, type Ripiego } from "./giudice";
 import { parlaConCache } from "./voce";
 import { limiti, prioreEffettivo, proveVere, prossimoStato, tettoPermette, type RegoleStato } from "./apprendimento";
 import { SOSPENSIONE_MS, candidatiAmmessi, candidatiProva, catenaDiServizio, costoStimato, creaSospensioni, tokenUscitaStimati, trovaBraccio, type DipScelta } from "./instradatore";
@@ -929,9 +929,12 @@ export function creaMotore(opz: OpzioniMotore): Motore {
       const conDecisore = c.giudice === "decisore" && !!opz.decisore;
       const fasce = conDecisore ? await tarature(c, "giudice") : null;
       let dichiarata: number | undefined;
+      // Se il decisore è incerto o in errore, il giudizio passa al modello: lo si scrive nell'evento, altrimenti
+      // un decisore rotto resterebbe invisibile (il giudizio riuscirebbe lo stesso, ma a un altro prezzo).
+      let ripiego = undefined as Ripiego | undefined; // il cast evita che TS lo creda sempre vuoto: lo scrive la funzione sotto
       const richiesta = { compito: c, ingresso: ctx.ingresso, messaggi: ctx.messaggi, riferimento, candidato };
       const g = await giudica(
-        { fornitori, catalogo, decisore: opz.decisore, casuale, taratura: fasce ?? undefined, suDecisore: (p) => (dichiarata = p) },
+        { fornitori, catalogo, decisore: opz.decisore, casuale, taratura: fasce ?? undefined, suDecisore: (p) => (dichiarata = p), suRipiego: (r) => (ripiego = r) },
         richiesta,
       );
       if (g.costo_usd > 0) {
@@ -939,7 +942,12 @@ export function creaMotore(opz: OpzioniMotore): Motore {
         await registraCostoOmbra(c, secchio, chi, { costo_usd: g.costo_usd });
       }
       const punteggio = Math.min(1, Math.max(0, g.punteggio));
-      emetti({ tipo: "giudizio", compito: c.id, modello, dettagli: { modello, punteggio, metodo: g.metodo, costo_usd: g.costo_usd } });
+      emetti({
+        tipo: "giudizio",
+        compito: c.id,
+        modello,
+        dettagli: { modello, punteggio, metodo: g.metodo, costo_usd: g.costo_usd, ...(ripiego ? { ripiego: ripiego.motivo, ...(ripiego.dettaglio ? { errore_decisore: ripiego.dettaglio } : {}) } : {}) },
+      });
 
       if (g.metodo === "decisore" && dichiarata !== undefined && fasce && casuale() < QUOTA_DOPPIO_GIUDIZIO) {
         await verificaConRiferimento(ctx, richiesta, secchio, dichiarata);

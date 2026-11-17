@@ -43,6 +43,40 @@ export class ErroreFornitore extends Error {
 }
 
 /**
+ * OpenRouter risponde spesso con il solo messaggio «Provider returned error»: la causa vera sta in
+ * `error.metadata` (`provider_name` e `raw`, l'errore originale del fornitore sotto). Senza questo pezzo
+ * un 400 per lo schema e un 429 si leggerebbero allo stesso modo. Si prende solo ciò che serve a capire
+ * (nome del fornitore e inizio del messaggio), accorciato: mai l'intero corpo.
+ */
+export function dettaglioMetadata(metadata: unknown): string {
+  if (!metadata || typeof metadata !== "object") return "";
+  const m = metadata as Record<string, unknown>;
+  const pezzi: string[] = [];
+  if (typeof m.provider_name === "string" && m.provider_name) pezzi.push(`fornitore ${m.provider_name}`);
+  if (m.raw !== undefined && m.raw !== null) {
+    let grezzo = typeof m.raw === "string" ? m.raw : "";
+    if (grezzo) {
+      // Spesso `raw` è a sua volta un JSON con un campo message: si legge quello.
+      try {
+        const j = JSON.parse(grezzo) as Record<string, unknown>;
+        const interno = (j.error as Record<string, unknown> | undefined)?.message ?? j.message;
+        if (typeof interno === "string") grezzo = interno;
+      } catch {
+        /* non è JSON: si usa il testo */
+      }
+    } else {
+      try {
+        grezzo = JSON.stringify(m.raw);
+      } catch {
+        grezzo = "";
+      }
+    }
+    if (grezzo) pezzi.push(grezzo.replace(/\s+/g, " ").trim().slice(0, 200));
+  }
+  return pezzi.length ? ` [${pezzi.join(": ")}]` : "";
+}
+
+/**
  * Estrae il messaggio utile dal corpo di un errore. Formati noti:
  * Anthropic {error:{type,message}}, OpenAI/OpenRouter {error:{message}}, ElevenLabs {detail:{message}} o {detail:"..."}.
  * Se non è JSON si usa il testo grezzo, accorciato.
@@ -53,7 +87,10 @@ export function messaggioDaCorpo(corpo: string): string {
     const j = JSON.parse(grezzo) as Record<string, unknown>;
     const err = j.error as Record<string, unknown> | string | undefined;
     if (typeof err === "string") return err;
-    if (err && typeof err.message === "string") return typeof err.type === "string" ? `${err.type}: ${err.message}` : err.message;
+    if (err && typeof err.message === "string") {
+      const base = typeof err.type === "string" ? `${err.type}: ${err.message}` : err.message;
+      return base + dettaglioMetadata(err.metadata);
+    }
     const det = j.detail as unknown;
     if (typeof det === "string") return det;
     if (det && typeof det === "object" && !Array.isArray(det) && typeof (det as Record<string, unknown>).message === "string") {

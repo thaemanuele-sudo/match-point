@@ -23,6 +23,16 @@ const tronca = (testo: string, massimo: number): string =>
 
 export type MetodoGiudizio = "valida" | "confronta" | "decisore" | "modello";
 
+/**
+ * Quando il decisore non basta (risponde «non so» oppure va in errore) il giudizio passa al modello giudice
+ * (quello del compito o, in mancanza, il riferimento), come quando il decisore non c'è. `dettaglio` è il
+ * messaggio dell'errore del decisore, già senza chiavi; per «incerto» manca.
+ */
+export type Ripiego = { motivo: "incerto" | "errore"; dettaglio?: string };
+
+/** Tetto di token della risposta del giudice: lascia chiudere il JSON anche con un esito e un punteggio. */
+export const TOKEN_GIUDICE = 500;
+
 const limita = (x: number) => (Number.isFinite(x) ? Math.min(1, Math.max(0, x)) : 0);
 
 /** La richiesta originale in testo semplice: le immagini non si inviano al giudice, si segnalano soltanto. */
@@ -84,6 +94,10 @@ export async function giudica(
     // così chi chiama può contarla. Senza, il comportamento è quello di sempre.
     taratura?: FasciaTaratura[];
     suDecisore?: (dichiarata: number) => void;
+    /** Chiamata quando il decisore ha lasciato il giudizio al modello (incerto o in errore), prima di chiamare il modello. */
+    suRipiego?: (r: Ripiego) => void;
+    /** Tempo massimo per le chiamate del giudizio (decisore e modello), per non superare quello della rotta. */
+    segnale?: AbortSignal;
   },
   r: {
     compito: Compito<any>;
@@ -92,7 +106,7 @@ export async function giudica(
     riferimento: Contenuto;
     candidato: Contenuto;
   },
-): Promise<{ punteggio: number; costo_usd: number; metodo: MetodoGiudizio }> {
+): Promise<{ punteggio: number; costo_usd: number; metodo: MetodoGiudizio; ripiego?: Ripiego }> {
   const { compito } = r;
 
   // 1. Valida: se boccia il candidato non serve altro. Un errore nel validatore su una risposta del candidato
@@ -134,21 +148,36 @@ export async function giudica(
   const nonce = nonceCasuale();
   const corpo = corpoGiudizio(r.messaggi, compito.rubrica, testoA, testoB, nonce);
 
+  // Costo già speso dal decisore prima di passare al modello: si somma, perché è stato pagato.
+  let costoDecisore = 0;
+  let ripiego: Ripiego | undefined;
   if (conDecisore && dip.decisore) {
-    const e = await dip.decisore.sino({
-      contenuto: corpo,
-      // Il decisore non ha le nostre istruzioni di sistema: la regola sui testi non fidati viaggia con la domanda.
-      domanda:
-        `La risposta ${x} è buona almeno quanto la risposta ${y} per questo compito, secondo i criteri indicati? Giudica nella lingua delle risposte. ` +
-        regolaNonFidato(tagGiudizio(nonce)),
-      ragiona: "auto",
-    });
-    // "Non so" = 0,5: nessuna informazione, né a favore né contro il candidato (e niente da tarare).
-    if (e.risposta === null) return { punteggio: 0.5, costo_usd: e.costo_usd, metodo: "decisore" };
-    const dichiarata = limita(e.probabilita);
-    dip.suDecisore?.(dichiarata);
-    const punteggio = dip.taratura ? limita(probabilitaTarata(dip.taratura, dichiarata)) : dichiarata;
-    return { punteggio, costo_usd: e.costo_usd, metodo: "decisore" };
+    try {
+      const e = await dip.decisore.sino({
+        contenuto: corpo,
+        // Il decisore non ha le nostre istruzioni di sistema: la regola sui testi non fidati viaggia con la domanda.
+        domanda:
+          `La risposta ${x} è buona almeno quanto la risposta ${y} per questo compito, secondo i criteri indicati? Giudica nella lingua delle risposte. ` +
+          regolaNonFidato(tagGiudizio(nonce)),
+        ragiona: "auto",
+        segnale: dip.segnale,
+      });
+      costoDecisore = e.costo_usd;
+      if (e.risposta !== null) {
+        const dichiarata = limita(e.probabilita);
+        dip.suDecisore?.(dichiarata);
+        const punteggio = dip.taratura ? limita(probabilitaTarata(dip.taratura, dichiarata)) : dichiarata;
+        return { punteggio, costo_usd: e.costo_usd, metodo: "decisore" };
+      }
+      // «Non so»: il decisore non dà un'informazione né a favore né contro. Dare 0,5 falserebbe la media del
+      // candidato, e buttare la prova sarebbe uno spreco: si chiede al modello giudice.
+      ripiego = { motivo: "incerto" };
+    } catch (err) {
+      // Una chiamata annullata da chi ci ha chiamato (tempo della rotta finito) non si aggira con un'altra chiamata.
+      if (dip.segnale?.aborted) throw err;
+      ripiego = { motivo: "errore", dettaglio: (err instanceof Error ? err.message : String(err)).slice(0, 300) };
+    }
+    dip.suRipiego?.(ripiego);
   }
 
   // Modello giudice: quello indicato dal compito oppure, in mancanza, il riferimento.
@@ -158,7 +187,8 @@ export async function giudica(
   const fornitore = dip.fornitori[modello.fornitore];
   if (!fornitore) throw new Error(`Giudice: fornitore "${modello.fornitore}" non configurato`);
 
-  const risposta = await fornitore.genera({
+  const chiedi = (max_token: number) =>
+    fornitore.genera({
     modello,
     messaggi: [
       { ruolo: "sistema", contenuto: istruzioniGiudice(nonce) },
@@ -184,16 +214,27 @@ export async function giudica(
       additionalProperties: false,
     },
     temperatura: 0,
-    max_token: 200,
+    max_token,
+    segnale: dip.segnale,
   });
-  const costo_usd = costo(modello, risposta.uso);
+  // 500 token bastano di norma a chiudere il JSON; se la risposta arriva comunque troncata si riprova una volta
+  // con il tetto doppio prima di dichiarare la prova non giudicata.
+  let risposta: Awaited<ReturnType<typeof chiedi>>;
+  try {
+    risposta = await chiedi(TOKEN_GIUDICE);
+  } catch (e) {
+    if (!/troncata/.test(e instanceof Error ? e.message : "")) throw e;
+    risposta = await chiedi(TOKEN_GIUDICE * 2);
+  }
+  const costo_usd = costoDecisore + costo(modello, risposta.uso);
   const dati = leggiJson(risposta);
   const esito = dati.esito;
   if (esito !== "pari" && esito !== "migliore" && esito !== "peggiore") {
     throw new Error("Giudice: esito non valido nella risposta del modello");
   }
-  if (esito !== "peggiore") return { punteggio: 1, costo_usd, metodo: "modello" };
+  const extra = ripiego ? { ripiego } : {};
+  if (esito !== "peggiore") return { punteggio: 1, costo_usd, metodo: "modello", ...extra };
   // Peggiore: conta il punteggio dato dal giudice; se manca o non è un numero, il candidato non vale nulla.
   const p = typeof dati.punteggio === "number" ? limita(dati.punteggio) : 0;
-  return { punteggio: p, costo_usd, metodo: "modello" };
+  return { punteggio: p, costo_usd, metodo: "modello", ...extra };
 }
